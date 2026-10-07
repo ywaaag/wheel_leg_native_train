@@ -1,5 +1,55 @@
 # Status
 
+## Entry Semantics Engineering -- 2026-10-07
+
+[本轮局部修复与验证](docs/ENTRY_SEMANTICS_FIX_20261007.md)：明确资源共享授权、
+模型角色、episode结果、event-sized smoke和单一certificate owner；默认首阶段
+握手与formal首更新验证分开。只CPU检查，不启动/恢复/停止训练，不修改当前
+Recovery冻结执行副本、ledger或历史raw评估。下方任务状态以各run终态为准。
+CPU回归387项通过，113个Python文件语法检查通过；历史572项输入SHA未变化。
+plan-only正确拒绝已耗尽预算（BUDGET_EXHAUSTED），输出目录未创建。
+
+## Motion engineering/capability recheck -- 2026-10-07
+
+[Motion独立任务](docs/MOTION_ENGINEERING_RECHECK_20261007.md)：新absolute_v3协议及工程接线修复。
+本轮online/offline optimizer=0。GPU0被其他任务占用，未预留attempt；用户追加GPU1授权，
+一次PPO0评估COMPLETED：9项各8/8通过，1942.31s含清理，在线/离线更新0。
+来源B250的0/±1/±1.5/±2通过；new250的±1.5通过，B250误差更低。
+CPU387 passed。来源B250与new250/new500路径/SHA分别绑定。
+[机器结果](isolated/motion_recheck_20261007/final_gpu1/result.json)及逐项raw/terminal/ledger保留。
+建议B250起点、待学±2.5；prepared v4账本UNAUTHORIZED，plan READY_NEEDS_AUTH。
+不将旧trace重评分当作新训练收益，不续训；本任务评估已退出，未启动PPO。
+
+## Authorized Recovery R0 Holding Experiment -- 2026-10-07
+
+当前已完成复盘见[R0 hold10完成报告](docs/RECOVERY_R0_HOLD10_REVIEW_20261007.md)。
+该复盘记录source/smoke/formal均COMPLETED，formal100更新；新100为0/8，
+source仍优于新候选，不授权续训。以下RUNNING、PID与首更新内容仅为历史启动记录，
+不能用于判断当前进程存活或模型能力；原始run证据优先。
+
+Detached startup verified: source10s COMPLETED/PPO0/71.23455s,8/8 accepted,
+no runtime fault. Smoke COMPLETED10updates/81920samples/136.21032s,
+actor changed, wiring_certificate PASSED/errors[]. Smoke update8 recorded64
+normal10.0s timeouts,0physical failures;64window certificates failed separately.
+Formal single handshake RUNNING/actual1, identity_verified=true/started=true,
+trainer3168977, worker3164611, attempt43e96c5cc5d846779640bbc3edefd3c2.
+These are startup facts, not a completed100-update result. Shared GPU0 explicitly
+allowed by current user; no other process stopped. Background monitor owns full
+evaluations, terminal/accounting/report/current-session notification.
+CPU351passed; plan-only PASS/health OK before AppLauncher. Runtime source/spec/asset
+and frozen execution identities are in the new run. No conversational log polling
+after the formal handshake, no extra PPO/automatic continuation.
+
+Current user approved execution of [R0 continuous10s experiment](docs/RECOVERY_R0_HOLD10_20261007.md).
+[Spec](configs/experiments/recovery_r0_hold10_from50_20261007/spec.json), independent
+local budget.json; output runs/recovery_r0_hold10_from50_20261007.
+Source scissor50 unchanged; success_once0, no early success reset, normal10s
+time limit bootstraps via installed PPO. Full-window online certification,
+R0 cap0, all continuous rewards/physics/PPO/BC unchanged.
+source10s/PPO0 + smoke10 + formal<=100, total<=110updates/901120samples;
+full evaluation25/50/100, no final100s or R1. CPU/preflight/runtime startup
+are reported separately below or in the immutable run evidence. No automatic continuation.
+
 ## Version Control Handoff -- 2026-10-07
 
 [Git workflow and submission scope](docs/GIT_WORKFLOW.md): the repository had no

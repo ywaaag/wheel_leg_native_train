@@ -1,5 +1,16 @@
 # Native closed-chain training
 
+Current engineering entry: [入口、资源与episode语义修复](docs/ENTRY_SEMANTICS_FIX_20261007.md)。
+exclusive/shared、source/best_new/best_overall、提交阶段和formal首更新分别记录。
+工程代码更新不授权运行；现有训练冻结快照与历史证据保持不变。
+
+Motion工程复核入口（2026-10-07）：[新协议、模型身份和PPO0复核](docs/MOTION_ENGINEERING_RECHECK_20261007.md)。
+独立motion授权不改变Recovery；当前物理终态以该新run/ledger为准。
+
+Recovery R0 holding experiment: [冻结配方](docs/RECOVERY_R0_HOLD10_20261007.md)与
+[已完成复盘](docs/RECOVERY_R0_HOLD10_REVIEW_20261007.md)。历史授权已执行，
+不代表当前续训许可；source50和历史结果保持不变，运行状态以run终态为准。
+
 Engineering entry (2026-10-07): [interface/evidence changes](docs/NATIVE_INTERFACE_EVIDENCE_20261007.md).
 Followup: [verified gap closure](docs/NATIVE_INTERFACE_EVIDENCE_FOLLOWUP_20261007.md).
 Read-only health/preflight and offline correction tools are available; this change

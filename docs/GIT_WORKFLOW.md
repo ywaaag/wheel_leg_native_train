@@ -19,6 +19,18 @@
 
 ## 纳入版本控制
 
+### 本次增量提交
+
+本次保存当前工作树中相互依赖的接口修复和已存在的Motion/Recovery实现，
+不是把所有改动归为同一作者或同一次实验。按代码与CPU回归、工具与声明配置、
+文档拆分提交；详细文件清单由各commit提供。现有声明spec保存其原身份和
+授权状态，PREPARED/UNAUTHORIZED不因进入Git而获得执行权限。
+
+新增工程入口见[入口语义修复](ENTRY_SEMANTICS_FIX_20261007.md)。最新CPU回归
+387项通过；此前315项是首次基线的历史结果。113个Python文件语法通过，
+572项历史输入SHA未变化。plan-only正确拒绝已耗尽预算并保持零写入。
+本次只整理文档、验证和本地提交，没有启动任何仿真、PPO或续训。
+
 - `src/`：当前项目唯一 Python 实现，包括 native 运行时、Recovery、协议、gate、
   health、preflight、共享 supervisor/certificate 和默认关闭的选定更新诊断。
 - `tests/` 与源码下的 tests：CPU fixture 和回归，包含协议冲突、时长、RNG、

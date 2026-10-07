@@ -1,5 +1,36 @@
 # Tool index
 
+## Shared Public Entry
+
+[局部入口修复](docs/ENTRY_SEMANTICS_FIX_20261007.md)。新提交使用
+`native_stand.command_v6.supervisor`，默认plan-only。资源默认exclusive，
+shared必须记录明确批准；可选有界握手报告提交/current stage，不能冒充formal通过。
+两个highspeed wrapper仅兼容旧调用并输出DEPRECATED，不推荐作为新入口。
+
+Current task preparation and read-only engineering entries are listed first.
+All date-specific tools below the historical separator are archived references,
+not independent current permissions or recommended new launchers.
+
+## Motion PPO0 capability recheck
+
+[精确命令及协议](docs/MOTION_ENGINEERING_RECHECK_20261007.md)。
+supervisor --evaluation-only默认零写plan；明确授权后--launch才预留独立evaluate attempt，
+共享monitor调用evaluate_checkpoint --batch一次AppLauncher逐项原子保存。
+tools.correct_evidence --protocol-spec消费同一score/gate重新评分历史trace，只写新的审计目录。
+旧capability_v2不改写；新absolute_v3无隐藏80%响应条件，zero使用mean(abs(vx))≤.5。
+后续prepared版本及身份以STATUS和对应spec为准；未授权账本不能提交PPO。
+
+## Current Recovery R0 Holding
+
+docs/RECOVERY_R0_HOLD10_20261007.md records the frozen contract and single submission.
+That experiment has completed; docs/RECOVERY_R0_HOLD10_REVIEW_20261007.md records
+the review. Its old authorization does not permit resubmission or continuation.
+scripts/prepare_recovery_hold.py prepares a fresh identity-checked spec/pose copy/
+independent ledger; --authorize requires the current user's explicit scope.
+Shared supervisor only, CPU tests/plan first; source -> smoke10 -> formal<=100.
+tests/test_recovery_holding.py verifies window scoring/time-limit semantics.
+No repeat of the named submission, no automatic R1 or reuse of old remaining quota.
+
 Version-control entry: [GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md). Commit source,
 tests, declaration configs and docs using explicit paths; ignored run data,
 ledgers and execution snapshots are not submitted. All commands below retain
@@ -20,7 +51,13 @@ launched under applicable authorization. `tools.correct_evidence` and
 `scripts/audit_recovery_survival.py` exclusively create new offline reports.
 All launch descriptions below are historical; terminal evidence overrides them.
 
-## Current survival/level R0 -> R1 chain
+## Historical Experiment Tools
+
+The following old preparation/launch records remain for reproduction and tests.
+In particular prepare_standing_yaw.py and prepare_standing_long.py are historical
+recipe generators; do not choose them as a new public submission entry.
+
+## Historical survival/level R0 -> R1 chain
 
 Exact headless detached command, frozen gates/budget and source identity:
 docs/RECOVERY_SURVIVAL_LEVEL_20261006.md. Existing stand_chain/preflight/monitor

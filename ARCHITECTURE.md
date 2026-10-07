@@ -1,5 +1,21 @@
 # Execution chain
 
+Current engineering contract: [entry/episode semantics](docs/ENTRY_SEMANTICS_FIX_20261007.md).
+Pure resource policy, candidate roles, episode result and execution plan live in
+domain; file/process/GPU reads stay at CLI boundaries. Shared supervisor records
+exclusive/shared authorization and owner snapshot without process-name whitelist.
+Owned phase events distinguish submission/current-stage/formal-update evidence.
+run_phase generates certificate once; all other chain readers validate it.
+Samples derive from frozen PPO dimensions, smoke requirements from event timing.
+Holding window diagnostics are device reductions serialized at update end.
+
+Recovery explicitly opt-in `standing_task.training_episode` uses `recovery/holding.py`
+for streaming full10s gates: steady sums and whole-episode peaks match independent
+scoring. Normal horizon produces timeout/bootstrap; failed posture certification
+does not become a physical fall. Success neither resets early nor selects teacher
+control. Historical specs retain their FSM path. Current authorized R0 contract:
+docs/RECOVERY_R0_HOLD10_20261007.md; no R1 promotion or final100s phase.
+
 ## Current Evidence Interfaces
 
 The current interface contract and CPU/runtime limits are in
@@ -323,3 +339,11 @@ The opt-in warm-start protections and their provenance are documented in
 [docs/COLLEAGUE_ALIGNMENT.md](docs/COLLEAGUE_ALIGNMENT.md). They are disabled
 unless a new experiment spec explicitly sets the PPO fields, so the native
 Recovery and historical runs keep their recorded behavior.
+# Motion absolute-error recheck -- 2026-10-07
+
+严格effective_recipe_version=1通过domain.recipe解析，旧冲突声明作为legacy ignored记录。
+本轮只实现来源实际combined/ramp/global normalization等价表达；不启用split/fixed算法。
+motion_absolute_v3共用score、capability_gate、resolve_gate、completion，保持10–18s/停车26–30s。
+共享supervisor --evaluation-only → monitor → evaluate_checkpoint --batch复用一次AppLauncher，
+每model×command原子保存，monitor在child关闭后结算独立PPO0账本；未启动任何训练。
+详见docs/MOTION_ENGINEERING_RECHECK_20261007.md。

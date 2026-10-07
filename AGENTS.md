@@ -69,6 +69,16 @@ AUTHORIZED field or terminal notification never grants new simulation permission
 
 ## Git and Documentation
 
+New submission interfaces are documented in `docs/ENTRY_SEMANTICS_FIX_20261007.md`.
+Default GPU ownership is exclusive; shared mode requires a recorded explicit user
+authorization note. Never exempt owners merely by process name or treat sharing as
+training authorization. Distinguish submitted/current stage from verified formal
+first update. Certificate readers validate only; the phase owner writes evidence.
+Use canonical model roles; a source may be best overall but never best new.
+Episode certificate failure, physical termination, time-limit truncation and
+runtime fault are separate facts. Required smoke duration comes from the frozen
+event declaration; insufficient sampling cannot be fixed by silently raising budget.
+
 Follow `docs/GIT_WORKFLOW.md`. Version current source, tests, scripts, declaration
 configs and documentation. Keep `runs/`, `isolated/`, USD/assets, checkpoint
 binaries, mutable ledgers/budgets, submission records and frozen execution copies
