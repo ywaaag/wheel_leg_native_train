@@ -1,5 +1,7 @@
 # Status
 
+新会话操作入口：[CODEX_START_HERE](docs/CODEX_START_HERE.md)。本页各条运行状态属于记录时刻，最新事实以对应 run 的原始证据为准。
+
 工程摘要入口：[ENGINEERING_STATUS](docs/ENGINEERING_STATUS.md)。最近完整CPU验证为
 435项通过；下面415/423等数值属于对应阶段历史检查，不相互替代。
 本次仅文档/版本整理，未查看进程或轮询训练日志；下方启动记录不证明当前存活。

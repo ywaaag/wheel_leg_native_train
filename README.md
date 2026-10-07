@@ -1,5 +1,7 @@
 # Native closed-chain training
 
+新 Codex 会话先读：[入口、用法与授权边界](docs/CODEX_START_HERE.md)。历史“当前”记录不代表实时进程状态。
+
 当前工程总入口：[工程状态与剩余缺口](docs/ENGINEERING_STATUS.md)。
 近期验证435项CPU通过；工程接口与历史训练事实分别记录，提交不授予运行权限。
 

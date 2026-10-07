@@ -1,5 +1,7 @@
 # Current Tool Index
 
+首次使用请读：[新 Codex 会话入口与命令用法](docs/CODEX_START_HERE.md)。公开提交只用 supervisor；旧 preparer 不作通用入口。
+
 [当前工程能力、验证边界和剩余缺口](docs/ENGINEERING_STATUS.md)。工具可调用
 不代表已授权；准备器、恢复发布和通知命令均有写入/发送边界，不能泛称只读。
 
