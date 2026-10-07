@@ -35,6 +35,8 @@ def finish(output, session):
     return notify(output)
 
 def main():
+    from native_stand.command_v6.tools.entrypoints import historical_cli_guard
+    historical_cli_guard('scripts/watch_recovery_submission.py')
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output-dir',type=Path,required=True)
     p.add_argument('--hapi-session',required=True)

@@ -15,6 +15,8 @@ def sha(path):
 
 
 def main():
+    from native_stand.command_v6.tools.entrypoints import historical_cli_guard
+    historical_cli_guard('scripts/create_motion_retention_ab_20261006.py')
     if OUT.exists():
         raise FileExistsError(OUT)
     source = json.loads(BASE.read_text())

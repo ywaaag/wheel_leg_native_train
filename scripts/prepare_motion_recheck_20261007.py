@@ -76,7 +76,10 @@ def prepare(destination,physical_gpu=0):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
+    from native_stand.command_v6.tools.entrypoints import add_historical_option,require_historical_option
+    add_historical_option(parser)
     parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--physical-gpu',type=int,choices=(0,1),default=0)
     args=parser.parse_args()
+    require_historical_option(parser,args)
     prepare(args.output_dir,args.physical_gpu)

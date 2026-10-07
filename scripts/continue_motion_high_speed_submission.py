@@ -1,4 +1,4 @@
-"""Compatibility entry for the shared owned-child supervisor; no external PID wait."""
+"""Deprecated entry; print migration information only, never wait or submit."""
 
 
 def main():
@@ -6,8 +6,7 @@ def main():
     print('DEPRECATED: use python -m native_stand.command_v6.supervisor; no external-PID continuation is supported.',file=sys.stderr)
     # Old external-PID continuation is unsafe after PID reuse. The public
     # supervisor owns source/smoke/formal children and defaults to plan-only.
-    from native_stand.command_v6.supervisor import main as supervise
-    return supervise()
+    return 2
 
 
 if __name__=='__main__':

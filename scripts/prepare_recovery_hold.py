@@ -76,11 +76,14 @@ def prepare(parent, output, *, session, authorize=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    from native_stand.command_v6.tools.entrypoints import add_historical_option,require_historical_option
+    add_historical_option(parser)
     parser.add_argument('--parent',type=Path,required=True)
     parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--hapi-session',required=True)
     parser.add_argument('--authorize',action='store_true')
     args = parser.parse_args()
+    require_historical_option(parser,args)
     spec = prepare(args.parent,args.output_dir,session=args.hapi_session,authorize=args.authorize)
     print(json.dumps({'spec':str(args.output_dir/'spec.json'),'authorization':bool(args.authorize),
                       'simulation':0,'ppo':0,'sample_limit':spec['budget']['sample_limit']}))

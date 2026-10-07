@@ -9,6 +9,8 @@ def sha(p):
   for b in iter(lambda:f.read(1<<20),b''): h.update(b)
  return h.hexdigest()
 def main():
+ from native_stand.command_v6.tools.entrypoints import historical_cli_guard
+ historical_cli_guard('scripts/create_retention_spec.py')
  if OUT.exists(): raise FileExistsError(OUT)
  s=json.loads(BASE.read_text()); s['experiment']='motion_retention_20261005'
  s['source_checkpoint']=str(ROOT/'runs/motion_overnight_20261005_retry2/formal/model_update_50.pt')

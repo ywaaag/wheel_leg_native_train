@@ -80,9 +80,12 @@ def prepare(source_spec,destination,checkpoint=None,initial_stage=3):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
+    from native_stand.command_v6.tools.entrypoints import add_historical_option,require_historical_option
+    add_historical_option(parser)
     parser.add_argument('--source-spec',type=Path,required=True)
     parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--checkpoint',type=Path)
     parser.add_argument('--initial-stage',type=int,default=3)
     args=parser.parse_args()
+    require_historical_option(parser,args)
     prepare(args.source_spec,args.output_dir,args.checkpoint,args.initial_stage)

@@ -66,9 +66,12 @@ def review_episode(episode, config):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
+    from native_stand.command_v6.tools.entrypoints import add_historical_option,require_historical_option
+    add_historical_option(p)
     p.add_argument('--run',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
     a=p.parse_args()
+    require_historical_option(p,a)
     spec_path=a.run/'source_snapshot/spec.json'
     spec=json.loads(spec_path.read_text())
     result={'run':str(a.run.resolve()),'spec_sha256':hashlib.sha256(spec_path.read_bytes()).hexdigest(),

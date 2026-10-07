@@ -173,11 +173,14 @@ def report(output,physical_run=None):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
+    from native_stand.command_v6.tools.entrypoints import add_historical_option,require_historical_option
+    add_historical_option(parser)
     parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--physical-run',type=Path)
     parser.add_argument('--wait-for-pid',type=int,
         help='Background report delivery: wait for the exact monitor exit through pidfd, without log polling.')
     args=parser.parse_args()
+    require_historical_option(parser,args)
     if args.wait_for_pid is not None:
         wait_monitor(args.wait_for_pid)
     report(args.output_dir,args.physical_run)
