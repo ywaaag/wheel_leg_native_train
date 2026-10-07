@@ -1,4 +1,4 @@
-"""Bounded foreground source/smoke preparation; formal uses existing detached launcher."""
+"""Retired historical source/smoke driver; use the explicit shared supervisor."""
 import json
 import os
 import time
@@ -13,6 +13,8 @@ RUN=ROOT/'runs/motion_high_speed_course_20261007'
 
 
 def main():
+    from native_stand.command_v6.tools.entrypoints import historical_cli_guard
+    historical_cli_guard('scripts/run_motion_high_speed_preparation.py')
     assert os.environ.get('CUDA_VISIBLE_DEVICES')=='1', 'physical GPU1 required'
     assert os.environ.get('HAPI_SESSION_ID')==read(SPEC.with_name('course_config.json'))['hapi_session']
     RUN.mkdir(exist_ok=False)

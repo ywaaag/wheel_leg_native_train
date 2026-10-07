@@ -17,6 +17,8 @@ def sha(path):
     return h.hexdigest()
 
 def main():
+    from native_stand.command_v6.tools.entrypoints import historical_cli_guard
+    historical_cli_guard('scripts/prepare_motion_endpoint_20261005.py')
     if DEST.exists() or OUTPUT.exists():
         raise FileExistsError("new endpoint experiment identity already exists")
     spec = json.loads(BASE.read_text())

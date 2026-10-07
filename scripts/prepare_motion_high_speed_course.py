@@ -22,6 +22,10 @@ def stage(index,target,previous):
         'schedule_s':[1.,2.,24.,2.],'episode_length_s':31.}
 
 def main():
+    from native_stand.command_v6.tools.entrypoints import historical_cli_guard
+    historical_cli_guard('scripts/prepare_motion_high_speed_course.py')
+    if OUT.exists():
+        raise FileExistsError('historical course directory exists; refusing to overwrite spec or ledger')
     if hashlib.sha256(SOURCE.read_bytes()).hexdigest()!=SOURCE_SHA: raise ValueError('B250 SHA mismatch')
     if not OUT.exists(): OUT.mkdir()
     base=json.loads(BASE.read_text())
