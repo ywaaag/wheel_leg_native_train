@@ -198,12 +198,14 @@ def test_gpu_physical_uuid_inventory(monkeypatch):
     calls=[]
     def query(command,**kwargs):
         calls.append(command)
-        return Result('0, GPU-zero, device zero\n1, GPU-one, device one\n' if '--query-gpu=index,uuid,name' in command
+        return Result('0, GPU-zero, device zero, 16384, 1024, 5\n1, GPU-one, device one, 24576, 2048, 10\n' if any(arg.startswith('--query-gpu=index,uuid,name') for arg in command)
             else '7, GPU-one, trainer, 1024\n')
     monkeypatch.setattr(health.subprocess,'run',query)
     result=health.gpu_snapshot()
     assert result['devices'][1]['uuid']=='GPU-one'
     assert result['compute_processes'][0]['pid']==7
+    assert result['devices'][1]['memory_used_mib']=='2048'
+    assert result['devices'][1]['utilization_percent']=='10'
     assert len(calls)==2
 
 

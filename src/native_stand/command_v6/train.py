@@ -80,6 +80,7 @@ def _snapshot(output,spec_path):
            "domain_reward.py":ROOT/"domain/reward.py",
            "tracking_width.py":ROOT/"domain/tracking_width.py",
            "domain_metrics.py":ROOT/"domain/metrics.py",
+           "episode_summary.py":ROOT/'domain/episode_summary.py',
            "episode_curriculum.py":ROOT/'domain/episode_curriculum.py',
            "task_curriculum.py":ROOT/'domain/task_curriculum.py',
            "domain_protocol.py":ROOT/"domain/protocol.py",
@@ -179,7 +180,7 @@ def main():
             digest(ROOT/'tools/evaluation_state.py')+
             digest(ROOT/'tools/evaluate_checkpoint.py')+
             (''.join(digest(ROOT.parent/'recovery'/name) for name in
-                ('recipe.py','domain.py','standing.py','selection.py'))
+                ('recipe.py','domain.py','standing.py','selection.py',*(['rising.py'] if spec['recovery'].get('rising_task') else [])))
              if spec.get('recovery',{}).get('standing_task') else '')).encode()).hexdigest()
         eval_identity=evaluation_identity(spec,evaluator_sha)
         book=json.loads(args.spec.with_name('budget.json').read_text())
@@ -218,6 +219,11 @@ def main():
             from native_stand.recovery.standing import StandingRegression
             standing_regression=StandingRegression(confirmed=bool(
                 choose(baseline_registry,None,eval_identity)['accepted_candidate']))
+            if spec['recovery'].get('rising_task'):
+                standing_regression.confirmed=any(
+                    row.get('result',{}).get('retained_evaluations') and
+                    all(item.get('accepted') for item in row['result']['retained_evaluations'])
+                    for row in baseline_registry)
         _write(output/'candidate_registry.json',registry)
         _write(output/"progress.json",progress)
         progress["stage"]="app_launcher"
@@ -288,7 +294,7 @@ def main():
                         'trainer_pid':os.getpid(),'actual_updates':0,
                         'stage':'source_evaluation','physics_steps':1,'output_dir':str(output.resolve())})
             result=evaluate_actor(actor,wrapped,env,target=(0.,0.),
-                seconds=evaluation_seconds(spec,full=True) if spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3') else 10.,
+                seconds=evaluation_seconds(spec,full=True) if spec.get('recovery',{}).get('rising_task') or spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3') else 10.,
                 full_trace=True,seed=spec["evaluation"]["seed"],
                 scored_envs=spec["evaluation"]["scored_envs"],
                 target_window=spec["evaluation"]["steady_window_s"],
@@ -381,6 +387,7 @@ def main():
                     max_samples=stand_retention_cfg['max_samples_per_rollout'],max_grad_norm=1.,
                     schedule=stand_retention_cfg.get('schedule'),
                     channels=stand_retention_cfg.get('channels','all'),
+                    sample_selection=stand_retention_cfg.get('sample_selection','first'),
                     gradient_diagnostics=stand_retention_cfg.get('gradient_diagnostics',False),
                     save_gradient_updates=stand_retention_cfg.get('save_gradient_updates',[]))
                 ppo.optimizer.register_step_pre_hook(standing_retention.before_step)
@@ -480,14 +487,17 @@ def main():
                         diagnostics_selected and diagnostic_config.get('record_retention_summary',False))
                 inference_host_s=0.
                 with torch.inference_mode():
-                    for _ in range(spec["ppo"]["steps_per_env"]):
+                    for rollout_step in range(spec["ppo"]["steps_per_env"]):
                         t=time.monotonic()
                         if standing_retention is not None:
                             eligible=((env.command[:,:2]==0.).all(-1) &
                                 (env.root_height>=stand_retention_cfg['height_min_m']) &
                                 (env.root_height<=stand_retention_cfg['height_max_m']) &
                                 env.initialization_checked)
-                            metadata=(torch.cat((env.episode_length_buf[:,None]*env.step_dt,env.command[:,:2]),-1)
+                            metadata=(torch.cat((env.episode_length_buf[:,None]*env.step_dt,env.command[:,:2],
+                                torch.arange(env.num_envs,device=env.device)[:,None],env.reset_count[:,None],
+                                env.initial_pose_index[:,None],
+                                torch.full((env.num_envs,1),rollout_step,device=env.device)),-1)
                                 if diagnostics_selected and diagnostic_config.get('record_retention_summary') else None)
                             standing_retention.capture(obs,eligible,metadata=metadata)
                         action=ppo.act(obs)
@@ -567,6 +577,10 @@ def main():
                             'commands':(torch.unique(metadata[:,1:3],dim=0).cpu().tolist() if metadata is not None else None),
                             'channel_mse':standing_retention.channel_error.cpu().tolist() if standing_retention.channel_error is not None else None,
                             'gradient_comparison':standing_retention.summary().get('gradient_comparison')}
+                        from native_stand.command_v6.domain.selected_diagnostics import retention_coverage
+                        retention_summary['coverage']=retention_coverage(metadata,
+                            eligible=retention_summary['eligible'],total=standing_retention.samples,
+                            rollout_steps=spec['ppo']['steps_per_env'],poses=env.pose_library['poses'])
                     elif retention_cfg and retention_cfg.get('enabled') and diagnostic_config.get('record_retention_summary'):
                         with torch.no_grad():
                             from tensordict import TensorDict

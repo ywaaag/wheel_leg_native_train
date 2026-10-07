@@ -230,4 +230,5 @@ def test_episode_summary_uses_fixed_shape_done_mask():
             {'tilt':torch.zeros(2,dtype=torch.bool)},torch.ones(2,2,dtype=torch.bool),
             torch.zeros(2,4),torch.zeros(2,6),[40,40,5.5,40,40,5.5],
             torch.tensor([2.,5.],dtype=torch.float64),done)
-    assert metrics.summary()['episodes']=={'completed':1,'mean_duration_s':2.,'max_duration_s':2.}
+    assert metrics.summary()['episodes']=={'schema_version':1,'completed':1,'completed_episodes':1,
+                                           'mean_duration_s':2.,'max_duration_s':2.}

@@ -41,6 +41,34 @@ def storage_summary(storage):
     return result
 
 
+def retention_coverage(metadata, *, eligible, total, rollout_steps, poses=None):
+    """Selected on-policy sample coverage; diagnostics only, not a balancing rule."""
+    selected = 0 if metadata is None else len(metadata)
+    result = {'eligible_count':eligible, 'selected_count':selected,
+              'discarded':{'ineligible_mask':None if eligible is None else total-eligible,
+                           'sample_limit_or_selection':None if eligible is None else eligible-selected},
+              'discard_reason_scope':'mask false; individual eligibility predicates not recorded',
+              'per_episode':None,'per_pose':None,'per_family':None,'rollout_position_histogram':None}
+    if metadata is None or metadata.shape[1] < 7:
+        result['missing_reason']='episode/pose/rollout-position metadata not captured'
+        return result
+    pairs, counts = torch.unique(metadata[:,3:5].long(),dim=0,return_counts=True)
+    result['per_episode']=[{'env_id':key[0],'reset_count':key[1],'sample_count':count}
+                          for key,count in zip(pairs.cpu().tolist(),counts.cpu().tolist())]
+    ids, counts = torch.unique(metadata[:,5].long(),return_counts=True)
+    families={}
+    result['per_pose']=[]
+    for index,count in zip(ids.cpu().tolist(),counts.cpu().tolist()):
+        pose=(poses or [])[index] if poses is not None and 0<=index<len(poses) else {}
+        result['per_pose'].append({'pose_index':index,'pose_id':pose.get('pose_id'),'sample_count':count})
+        if 'family' in pose:families[pose['family']]=families.get(pose['family'],0)+count
+    result['per_family']=families or None
+    bins=(metadata[:,6]*10/max(1,rollout_steps)).long().clamp(0,9)
+    result['rollout_position_histogram']={'bins':10,'sample_counts':torch.bincount(bins,minlength=10).cpu().tolist(),
+        'scope':'pre-action rollout step index divided by frozen rollout length'}
+    return result
+
+
 def command_phase_summary(storage, targets, ages, schedule, normalization):
     """Recorded transition counts, not reset command assignment counts."""
     targets=torch.stack(targets).detach()

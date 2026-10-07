@@ -153,7 +153,20 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
                     same_spec = (Path(evidence_spec).is_file() and
                         digest(Path(evidence_spec)) == manifest.get('spec_sha256') and
                         reusable_spec(evidence_spec, spec))
-                valid |= (same_spec and
+                valid_rising=(bool(spec['recovery'].get('rising_task')) and
+                    result.get('effective_protocol',{}).get('protocol_identity')=='autonomous_rise_v1' and
+                    result.get('effective_protocol',{}).get('recovery_deadline_s')==11.5 and
+                    result.get('effective_protocol',{}).get('post_rise_hold_s')==10. and
+                    len(result.get('per_env',[]))==8 and all(
+                        p.get('initial_valid') and not p.get('runtime_fault') and
+                        p.get('outcome') in ('success','task_failure') for p in result['per_env']))
+                if valid_rising:
+                    from native_stand.command_v6.domain.evidence import resolve_gate
+                    from native_stand.command_v6.tools.evaluate_checkpoint import protocol_for_spec
+                    valid_rising=resolve_gate(result,'recovery',expected_envs=8,
+                        expected_protocol=protocol_for_spec(spec,spec['evaluation']['seconds']))['candidate_eligible']
+                valid |= (same_spec and result.get('checkpoint_sha256')==spec['source_sha256'] and valid_rising)
+                valid |= (not spec['recovery'].get('rising_task') and same_spec and
                     result.get('checkpoint_sha256')==spec['source_sha256'] and
                     all(result.get('success_protocol',{}).get('standing_protocol',{}).get(key)==value
                         for key,value in spec['recovery']['standing_task']['protocol'].items()) and

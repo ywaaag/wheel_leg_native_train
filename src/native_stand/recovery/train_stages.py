@@ -10,11 +10,15 @@ from native_stand.command_v6.launcher import launch
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
+    from native_stand.command_v6.tools.entrypoints import add_historical_option,require_historical_option
+    add_historical_option(p)
     p.add_argument('--spec',type=Path,required=True)
     p.add_argument('--output-dir',type=Path,required=True)
     p.add_argument('--hapi-session',required=True)
     p.add_argument('--tensorboard-logdir',type=Path)
-    a=p.parse_args();a.output_dir.mkdir(exist_ok=False,parents=True)
+    a=p.parse_args()
+    require_historical_option(p,a)
+    a.output_dir.mkdir(exist_ok=False,parents=True)
     spec=json.loads(a.spec.read_text())
     formal_wall=spec['budget']['formal_wall_s']
     deadline=(time.monotonic()+spec['budget']['smoke_wall_s']+formal_wall+60) if formal_wall is not None else float('inf')

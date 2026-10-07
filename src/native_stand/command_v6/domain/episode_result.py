@@ -23,6 +23,16 @@ def recovery_episode_mode(config):
 
 def requires_stand(config):
     """Declared historical dependencies keep their existing identity checks."""
+    explicit = config.get('requires_stand')
+    if explicit is not None:
+        if type(explicit) is not bool:
+            raise ValueError('requires_stand must be an explicit boolean')
+        if explicit is False:
+            if recovery_episode_mode(config) != 'continuous_holding':
+                raise ValueError('requires_stand=false only supports continuous_holding')
+            if any(name in config for name in STAND_DEPENDENCY_FIELDS):
+                raise ValueError('requires_stand=false conflicts with declared STAND dependencies')
+        return explicit
     return (recovery_episode_mode(config) != 'continuous_holding' or
             any(name in config for name in STAND_DEPENDENCY_FIELDS))
 

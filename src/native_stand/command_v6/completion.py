@@ -44,6 +44,21 @@ def read_metrics(path):
     return rows, issues
 
 
+def compact_report_value(value, key=''):
+    """Presentation-only reduction; raw evidence/analysis remain untouched."""
+    if isinstance(value,(dict,list)) and any(word in key.lower() for word in
+            ('trace','diagnostics_100hz','geometry_100hz','control_rows')):
+        return {'omitted_from_markdown':True,'raw_evidence_key':key,
+                'item_count':len(value),'reason':'link raw evaluation instead of embedding arrays'}
+    if isinstance(value,dict):
+        return {name:compact_report_value(item,name) for name,item in value.items()}
+    if isinstance(value,list):
+        if len(value)>64:
+            return {'omitted_from_markdown':True,'raw_evidence_key':key,'item_count':len(value)}
+        return [compact_report_value(item,key) for item in value]
+    return value
+
+
 def plan(spec, phase):
     from .config import schedule
     updates = 0 if phase == 'source_eval' else spec['budget'][phase + '_updates']
@@ -337,7 +352,7 @@ def finalize_report(run, exit_code=None):
             for row in entry['per_env']:
                 failures=next((check['failed_checks'] for check in (entry.get('gate') or {}).get('per_env',[])
                                if check['env_id']==row['env_id']),[])
-                report.append(json.dumps({**row,'failed_checks':failures}))
+                report.append(json.dumps(compact_report_value({**row,'failed_checks':failures})))
         report += ['Missing values are unknown, never zero. Drift alone does not prove a reward defect.',
                    'Read analysis.json and candidate_selection.json for gates and identities. This report does not authorize more training.']
         (run/'completion_report.md').write_text('\n\n'.join(report)+'\n')

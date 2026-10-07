@@ -71,3 +71,14 @@ def test_high_speed_recipe_never_overwrites_existing_directory(monkeypatch, tmp_
     with pytest.raises(FileExistsError):
         module.main()
     assert old.read_text() == 'immutable old spec'
+
+
+@pytest.mark.parametrize('name',['submit_motion_high_speed_formal','continue_motion_high_speed_submission'])
+def test_deprecated_wrapper_only_prints_and_never_forwards(name, monkeypatch, capsys):
+    module_spec=importlib.util.spec_from_file_location(name,ROOT/'scripts'/(name+'.py'))
+    module=importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    import native_stand.command_v6.supervisor as supervisor
+    monkeypatch.setattr(supervisor,'main',lambda:pytest.fail('deprecated wrapper forwarded submission'))
+    assert module.main()==2
+    assert 'DEPRECATED' in capsys.readouterr().err

@@ -18,6 +18,8 @@ class RecoveryEnv(CommandEnv):
         self.recovery_config=recovery_config
         self.episode_mode=recovery_episode_mode(recovery_config)
         self.pose_library=pose_library
+        from native_stand.recovery.task_protocol import resolve as task_protocol
+        self.effective_task_protocol=task_protocol(recovery_config)
         self.initialization_only=initialization_only
         if stand_policy is None and self.episode_mode!='continuous_holding':
             raise ValueError('Recovery handover/autonomous_hold requires frozen STAND dependency')
@@ -72,6 +74,8 @@ class RecoveryEnv(CommandEnv):
         self.initial_accepts=torch.zeros_like(self.initial_attempts)
         self.initial_rejects=torch.zeros_like(self.initial_attempts)
         self.rollout_events=torch.zeros(7,device=self.device,dtype=torch.long)
+        from native_stand.recovery.episode_metrics import PoseEpisodeMetrics
+        self.pose_episode_metrics=PoseEpisodeMetrics(pose_library['poses'],self.device)
         self.split='train'
         self.family=recovery_config['active_family']
         curriculum=recovery_config.get('curriculum',{})
@@ -137,6 +141,9 @@ class RecoveryEnv(CommandEnv):
             self.episode_stage[ids]=self.reverse_curriculum.stage
         retained=()
         fraction=0.
+        if self.curriculum_training and self.recovery_config.get('rising_task'):
+            retained=self.recovery_config['rising_task']['retained_families']
+            fraction=self.recovery_config['rising_task']['retained_fraction']
         if self.curriculum_training and self.reverse_curriculum is not None and self.reverse_curriculum.stage:
             stage_config=self.recovery_config['curriculum']['levels'][self.reverse_curriculum.stage]
             retained=stage_config.get('retained_families',())
@@ -146,7 +153,9 @@ class RecoveryEnv(CommandEnv):
         if not eligible:
             raise RuntimeError('No valid initial poses; rejected candidates remain in library')
         candidates=torch.tensor(eligible,device=self.device)
-        if self.recovery_config.get('standing_task'):
+        if self.split=='holdout' and self.recovery_config.get('holdout_sampling')=='balanced_pose_cycle':
+            choice=candidates[ids % len(candidates)]
+        elif self.recovery_config.get('standing_task'):
             weights=torch.tensor(weights,device=self.device)
             choice=candidates[torch.multinomial(weights,len(ids),replacement=True)]
         else:
@@ -186,7 +195,7 @@ class RecoveryEnv(CommandEnv):
     def _pre_physics_step(self,actions):
         super()._pre_physics_step(actions)
         student_legs=self.leg_target.clone();student_wheels=self.wheel_target.clone()
-        if self.episode_mode=='continuous_holding':
+        if self.episode_mode=='continuous_holding' or self.recovery_config.get('rising_task'):
             # This task never hands control to STAND. Its checkpoint identity is
             # still validated at assembly, but no unused forward runs each step.
             legs,wheels=student_legs,student_wheels
@@ -403,6 +412,10 @@ class RecoveryEnv(CommandEnv):
         certificate_evaluated=(timeout if self.holding_episode is not None and not self.continuous_evaluation
                                else pulse|terminated)
         self.episode_result_snapshot.copy_(torch.stack((terminated,timeout,pulse,fault,certificate_evaluated),-1))
+        if self.curriculum_training and not self.continuous_evaluation:
+            self.pose_episode_metrics.observe(self.initial_pose_index,done=terminated|timeout,
+                success=pulse,timeout=timeout,fault=fault,initial_valid=self.initialization_checked,
+                duration=self.episode_length_buf.float()*self.step_dt)
         if self.holding_episode is not None and not self.continuous_evaluation:
             self.holding_episode.record_outcomes(terminated=terminated,truncated=timeout,fault=fault)
         if self.reverse_curriculum is not None and self.curriculum_training:
@@ -498,6 +511,7 @@ class RecoveryEnv(CommandEnv):
 
     def begin_task_rollout(self):
         self.rollout_events.zero_()
+        self.pose_episode_metrics.reset()
         self.holding_rollout_counts.zero_()
         if self.holding_episode is not None:
             self.holding_episode.begin_rollout()
@@ -530,6 +544,8 @@ class RecoveryEnv(CommandEnv):
             'complete_successes','task_failures','runtime_faults','initial_rejections')
         height=(self.height_stats/self.height_count.clamp_min(1)).cpu().tolist()
         return {'counts':dict(zip(names,self.rollout_events.cpu().tolist())),
+            'episode_summary_version':1,'episodes_by_pose':self.pose_episode_metrics.summary(),
+            'effective_task_protocol':self.effective_task_protocol,
             'motion':dict(zip(('mean_height_m','mean_abs_height_error_m','mean_linear_speed_mps'),height)),
             'reverse_curriculum':self.reverse_curriculum.state() if self.reverse_curriculum else None,
             'leg_pair_projection_enabled':False,
@@ -538,7 +554,7 @@ class RecoveryEnv(CommandEnv):
             'success_requires_frozen_stand_5s':self.fsm.config.get('success_mode')!='autonomous_hold',
             'success_mode':self.fsm.config.get('success_mode','handover'),
             'episode_mode':self.episode_mode,
-            'teacher_forward_enabled':self.episode_mode!='continuous_holding',
+            'teacher_forward_enabled':self.episode_mode!='continuous_holding' and not bool(self.recovery_config.get('rising_task')),
             'required_stable_s':None if self.holding_episode is not None else self.fsm.config['verify_s'],
             'training_episode':({
                 'mode':'fixed_horizon','seconds':self.holding_episode.protocol['seconds'],

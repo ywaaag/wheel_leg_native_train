@@ -1,5 +1,6 @@
 """Device-side rollout aggregates; one host transfer per update."""
 import torch
+from .episode_summary import build as episode_summary
 
 
 class RolloutMetrics:
@@ -58,9 +59,9 @@ class RolloutMetrics:
                 "dual_contact_fraction":packed[2*n+m],
                 "saturation_fraction":packed[2*n+m+1],
                 "closure_max_m":packed[2*n+m+2],
-                "episodes":{"completed":int(packed[2*n+m+3]),
-                    "mean_duration_s":packed[2*n+m+4]/packed[2*n+m+3] if packed[2*n+m+3] else None,
-                    "max_duration_s":packed[2*n+m+5] if packed[2*n+m+3] else None},
+                "episodes":episode_summary(int(packed[2*n+m+3]),
+                    packed[2*n+m+4]/packed[2*n+m+3] if packed[2*n+m+3] else None,
+                    packed[2*n+m+5] if packed[2*n+m+3] else None),
                 'motion':dict(zip(('mean_abs_vx_mps','mean_abs_yaw_rad_s','mean_height_m',
                     'mean_tilt_rad','mean_episode_excursion_m','peak_tilt_rad','max_episode_excursion_m'),
                     packed[2*n+m+6:])) if self.motion_samples else None}

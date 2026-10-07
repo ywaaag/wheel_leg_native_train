@@ -24,6 +24,7 @@ runs/*
 /configs/**/candidate_review*.json
 /configs/**/source_snapshot/
 /configs/**/execution_snapshot/
+/configs/experiments/.engineering_recovery_publications/
 
 # Local credentials and editor state are not project source.
 .env

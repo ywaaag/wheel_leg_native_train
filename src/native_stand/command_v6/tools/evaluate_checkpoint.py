@@ -27,6 +27,9 @@ def protocol_for_spec(spec,seconds,diagnostics=False):
     recovery=spec.get('task')=='recovery'
     source=(spec.get('recovery',{}).get('standing_task',{}).get('protocol',{})
             if recovery else spec['evaluation'])
+    if recovery and spec['recovery'].get('rising_task'):
+        from native_stand.recovery.rising import rise_protocol
+        source=rise_protocol(source,spec['recovery']['rising_task'])
     if source:source={**source,'seconds':max(source.get('seconds',seconds),seconds)}
     window=list(source.get('steady_window_s',[.5,seconds]))
     if seconds==spec['evaluation'].get('durability_seconds'):
@@ -42,6 +45,13 @@ def protocol_for_spec(spec,seconds,diagnostics=False):
         parking_window_s=None if recovery else source.get('parking_window_s',
             [seconds-source['stop_window_s'],seconds] if source.get('stop_window_s',0)>0 else None),
         termination_semantics='first_episode_pre_reset; early termination fails continuous window')
+
+
+def validate_evaluation_request(spec, request):
+    """Reject cross-family fields before an evaluator constructs an environment."""
+    from native_stand.command_v6.tools import motion_batch, recovery_batch
+    adapter = recovery_batch if spec.get('task')=='recovery' else motion_batch
+    return adapter.validate_request(spec,request)
 
 
 @isolated_evaluation
@@ -319,6 +329,7 @@ def batch_plan(args, spec):
         raise ValueError('batch evaluation requires explicit effective recipe and requests')
     planned=[]
     for row in requests:
+        row=validate_evaluation_request(spec, row)
         path=Path(row['checkpoint'])
         info=inspect(path,spec,args.spec)
         if info['checkpoint_sha256'] != row['sha256']:
@@ -326,7 +337,12 @@ def batch_plan(args, spec):
         target=row['target']
         if len(target)!=2 or not all(__import__('math').isfinite(v) for v in target):
             raise ValueError('invalid batch target')
-        planned.append({**row,**info,'effective_protocol':protocol_for_spec(effective_spec,30.,True)})
+        seconds=row.get('seconds',10. if spec.get('task')=='recovery' else 30.)
+        if spec.get('task')=='recovery':
+            families={p['family'] for p in json.loads(Path(spec['recovery']['pose_library']).read_text())['poses']}
+            if row.get('family') not in families or target!=[0,0] or seconds!=10.:
+                raise ValueError('Recovery batch requires known family,zero target,10s')
+        planned.append({**row,**info,'effective_protocol':protocol_for_spec(effective_spec,seconds,True)})
     return {'preflight':preflight,'requested':spec,'effective_recipe':recipe,
             'execution_identity':preflight['execution_identity'],'requests':planned,
             'simulation':0,'online_PPO':0,'offline_optimizer_updates':0,'files_written':0}
@@ -383,9 +399,13 @@ def evaluate_batch(args, spec):
         effective_spec,_=resolve(spec)
         cfg=apply(CommandEnvCfg(),effective_spec,envs=spec['evaluation']['envs'])
         cfg.sim.device='cuda:0'
-        env=CommandEnv(cfg,stage=spec['curriculum']['stages'][spec['curriculum']['active_stage']],
-            command_height=spec['control']['height_command_m'],reward_config=effective_spec['reward'],
-            schedule_s=spec['curriculum']['schedule_s'])
+        if spec.get('task')=='recovery':
+            from native_stand.recovery.recipe import environment
+            env=environment(cfg,effective_spec)
+        else:
+            env=CommandEnv(cfg,stage=spec['curriculum']['stages'][spec['curriculum']['active_stage']],
+                command_height=spec['control']['height_command_m'],reward_config=effective_spec['reward'],
+                schedule_s=spec['curriculum']['schedule_s'])
         readback={'asset':verify_asset_import(spec),'control':verify(env),'ground':verify_ground(env,spec),
                   'reward':env.reward_config,'schedule_s':env.schedule_s,'device':str(env.device)}
         write(args.output/'runtime_readback.json',readback)
@@ -402,11 +422,17 @@ def evaluate_batch(args, spec):
             saved=torch.load(row['checkpoint'],map_location='cpu',weights_only=False)
             actor.load_state_dict(saved['actor'],strict=True)
             item_start=time.monotonic()
-            result=evaluate_actor(actor,wrapped,env,target=tuple(row['target']),seconds=30.,
-                full_trace=True,seed=spec['evaluation']['seed'],scored_envs=8,
+            evaluator=evaluate_actor
+            extra={}
+            if spec.get('task')=='recovery':
+                from native_stand.recovery.recipe import evaluate_actor as evaluator
+                extra={'family':row['family'],'check_retained':False}
+            result=evaluator(actor,wrapped,env,target=tuple(row['target']),
+                seconds=row.get('seconds',10. if spec.get('task')=='recovery' else 30.),
+                full_trace=True,seed=row.get('seed',spec['evaluation']['seed']),scored_envs=8,
                 standing_protocol=spec['evaluation'],diagnostics=True,
                 effective_protocol=row['effective_protocol'],
-                stop_requested=lambda:time.monotonic()>=deadline-90.)
+                stop_requested=lambda:time.monotonic()>=deadline-90.,**extra)
             result.update(checkpoint=row['checkpoint'],checkpoint_sha256=row['sha256'],
                 spec_sha256=_sha(args.spec),asset_sha256=spec['asset_sha256'],
                 execution_identity=plan['execution_identity'],runtime_readback=readback)
@@ -414,10 +440,11 @@ def evaluate_batch(args, spec):
             write(args.output/name,result)
             elapsed_items.append(time.monotonic()-item_start)
             completed.append({'path':name,'checkpoint_sha256':row['sha256'],'target':row['target'],
-                'wall_s':elapsed_items[-1],'accepted':result['capability_gate']['accepted']})
+                'wall_s':elapsed_items[-1],'family':row.get('family'),'seed':row.get('seed'),
+                'accepted':(result['recovery_gate'] if spec.get('task')=='recovery' else result['capability_gate'])['accepted']})
             progress.update(completed=completed,last_activity_unix_s=time.time())
             write(args.output/'progress.json',progress)
-            if index==2 and any(not item['accepted'] for item in completed):
+            if spec.get('task')!='recovery' and index==2 and any(not item['accepted'] for item in completed):
                 status='STOPPED_BOUNDED';failure={'reason':'source 0/+-1 regression failed; boundary probing blocked'};break
         else:status='COMPLETED'
     except (KeyboardInterrupt,TimeoutError) as exc:

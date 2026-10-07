@@ -23,7 +23,7 @@ def smoke_plan(spec):
     if not isinstance(declaration, dict):
         raise ValueError('wiring_smoke must be an object')
     allowed = {'required_event', 'required_event_duration_s', 'event_offset_s',
-               'minimum_event_count'}
+               'minimum_event_count','required_groups'}
     unknown = set(declaration) - allowed
     if unknown:
         raise ValueError('unknown wiring_smoke fields: ' + ', '.join(sorted(unknown)))
@@ -52,6 +52,24 @@ def smoke_plan(spec):
               'planned_samples': None, 'planned_seconds_per_env': None,
               'budget_sufficient': None, 'declaration_source':
               'wiring_smoke' if declaration else 'training_episode' if inferred else 'legacy_no_event'}
+    groups=declaration.get('required_groups')
+    if groups is not None:
+        if not isinstance(groups,list) or not groups:raise ValueError('required_groups must be a nonempty list')
+        for group in groups:
+            if not isinstance(group,dict) or set(group)-{'family','pose_id','minimum_completed','minimum_duration_s','require_runtime_initial_valid'}:
+                raise ValueError('invalid smoke group declaration')
+            if not isinstance(group.get('family'),str) or not group['family']:
+                raise ValueError('smoke group family required')
+            if type(group.get('minimum_completed',1)) is not int or group.get('minimum_completed',1)<1:
+                raise ValueError('smoke group minimum_completed invalid')
+            seconds=group.get('minimum_duration_s',0.)
+            if isinstance(seconds,bool) or not isinstance(seconds,(int,float)) or not math.isfinite(seconds) or seconds<0:
+                raise ValueError('smoke group duration invalid')
+            if seconds>0 and group.get('minimum_completed',1)!=1:
+                raise ValueError('duration-qualified group supports one event; per-event durations needed for larger count')
+            if 'require_runtime_initial_valid' in group and type(group['require_runtime_initial_valid']) is not bool:
+                raise ValueError('smoke group initialization requirement invalid')
+        result['required_groups']=groups
     if duration is not None:
         if (isinstance(duration, bool) or not isinstance(duration, (int, float)) or
                 not math.isfinite(duration) or duration <= 0):

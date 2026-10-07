@@ -1,15 +1,37 @@
 """CPU identities for actual project and external algorithm implementations."""
 import hashlib
 import importlib.metadata
+import json
 from pathlib import Path
 import sys
+
+
+def verify_frozen_root(root, expected, spec):
+    """Accept a relocated worker only against its immutable submission receipt."""
+    root=Path(root).resolve()
+    snapshot=root.parent
+    if snapshot.name!='source_snapshot':
+        raise ValueError('execution_source_root differs from actual loaded project src')
+    manifest=json.loads((snapshot.parent/'manifest.json').read_text())
+    frozen=(snapshot/'spec.json').read_bytes()
+    if (json.loads(frozen)!=spec or
+            hashlib.sha256(frozen).hexdigest()!=manifest.get('spec_sha256') or
+            manifest.get('declared_execution_source_root')!=str(Path(expected).resolve())):
+        raise ValueError('frozen execution spec/source receipt identity differs')
+    actual={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(root.rglob('*.py'))}
+    if not actual or actual!=manifest.get('execution_modules_sha256'):
+        raise ValueError('frozen execution module identities differ')
+    return {'frozen_root':str(snapshot),'receipt':str(snapshot.parent/'manifest.json'),
+            'declared_source_root':str(Path(expected).resolve())}
 
 
 def identity(spec):
     root = Path(__file__).resolve().parents[2]
     expected = spec.get('execution_source_root')
+    frozen_identity=None
     if spec.get('effective_recipe_version') == 1 and expected and Path(expected).resolve() != root.parent.resolve():
-        raise ValueError('execution_source_root differs from actual loaded project src')
+        frozen_identity=verify_frozen_root(root,expected,spec)
     modules = {}
     for path in sorted(root.rglob('*.py')):
         modules[str(path.resolve())] = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -21,6 +43,14 @@ def identity(spec):
             dependencies[package] = 'distribution metadata unavailable'
     distribution = importlib.metadata.distribution('rsl-rl-lib')
     algorithm = Path(distribution.locate_file('rsl_rl/algorithms/ppo.py')).resolve()
-    return {'source_root': str(root.parent.resolve()), 'python': sys.executable,
+    relative={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
+              for p in sorted(root.rglob('*.py'))}
+    source_digest=hashlib.sha256(json.dumps(relative,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    return {'source_root': str(root.parent.resolve()),
+            'declared_source_root':str(Path(expected).resolve()) if expected else None,
+            'actual_execution_root':str(root.parent.resolve()),
+            'location_independent_modules_sha256':source_digest,
+            'relative_modules_sha256':relative,
+            'frozen_identity':frozen_identity,'python': sys.executable,
             'modules': modules, 'dependencies': dependencies,
             'PPO_path': str(algorithm), 'PPO_sha256': hashlib.sha256(algorithm.read_bytes()).hexdigest()}

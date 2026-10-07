@@ -30,11 +30,14 @@ def continuation_plan(spec,book,terminal,progress,wall_used):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
+    from native_stand.command_v6.tools.entrypoints import add_historical_option,require_historical_option
+    add_historical_option(p)
     p.add_argument('--spec',type=Path,required=True)
     p.add_argument('--chain',type=Path,required=True)
     p.add_argument('--output-dir',type=Path,required=True)
     p.add_argument('--hapi-session',required=True)
     a=p.parse_args()
+    require_historical_option(p,a)
     deadline=time.monotonic()+8100
     status=a.output_dir.with_suffix('.continuation.json')
     def record(value):status.write_text(json.dumps(value,indent=2)+'\n')

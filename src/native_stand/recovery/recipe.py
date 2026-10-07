@@ -15,6 +15,8 @@ def environment(cfg,spec,*,initialization_only=False):
     from native_stand.command_v6.learning import model
     from tensordict import TensorDict
     config=spec['recovery']
+    from native_stand.recovery.task_protocol import resolve as task_protocol
+    task_protocol(config)
     stand=None
     declared=[bool(config.get(name)) for name in ('stand_checkpoint','stand_spec','stand_sha256')]
     if requires_stand(config):
@@ -51,6 +53,10 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
     if tuple(target)!=(0.,0.):
         raise ValueError('Recovery evaluator supports only zero-command evaluation')
     scoring_protocol=dict(standing['protocol'] if standing else {})
+    rising=env.recovery_config.get('rising_task')
+    if rising:
+        from native_stand.recovery.rising import rise_protocol
+        scoring_protocol=rise_protocol(scoring_protocol,rising)
     if standing:scoring_protocol['seconds']=max(scoring_protocol.get('seconds',seconds),seconds)
     if standing_protocol is not None:
         if not isinstance(standing_protocol,dict) or set(standing_protocol)-PROTOCOL_FIELDS:
@@ -179,10 +185,18 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
                 episode['control_diagnostics_100hz']=None
             if standing:
                 from native_stand.recovery.standing import score_standing
-                gate=score_standing(series,posture_values[:,i][mask[:,i]],dt=env.step_dt,
-                    requested_s=seconds,protocol={**scoring_protocol,
-                        'initial_xy':origins[i].tolist()},
-                    runtime_fault=runtime,initial_valid=bool(last[29]),terminated=bool(end_mask[i]))
+                if rising:
+                    from native_stand.recovery.rising import score_rise
+                    gate=score_rise(series,posture_values[:,i][mask[:,i]],dt=env.step_dt,
+                        protocol={**scoring_protocol,'initial_xy':origins[i].tolist()},
+                        runtime_fault=runtime,initial_valid=bool(last[29]),terminated=bool(end_mask[i]))
+                    episode.update({key:gate[key] for key in ('recovery_s','post_rise_window_s',
+                        'post_rise_observed_s','height_peak_m','height_gain_m')})
+                else:
+                    gate=score_standing(series,posture_values[:,i][mask[:,i]],dt=env.step_dt,
+                        requested_s=seconds,protocol={**scoring_protocol,
+                            'initial_xy':origins[i].tolist()},
+                        runtime_fault=runtime,initial_valid=bool(last[29]),terminated=bool(end_mask[i]))
                 episode.update(standing_metrics=gate['metrics'],standing_checks=gate['checks'],
                     standing_failed_checks=gate['failed_checks'],success=gate['accepted'],
                     outcome='runtime_fault' if runtime else 'success' if gate['accepted'] else
@@ -202,8 +216,22 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
             if not full_trace and not episode['success']:
                 episode['failure_window_100hz']=series[-100:].tolist()
                 if standing:episode['failure_posture_window_100hz']=posture_values[:,i][mask[:,i]][-100:].tolist()
+            episode['pose_evidence']={'offline_geometry_valid':bool(pose.get('offline_valid',False)),
+                'runtime_initialization_valid':episode['initial_valid'],
+                'policy_certificate_passed':episode['success'],
+                'scope':'this evaluation episode and its exact protocol; not a general pose capability'}
             episodes.append(episode)
         retained_results=[]
+        if rising and check_retained and evaluation_family not in rising['retained_families']:
+            for retained in rising['retained_families']:
+                retained_results.append(evaluate_actor(actor,wrapped,env,seconds=seconds,seed=seed,
+                    stop_requested=stop_requested,full_trace=False,family=retained,check_retained=False))
+            if any(not result['accepted'] for result in retained_results):
+                for episode in episodes:
+                    episode['success']=False
+                    episode['standing_checks']['retained_family']=False
+                    episode['standing_failed_checks'].append('retained_family')
+                    if episode['outcome']!='runtime_fault':episode['outcome']='task_failure'
         if (standing and standing['protocol'].get('objective')=='survival_level' and
                 seconds>=10. and check_retained and env.reverse_curriculum is not None):
             level=next(row for row in env.recovery_config['curriculum']['levels']

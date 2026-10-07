@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 from .domain.execution_plan import smoke_plan
+from .domain.episode_summary import normalize as episode_summary
 
 
 def smoke_certificate(folder, spec):
@@ -38,7 +39,7 @@ def smoke_certificate(folder, spec):
         requirements={}
     if requirements.get('budget_sufficient') is False:
         errors.append('smoke sampling budget cannot cover the required event')
-    if requirements.get('required_event') is not None:
+    if requirements.get('required_event') is not None or requirements.get('required_groups'):
         metrics_path=folder/'metrics.jsonl'
         try:
             inputs['metrics.jsonl']=hashlib.sha256(metrics_path.read_bytes()).hexdigest()
@@ -46,14 +47,28 @@ def smoke_certificate(folder, spec):
             if requirements['required_event']=='normal_timeout':
                 count=sum(row.get('task_metrics',{}).get('training_episode',{}).get('normal_timeouts',0)
                           for row in metrics)
-            else:
-                count=sum(row.get('rollout',{}).get('episodes',{}).get('completed_episodes',0)
+            elif requirements['required_event'] is not None:
+                count=sum(episode_summary(row.get('rollout',{}).get('episodes',{}))['completed']
                           for row in metrics)
-            if count<requirements['minimum_event_count']:
+            else:count=0
+            if requirements['required_event'] is not None and count<requirements['minimum_event_count']:
                 errors.append('smoke did not observe the required '+requirements['required_event'])
-            if not any((row.get('rollout',{}).get('episodes',{}).get('max_duration_s') or 0)>=requirements['required_event_duration_s']-1e-4
+            if requirements['required_event'] is not None and not any((row.get('rollout',{}).get('episodes',{}).get('max_duration_s') or 0)>=requirements['required_event_duration_s']-1e-4
                        for row in metrics):
                 errors.append('smoke did not record a complete required-duration training episode')
+            for group in requirements.get('required_groups',[]):
+                observed=[episode_summary(item) for row in metrics
+                          for item in (row.get('task_metrics') or {}).get('episodes_by_pose',[])
+                          if item.get('family')==group['family'] and
+                          ('pose_id' not in group or item.get('pose_id')==group['pose_id'])]
+                eligible=[item for item in observed if (item.get('max_duration_s') or 0)>=group.get('minimum_duration_s',0.)]
+                count=sum(item['completed'] for item in eligible)
+                if group.get('require_runtime_initial_valid'):
+                    # Max duration and validity must refer to the same episode set.
+                    count=sum(item['completed'] for item in eligible
+                              if item.get('runtime_initial_valid_episodes')==item['completed'])
+                if count<group.get('minimum_completed',1):
+                    errors.append('smoke task group evidence missing: '+group['family']+'/'+str(group.get('pose_id','*')))
         except (OSError,ValueError,TypeError):
             errors.append('required smoke event metrics missing or invalid')
     evaluations=[case.get('path') for row in progress.get('evaluations',[]) for case in row.get('cases',[]) if case.get('path')]
@@ -89,10 +104,10 @@ def smoke_certificate(folder, spec):
             'inputs':inputs,'errors':errors,'run':str(folder.resolve()),'smoke_plan':requirements}
 
 
-def validate_persisted_certificate(folder, spec):
+def validate_persisted_certificate(folder, spec, *, certificate_path=None):
     folder=Path(folder)
     try:
-        record=json.loads((folder/'wiring_certificate.json').read_text())
+        record=json.loads((Path(certificate_path) if certificate_path else folder/'wiring_certificate.json').read_text())
     except (OSError,ValueError):
         return {'status':'FAILED','errors':['persisted wiring certificate missing or invalid']}
     current=smoke_certificate(folder,spec)
@@ -107,5 +122,18 @@ def completed_smoke(book,spec):
     for row in book.get('attempts',{}).values():
         if row.get('phase')!='smoke' or row.get('status') not in ('COMPLETED','STOPPED_BOUNDED'):continue
         folder=Path(row['output_dir'])
-        if validate_persisted_certificate(folder,spec)['status']=='PASSED':return True
+        evidence_spec=spec
+        if row.get('evidence_spec_path'):
+            from .tools.preflight import reusable_spec,digest
+            path=Path(row['evidence_spec_path'])
+            if (not path.is_file() or digest(path)!=row.get('evidence_spec_sha256') or
+                    not reusable_spec(path,spec)):
+                continue
+            evidence_spec=json.loads(path.read_text())
+        certificate=row.get('evidence_certificate_path')
+        if certificate:
+            p=Path(certificate)
+            if not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest()!=row.get('evidence_certificate_sha256'):
+                continue
+        if validate_persisted_certificate(folder,evidence_spec,certificate_path=certificate)['status']=='PASSED':return True
     return False

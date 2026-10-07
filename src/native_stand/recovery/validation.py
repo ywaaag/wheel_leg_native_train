@@ -12,6 +12,10 @@ def validate_recovery(spec):
     if needs_stand:required=(*required,*STAND_DEPENDENCY_FIELDS)
     errors=[f'recovery missing {key}' for key in required if key not in config]
     if errors:return errors
+    from native_stand.recovery.task_protocol import resolve as task_protocol
+    try:task_protocol(config)
+    except (KeyError,ValueError,TypeError) as error:
+        errors.append('Invalid Recovery task protocol: '+str(error))
     if (needs_stand and config['stand_frozen'] is not True) or spec.get('initialization') not in ('random','warmstart'):
         errors.append('Recovery learns a new policy; STAND must remain immutable')
     fsm=config['fsm']
@@ -139,7 +143,8 @@ def validate_recovery(spec):
                 errors.append('Survival/level recipe still contains motion or symmetry costs')
         if (spec['evaluation'].get('seconds')!=protocol.get('seconds') or
                 spec['evaluation'].get('steady_window_s')!=protocol.get('steady_window_s')):
-            errors.append('Standing evaluator and protocol duration differ')
+            if not config.get('rising_task'):
+                errors.append('Standing evaluator and protocol duration differ')
         if 'wheel_longitudinal_offset' in spec.get('reward',{}):
             value=spec['reward']['wheel_longitudinal_offset']
             if not isinstance(value,(int,float)) or not math.isfinite(value) or value>=0:
@@ -150,6 +155,10 @@ def validate_recovery(spec):
                         (key.endswith('scale_m') and value<=0)):
                     errors.append('Wheel longitudinal geometry reward scale invalid')
         retention=standing.get('retention',{})
+        if retention.get('sample_selection','first') not in ('first','uniform_rollout'):
+            errors.append('Unknown retention sample selection')
+        if config.get('holdout_sampling','weighted') not in ('weighted','balanced_pose_cycle'):
+            errors.append('Unknown Recovery holdout sampling')
         if retention.get('enabled'):
             from native_stand.recovery.standing import retention_coefficient
             try:
@@ -184,4 +193,14 @@ def validate_recovery(spec):
             if (not isinstance(fraction,(int,float)) or not math.isfinite(fraction) or not 0<=fraction<1 or
                     (fraction and (not index or not level.get('retained_families')))):
                 errors.append('Standing curriculum rehearsal configuration invalid')
+    if config.get('rising_task'):
+        from native_stand.recovery.rising import validate_rise
+        try:validate_rise(config['rising_task'])
+        except ValueError as exc:errors.append(str(exc))
+        if (not config.get('standing_task') or not autonomous or
+                config['standing_task'].get('training_episode') is not None or
+                config.get('curriculum',{}).get('automatic_upgrade') or
+                fsm.get('timeout_s')!=11.5 or spec['evaluation'].get('seconds')!=23. or
+                spec['evaluation'].get('steady_window_s')!=[0.,23.]):
+            errors.append('Invalid autonomous rise episode/evaluation contract')
     return errors

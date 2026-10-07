@@ -18,6 +18,7 @@ from native_stand.command_v6.ledger import Ledger
 from native_stand.command_v6.tools.preflight import check
 from native_stand.command_v6.domain.evidence import resolve_gate
 from native_stand.command_v6.domain.execution_plan import samples_for_updates,smoke_plan
+from native_stand.command_v6.tools.run_state import RunState, record as record_state, state_from_stage, write_handshake
 
 
 def chain_event(fd, event):
@@ -104,6 +105,19 @@ def run_phase(spec_path,phase,output,handshake_fd=None):
         'analysis':str(output/'analysis.json'),'status':terminal.get('status','UNKNOWN')}
 
 
+def correct_smoke_receipt(spec_path, evidence_folder, output):
+    """Phase-owner offline correction in a fresh file; original receipt stays intact."""
+    from native_stand.command_v6.wiring import smoke_certificate
+    old=read(Path(evidence_folder)/'wiring_certificate.json')
+    if old.get('errors')!=['smoke did not observe the required completed_episode']:
+        raise ValueError('unexpected smoke failure; correction is not a general bypass')
+    certificate=smoke_certificate(Path(evidence_folder),read(spec_path))
+    if certificate['status']!='PASSED':raise ValueError(certificate['errors'])
+    with Path(output).open('x') as stream:
+        json.dump(certificate,stream,indent=2);stream.write('\n')
+    return certificate
+
+
 def reconcile_durability(spec_path,output,code,wall_s):
     ledger=spec_path.with_name('budget.json')
     book=read(ledger)
@@ -160,8 +174,10 @@ def chain_report(chain,spec_path,phase_results,status,failure,durability):
     for row in phase_results:
         path=Path(row['run'])/'completion_report.md'
         report.extend([f"{row['phase']}: {row['status']}, exit={row['exit_code']}, report={path}",
-                       path.read_text() if path.is_file() else 'Report missing; see phase log/terminal.'])
-    report+=['## Final durability',json.dumps(durability,indent=2),
+                       f'Quantitative evidence: {path}; raw evaluation JSON remains in {Path(row["run"])}.'
+                       if path.is_file() else 'Report missing; see phase log/terminal.'])
+    from native_stand.command_v6.completion import compact_report_value
+    report+=['## Final durability',json.dumps(compact_report_value(durability),indent=2),
         'Ordinary falls are task results. Missing/unfinished evaluation is not standing success. No automatic continuation is authorized.']
     (chain/'completion_report.md').write_text('\n\n'.join(report)+'\n')
     write(chain/'report_ready.json',{'event_id':event,'status':'report_ready',
@@ -177,9 +193,12 @@ def worker(args):
     durability=None
     status='FAILED'
     try:
+        if not (chain/'run_state.json').exists():
+            # Direct internal workers and old CPU fixtures still get the canonical receipt.
+            record_state(chain,RunState.SUBMITTED.value,phase='submission')
         for phase in ('source_eval','smoke','formal'):
-            write(chain/'chain_progress.json',{'status':'RUNNING','stage':phase,'worker_pid':os.getpid(),
-                'active_run':str(chain/phase),'finished_phases':[row['phase'] for row in phases]})
+            record_state(chain,state_from_stage(phase),phase=phase,worker_pid=os.getpid(),
+                active_run=str(chain/phase),finished_phases=[row['phase'] for row in phases])
             chain_event(args.handshake_fd,{'event_type':'stage_started','phase':phase,
                 'worker_pid':os.getpid(),'active_run':str(chain/phase)})
             row=run_phase(spec,phase,chain/phase,args.handshake_fd if phase=='formal' else None)
@@ -213,8 +232,8 @@ def worker(args):
         selected=read(chain/'formal/candidate_selection.json',{})
         best=selected.get('accepted_candidate')
         if best and read(spec).get('evaluation',{}).get('run_final_durability',True):
-            write(chain/'chain_progress.json',{'status':'RUNNING','stage':'durability','worker_pid':os.getpid(),
-                'checkpoint':best['checkpoint']})
+            record_state(chain,RunState.FORMAL.value,phase='durability',worker_pid=os.getpid(),
+                checkpoint=best['checkpoint'])
             output=chain/'durability_100s.json'
             final_wall=read(spec).get('budget',{}).get('durability_wall_s',600)
             command=['timeout','--signal=TERM','--kill-after=15s',f'{final_wall-30}s',sys.executable,
@@ -230,8 +249,8 @@ def worker(args):
     except BaseException as exc:
         failure=repr(exc)
     finally:
-        write(chain/'chain_progress.json',{'status':status,'stage':'finished','worker_pid':os.getpid(),
-            'failure':failure})
+        record_state(chain,status if status in ('COMPLETED','STOPPED_BOUNDED') else RunState.FAILED.value,
+            phase='finished',worker_pid=os.getpid(),failure=failure)
         chain_event(args.handshake_fd,{'event_type':'chain_finished','status':status,
             'worker_pid':os.getpid(),'failure':failure})
         try:
@@ -274,11 +293,15 @@ def launch(args):
                   'resource_review':getattr(args,'resource_review',None)}
         write(chain/'manifest.json',{'attempt_id':attempt,'hapi_session':args.hapi_session,
             'spec_path':str(spec),'spec_sha256':sha(spec),'kind':'standing_chain',
+            'declared_execution_source_root':read(spec).get('execution_source_root'),
+            'execution_modules_sha256':{str(p.relative_to(chain/'source_snapshot/native_stand')):sha(p)
+                for p in sorted((chain/'source_snapshot/native_stand').rglob('*.py'))},
             'submitted_unix_s':time.time(),**resource})
         reader,writer=os.pipe()
         command=[sys.executable,str(chain/'source_snapshot/native_stand/command_v6/stand_chain.py'),'--spec',str(spec),'--output-dir',str(chain),
             '--hapi-session',args.hapi_session,'--worker','--handshake-fd',str(writer),
             '--attempt-id',attempt]
+        record_state(chain,RunState.SUBMITTED.value,phase='submission',attempt_id=attempt)
         with (chain/'chain.log').open('x') as stream:
             child=subprocess.Popen(command,env={**os.environ,'CUDA_VISIBLE_DEVICES':str(getattr(args,'physical_gpu',0))},start_new_session=True,
                 pass_fds=(writer,),stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT)
@@ -306,8 +329,9 @@ def launch(args):
         handshake.update(status='UNKNOWN',reason='submission receipt present but worker identity unverified')
     result={'chain':str(chain),'worker_pid':child.pid,'hapi_session':args.hapi_session,
         'submitted':True,'submission_verified':worker_evidence['status']=='OK',
-        'worker_evidence':worker_evidence,'handshake_wait_s':wait_s,**resource,**handshake}
-    write(chain/'startup_handshake.json',result)
+        'worker_evidence':worker_evidence,'handshake_wait_s':wait_s,
+        'run_state':read(chain/'run_state.json',{}).get('state',RunState.SUBMITTED.value),**resource,**handshake}
+    result=write_handshake(chain,result)
     print(json.dumps(result,indent=2))
     return result
 

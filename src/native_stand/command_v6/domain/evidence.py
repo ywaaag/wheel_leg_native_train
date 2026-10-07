@@ -23,7 +23,8 @@ mirror_error_max_rad objective saturation_max support_difference_max version vx_
 yaw_abs_max_rad_s parking_window_s requested_seconds actual_duration_seconds sample_rate_hz
 termination_semantics metric_scope effective_protocol_sha256 diagnostics
 observed_duration_per_env_s scoring_protocol_sha256 yaw_translation_max_mps
-straight_yaw_max_rad_s field_boundary_max_m zero_every_updates'''.split())
+straight_yaw_max_rad_s field_boundary_max_m zero_every_updates
+recovery_deadline_s post_rise_hold_s window_alignment'''.split())
 
 
 def effective_protocol(protocol, *, requested_seconds, actual_duration_seconds=None,

@@ -118,14 +118,19 @@ def submission_health(report, *, current_session, target_session,phase='source_e
 def gpu_snapshot():
     """One read-only inventory maps physical indices to GPU UUIDs and compute owners."""
     try:
-        devices=subprocess.run(['nvidia-smi','--query-gpu=index,uuid,name','--format=csv,noheader,nounits'],
+        devices=subprocess.run(['nvidia-smi','--query-gpu=index,uuid,name,memory.total,memory.used,utilization.gpu','--format=csv,noheader,nounits'],
             capture_output=True,text=True,timeout=10)
         processes=subprocess.run(['nvidia-smi','--query-compute-apps=pid,gpu_uuid,process_name,used_memory',
             '--format=csv,noheader,nounits'],capture_output=True,text=True,timeout=10)
         if devices.returncode or processes.returncode:
             return {'status':'UNKNOWN','reason':devices.stderr or processes.stderr,
                     'exit_codes':[devices.returncode,processes.returncode]}
-        return {'status':'OK','devices':[{'index':int(row[0]),'uuid':row[1].strip(),'name':row[2].strip()}
+        return {'status':'OK','pressure_scope':'one instantaneous inventory; not a concurrency guarantee',
+            'concurrency_advice':'Shared mode requires explicit approval; no automatic owner exemption or eviction. Compare available memory with the new task requirement.',
+            'devices':[{'index':int(row[0]),'uuid':row[1].strip(),'name':row[2].strip(),
+                'memory_total_mib':row[3].strip() if len(row)>3 else None,
+                'memory_used_mib':row[4].strip() if len(row)>4 else None,
+                'utilization_percent':row[5].strip() if len(row)>5 else None}
                 for row in csv.reader(io.StringIO(devices.stdout)) if row],
             'compute_processes':[{'pid':int(row[0]),'gpu_uuid':row[1].strip(),
                 'process_name':row[2].strip(),'used_memory_mib':row[3].strip()}
@@ -252,7 +257,16 @@ def inspect_project(root, *, spec_path=None, run=None, include_processes=False, 
         if manifest and progress:
             if manifest.get('attempt_id')!=progress.get('attempt_id'):
                 issue('IDENTITY_ERROR',run,'manifest/progress attempt mismatch')
-            if spec and manifest.get('spec_sha256')!=digest(spec_path):
+            expected_spec_sha=digest(spec_path) if spec else None
+            imported=(book or {}).get('attempts',{}).get(manifest.get('attempt_id'),{})
+            if spec and imported.get('evidence_spec_path'):
+                from .preflight import reusable_spec
+                evidence_path=Path(imported['evidence_spec_path'])
+                if (evidence_path.is_file() and
+                        digest(evidence_path)==imported.get('evidence_spec_sha256') and
+                        reusable_spec(evidence_path,spec)):
+                    expected_spec_sha=digest(evidence_path)
+            if spec and manifest.get('spec_sha256')!=expected_spec_sha:
                 issue('IDENTITY_ERROR',run,'manifest/current spec SHA mismatch')
         if book and manifest:
             attempt=book.get('attempts',{}).get(manifest.get('attempt_id'))

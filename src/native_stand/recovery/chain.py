@@ -194,11 +194,14 @@ def run(args):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
+    from native_stand.command_v6.tools.entrypoints import add_historical_option,require_historical_option
+    add_historical_option(parser)
     parser.add_argument('--spec',type=Path,required=True);parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--hapi-session',default=None);parser.add_argument('--handshake-fd',type=int,default=None)
     parser.add_argument('--run',action='store_true')
     parser.add_argument('--reuse-r0',type=Path,default=None,help='Reuse a passed prior R0; preserve ledger consumption')
     args=parser.parse_args()
+    require_historical_option(parser,args)
     if not args.run:print(json.dumps(cpu_check(args.spec,args.output_dir),indent=2));return 0
     return run(args)
 

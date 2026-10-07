@@ -183,13 +183,17 @@ class StandingRetention:
     No actor/optimizer method is replaced. This is a new auxiliary loss, not reward.
     """
     def __init__(self, actor, teacher, *, coefficient, max_samples, max_grad_norm,
-                 schedule=None, channels='all', gradient_diagnostics=False, save_gradient_updates=()):
+                 schedule=None, channels='all', gradient_diagnostics=False, save_gradient_updates=(),
+                 sample_selection='first'):
         if not math.isfinite(coefficient) or coefficient <= 0 or max_samples < 1:
             raise ValueError('invalid standing retention parameters')
         self.actor, self.teacher = actor, teacher.eval()
         for p in teacher.parameters():
             p.requires_grad_(False)
         self.coefficient, self.max_samples = coefficient, max_samples
+        if sample_selection not in ('first','uniform_rollout'):
+            raise ValueError('Unknown retention sample selection')
+        self.sample_selection=sample_selection
         if channels not in ('all','wheels'):
             raise ValueError('Unknown standing BC channels')
         self.schedule = schedule or {'kind':'constant'}
@@ -240,9 +244,10 @@ class StandingRetention:
                 batch=torch.cat(self.batches,dim=0)
                 mask=torch.cat(self.masks)
                 self.eligible_count=mask.sum()
-                self.observations=batch[mask][:self.max_samples]
+                indices=retention_sample_indices(mask,self.max_samples,self.sample_selection)
+                self.observations=batch[indices]
                 if self.sample_metadata:
-                    self.selected_metadata=torch.cat(self.sample_metadata)[mask][:self.max_samples]
+                    self.selected_metadata=torch.cat(self.sample_metadata)[indices]
                 self.sample_metadata.clear()
                 self.selected=len(self.observations)
                 if not self.selected:self.observations=None
@@ -310,10 +315,21 @@ class StandingRetention:
             for label,component in zip(('legs','wheels'),packed[1:]):
                 probe[label]={k:v if math.isfinite(v) else None for k,v in zip(names,component)}
             probe['scope']='First optimizer step, actor PPO+entropy after clipping versus BC on captured rollout states; null cosine when a norm is zero.'
-        return {'samples':self.samples, 'retained_samples':self.selected,
+        return {'samples':self.samples, 'retained_samples':self.selected,'sample_selection':self.sample_selection,
                 'raw':raw, 'weighted':None if raw is None else raw*self.effective_coefficient,
                 'coefficient':self.effective_coefficient,'base_coefficient':self.coefficient,
                 'channels':self.channels,'optimizer_steps':self.calls,'gradient_comparison':probe}
+
+
+def retention_sample_indices(mask,max_samples,selection):
+    """Step-major eligible coverage, deterministic and without RNG consumption."""
+    indices=mask.nonzero(as_tuple=False).flatten()
+    count=min(len(indices),max_samples)
+    if selection=='first':return indices[:count]
+    if selection!='uniform_rollout':raise ValueError('Unknown retention sample selection')
+    if not count:return indices
+    positions=((torch.arange(count,device=mask.device,dtype=torch.float64)+.5)*len(indices)/count).long()
+    return indices[positions]
 
 
 def retention_coefficient(base, schedule, update):

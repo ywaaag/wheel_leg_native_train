@@ -11,7 +11,11 @@ ENTRIES = (
     {"entry": "native_stand.command_v6.tools.preflight", "role": "read_only", "status": "CURRENT"},
     {"entry": "native_stand.command_v6.tools.completion", "role": "report", "status": "CURRENT"},
     {"entry": "native_stand.command_v6.tools.correct_evidence", "role": "offline_correction", "status": "CURRENT"},
+    {"entry": "native_stand.command_v6.tools.engineering_recovery", "role": "offline_recovery_plan", "status": "CURRENT"},
     {"entry": "scripts/audit_recovery_survival.py", "role": "offline_audit", "status": "CURRENT"},
+    {"entry": "scripts/prepare_recovery_coverage.py", "role": "explicit_preparer", "status": "CURRENT"},
+    {"entry": "scripts/prepare_recovery_rise.py", "role": "explicit_preparer", "status": "CURRENT"},
+    {"entry": "scripts/review_recovery_coverage.py", "role": "offline_review", "status": "CURRENT"},
     {"entry": "native_stand.command_v6.launcher", "role": "phase_launch", "status": "INTERNAL"},
     {"entry": "native_stand.command_v6.monitor", "role": "monitor", "status": "INTERNAL"},
     {"entry": "native_stand.command_v6.stand_chain", "role": "chain_worker", "status": "INTERNAL"},
@@ -28,7 +32,25 @@ ENTRIES = (
         "scripts/report_motion_recheck_20261007.py",
         "scripts/prepare_motion_course_plan.py",
         "scripts/prepare_recovery_hold.py")),
+    *({"entry": entry, "role": "recipe_specific", "status": "HISTORICAL"} for entry in (
+        "scripts/create_motion_retention_ab_20261006.py",
+        "scripts/create_retention_spec.py",
+        "scripts/make_retention_reeval_spec.py",
+        "scripts/review_recovery_settling.py")),
+    {"entry":"scripts/watch_recovery_submission.py", "role":"frozen_runtime", "status":"RETIRED"},
+    *({'entry':entry,'role':'old_recovery_workflow','status':'HISTORICAL'} for entry in (
+        'native_stand.recovery.chain','native_stand.recovery.train_stages','native_stand.recovery.extend_training')),
 )
+
+
+def add_historical_option(parser):
+    parser.add_argument('--historical-replay', action='store_true',
+        help='Explicitly acknowledge a historical recipe/tool; grants no runtime permission.')
+
+
+def require_historical_option(parser, args):
+    if not args.historical_replay:
+        parser.error('HISTORICAL_ENTRY: explicit --historical-replay required; use supervisor for new submissions')
 
 
 def historical_cli_guard(entry, argv=None):
