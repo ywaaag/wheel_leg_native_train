@@ -1,0 +1,17 @@
+{
+  "role": "historical native standing source recipe, read-only reference",
+  "checkpoint": "/home/kellen/wheel_leg_migration_audit/native_stand/stable_stand_v2/runs/chain_20260930_224452/B_formal/model_adapt_200.pt",
+  "checkpoint_sha256": "f440ef1999fd10886b74bf64bdff03bbdbe6c7e85c4a226e9d9428e5d4b05698",
+  "source_spec": "/home/kellen/wheel_leg_migration_audit/native_stand/stable_stand_v2/spec.json",
+  "frame_dim": 22,
+  "history_frames": 5,
+  "history_dim": 110,
+  "actor_critic_input_dim": 132,
+  "command_observation": "omitted in fixed zero-command source",
+  "height_reward_center_m": 0.35,
+  "height_reward_width_m": 0.06,
+  "zero_linear_velocity_denominator_m2_s2": 0.01,
+  "yaw_velocity_denominator_rad2_s2": 0.09,
+  "ground": "native_stand/env.py inherited triangle mesh collider; no explicit plane equivalence claimed",
+  "deployment_note": "new project maps actor, critic and Adam to 150D and resets PhysX anew; it is not a complete physics-state resume"
+}

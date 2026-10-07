@@ -1,0 +1,31 @@
+{
+  "source": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/usd_files/rmuc_wheel_leg/rmuc_robot_closed_loop.usd",
+  "source_sha256": "6bf6ce7f64f8d46cdc759bdf48dba0def85f6e9e6915acca27c543dbcf031a27",
+  "copy": "/home/kellen/wheel_leg_native_train/assets/diagnostic/rmuc_robot_closed_loop_knee_stop_0233_v2.usd",
+  "copy_sha256": "32a56efc5ee677a7ae3b5e59c3848a141276ec4957757acde239b774b0c901b7",
+  "changes": [
+    {
+      "joint": "left_knee_pitch",
+      "before_deg": [
+        -143.2394561767578,
+        143.2394561767578
+      ],
+      "after_deg": [
+        -13.349916458129883,
+        143.2394561767578
+      ]
+    },
+    {
+      "joint": "right_knee_pitch",
+      "before_deg": [
+        -143.2394561767578,
+        143.2394561767578
+      ],
+      "after_deg": [
+        -143.2394561767578,
+        13.349916458129883
+      ]
+    }
+  ],
+  "semantics": "One-sided knee extension joint stops; finite solver compliance, no gas spring force."
+}

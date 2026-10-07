@@ -1,0 +1,38 @@
+{
+  "experiment": "motion_cohort_width_ab_20261006",
+  "arms": {
+    "A": {
+      "spec": "/home/kellen/wheel_leg_native_train/configs/experiments/motion_cohort_width_ab_20261006/A/spec.json",
+      "sha256": "2edc38be97ad73d9286f4455da89be7987114e441161499c10032aa807cc67f2"
+    },
+    "B": {
+      "spec": "/home/kellen/wheel_leg_native_train/configs/experiments/motion_cohort_width_ab_20261006/B/spec.json",
+      "sha256": "51544bffe1101a4c1334b2eb24ec61c8bef74533332467a935401346c378d657"
+    }
+  },
+  "source_checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_forward_cohort_20261006/formal/model_update_25.pt",
+  "source_sha256": "bacd31f34a1e3917afa8e5dd9648bb5985c023dd0bc9ffd6a96ad1e1eed6fbad",
+  "physical_gpu": 1,
+  "gpu_uuid": "GPU-dfc076b6-b082-3065-512a-e21064067db1",
+  "wall_limit_s": 14400,
+  "formal_updates_per_arm": 250,
+  "smoke_updates_per_arm": 1,
+  "online_updates_total": 502,
+  "automatic_retries": 0,
+  "hapi_session": "191bacc3-e5c7-4b8f-ae3d-5677eada837b",
+  "source_required_commands": [
+    [
+      0,
+      0
+    ],
+    [
+      0.5,
+      0
+    ],
+    [
+      -0.5,
+      0
+    ]
+  ],
+  "recipe_variable": "linear denominator: all 1.0 vs retained target cohorts .04 / new +/-1 1.0"
+}

@@ -1,0 +1,243 @@
+{
+  "experiment": "native_plane_stand_long_20261001",
+  "version": 6,
+  "source_checkpoint": "/home/kellen/wheel_leg_migration_audit/native_stand/stable_stand_v2/runs/chain_20260930_224452/B_formal/model_adapt_200.pt",
+  "source_sha256": "f440ef1999fd10886b74bf64bdff03bbdbe6c7e85c4a226e9d9428e5d4b05698",
+  "asset_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/usd_files/rmuc_wheel_leg/rmuc_robot_closed_loop.usd",
+  "asset_sha256": "6bf6ce7f64f8d46cdc759bdf48dba0def85f6e9e6915acca27c543dbcf031a27",
+  "asset_module_root": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world",
+  "asset_module_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/rmuc_wheel_leg.py",
+  "asset_module_sha256": "90436170bb1d816747b19e2a29a6510e21499240fb0c8e1bf99e7220595e1f4f",
+  "colleague_config_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/configs/rmuc_wheel_leg.yaml",
+  "colleague_config_sha256": "6c159f7ab188b95759fe2b2f82265847b07acee3f457c7959dae97b9e1221677",
+  "ground": {
+    "collider": "plane",
+    "height_m": 0.0,
+    "normal_axis": "Z",
+    "width_m": 128.0,
+    "length_m": 128.0,
+    "static_friction": 0.5,
+    "dynamic_friction": 0.5,
+    "restitution": 0.0,
+    "material_path": "/World/native_ground_material"
+  },
+  "interpreter": "/home/kellen/anaconda3/envs/issaclab/bin/python",
+  "seed": 20260930,
+  "observation": {
+    "frame_dim": 25,
+    "fields": [
+      "angular_body:3",
+      "gravity_body:3",
+      "command_vx_yaw_height:3",
+      "physical_leg_offset:4",
+      "physical_active_velocity:6",
+      "previous_clipped_action:6"
+    ],
+    "scales": [
+      0.25,
+      1.0,
+      2.0,
+      0.25,
+      5.0,
+      2.0,
+      0.05,
+      1.0
+    ]
+  },
+  "history": {
+    "frames": 5,
+    "dim": 125,
+    "order": "oldest_to_newest",
+    "reset": "five_current_frames"
+  },
+  "action": {
+    "dim": 6,
+    "order": [
+      "left_hip_pitch",
+      "left_active_link_pitch",
+      "left_wheel_spin",
+      "right_hip_pitch",
+      "right_active_link_pitch",
+      "right_wheel_spin"
+    ],
+    "leg_scale_rad": 0.1,
+    "leg_pair_radius_rad": 0.12,
+    "wheel_scale_rad_s": 6.0
+  },
+  "control": {
+    "physics_dt_s": 0.001,
+    "pd_dt_s": 0.005,
+    "policy_dt_s": 0.01,
+    "leg_kp": 60.0,
+    "leg_kd": 2.0,
+    "wheel_kv": 1.0,
+    "effort_limits_nm": [
+      40,
+      40,
+      5.5,
+      40,
+      40,
+      5.5
+    ],
+    "height_command_m": 0.363,
+    "closure_fault_m": 0.005
+  },
+  "termination": {
+    "fall_root_height_m": 0.2,
+    "minimum_up_cos": 0.5,
+    "body_contact_max_n": 200.0,
+    "active_leg_angle_max_rad": 0.5
+  },
+  "reward": {
+    "upright": 2.0,
+    "height": 1.0,
+    "velocity_tracking": 1.0,
+    "two_wheel_contact": 0.5,
+    "effort": -0.02,
+    "action_delta": -0.01,
+    "joint_margin": -0.05,
+    "height_width_m": 0.06,
+    "linear_error_denominator": 0.01,
+    "yaw_error_denominator": 0.09,
+    "terminal_penalty": -1.0
+  },
+  "curriculum": {
+    "active_stage": 0,
+    "episode_length_s": 6.0,
+    "schedule_s": [
+      0.5,
+      0.5,
+      3.0,
+      0.5
+    ],
+    "minimum_zero_fraction": 1.0,
+    "stages": [
+      {
+        "id": 0,
+        "commands": [
+          [
+            0,
+            0
+          ]
+        ],
+        "weights": [
+          1.0
+        ]
+      }
+    ],
+    "future_order": [
+      "bidirectional_line",
+      "bidirectional_yaw",
+      "low_speed_combined",
+      "expanded_speed",
+      "dynamic_start_stop_and_turn"
+    ],
+    "episode_curriculum": {
+      "lengths_s": [
+        6,
+        10,
+        20,
+        30
+      ],
+      "episodes_per_window": 128,
+      "consecutive_windows": 2,
+      "gates": {
+        "normal_timeout_min": 0.95,
+        "metric_episode_pass_min": 0.95,
+        "vx_abs_max_mps": 0.03,
+        "yaw_abs_max_rad_s": 0.03,
+        "excursion_max_m": 0.2,
+        "tilt_max_rad": 0.2,
+        "dual_contact_min": 0.8,
+        "height_m": [
+          0.34,
+          0.38
+        ],
+        "saturation_max": 0.1,
+        "closure_max_m": 0.005
+      },
+      "deadline_semantics": "assigned at reset; existing episode unchanged; complete episodes grouped by assigned level",
+      "window_semantics": "128 complete episodes, non-overlapping, 95% normal timeouts and 95% per-episode metric passes",
+      "bootstrap": "installed RSL-RL timeout reward bootstrap; task failures have time_outs=false",
+      "evaluation_interruptions": "milestone evaluation explicitly resets unfinished training episodes; not counted as completed windows"
+    }
+  },
+  "evaluation": {
+    "seed": 104,
+    "envs": 64,
+    "scored_envs": 8,
+    "seconds": 10,
+    "light_seconds": 2,
+    "steady_window_s": [
+      2,
+      10
+    ],
+    "light_window_s": [
+      0.5,
+      2
+    ],
+    "standing_height_m": [
+      0.34,
+      0.38
+    ],
+    "standing_drift_max_m": 0.2,
+    "standing_excursion_max_m": 0.25,
+    "dual_contact_min": 0.8,
+    "peak_tilt_max_rad": 0.2,
+    "saturation_fraction_max": 0.1,
+    "closure_max_m": 0.005,
+    "vx_error_max_mps": 0.12,
+    "yaw_error_max_rad_s": 0.15,
+    "light_every_updates": 0,
+    "full_every_updates": 500,
+    "checkpoint_every_updates": 100,
+    "unlock_full_updates": [],
+    "durability_seconds": 100,
+    "durability_only_for_selected": true,
+    "durability_steady_window_s": [
+      2,
+      100
+    ]
+  },
+  "ppo": {
+    "envs": 64,
+    "steps_per_env": 128,
+    "hidden_dims": [
+      256,
+      128,
+      64
+    ],
+    "learning_rate": 3e-05,
+    "epochs": 4,
+    "minibatches": 4,
+    "gamma": 0.99,
+    "lam": 0.95,
+    "entropy_coef": 0.001
+  },
+  "budget": {
+    "source_eval_wall_s": 600,
+    "smoke_updates": 3,
+    "smoke_wall_s": 300,
+    "formal_updates": 3000,
+    "formal_wall_s": 36000,
+    "formal_samples": 24576000,
+    "durability_wall_s": 600,
+    "smoke_samples": 24576
+  },
+  "artifacts": {
+    "keep_full_trace": [
+      "source_baseline",
+      "final_selected",
+      "failure_window"
+    ],
+    "checkpoint_name": "model_update_{update}.pt",
+    "progress_name": "progress.json",
+    "terminal_name": "terminal_report.json",
+    "manifest_name": "manifest.json"
+  },
+  "phase_initialization": "smoke and formal independently warm-start frozen B200 actor/critic/mapped Adam; no PhysX state resume",
+  "authorization": {
+    "hapi_session": "6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1",
+    "user_scope": "source <=600s; smoke <=3updates/300s; formal <=3000updates/36000s; final100s <=600wall; zero motion only"
+  }
+}

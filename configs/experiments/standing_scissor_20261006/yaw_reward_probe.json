@@ -1,0 +1,40 @@
+{
+  "formula": "-0.8*(sqrt(1+(canonical_yaw/0.35)^2)-1)*0.01",
+  "dt_s": 0.01,
+  "canonical_yaw_axis": 1,
+  "gate": "unconditional",
+  "values": [
+    {
+      "yaw_rad_s": 0.0,
+      "additional_reward_per_step": -0.0
+    },
+    {
+      "yaw_rad_s": 0.03,
+      "additional_reward_per_step": -2.9333974971564205e-05
+    },
+    {
+      "yaw_rad_s": 0.1,
+      "additional_reward_per_step": -0.000320125587749164
+    },
+    {
+      "yaw_rad_s": 0.15,
+      "additional_reward_per_step": -0.0007037406924158951
+    },
+    {
+      "yaw_rad_s": 0.3,
+      "additional_reward_per_step": -0.002536622236906158
+    },
+    {
+      "yaw_rad_s": 0.36,
+      "additional_reward_per_step": -0.003476471049721777
+    },
+    {
+      "yaw_rad_s": 1.0,
+      "additional_reward_per_step": -0.016216708686190965
+    },
+    {
+      "yaw_rad_s": 2.45,
+      "additional_reward_per_step": -0.048568542494923816
+    }
+  ]
+}

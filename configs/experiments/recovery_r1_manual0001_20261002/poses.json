@@ -1,0 +1,2679 @@
+{
+  "asset_sha256": "6bf6ce7f64f8d46cdc759bdf48dba0def85f6e9e6915acca27c543dbcf031a27",
+  "definition": "Authored primitive geometry and joint frames; not runtime contacts/penetration.",
+  "attempted": 10,
+  "offline_rejected": 0,
+  "runtime_rejected": null,
+  "runtime_rejection_rate": null,
+  "poses": [
+    {
+      "pose_id": "train_R0_0",
+      "split": "train",
+      "seed": 20261002,
+      "family": "R0",
+      "offline_valid": true,
+      "runtime_valid": null,
+      "joint_pos": {
+        "left_active_link_pitch": 0.012050268110404041,
+        "left_long_link_pitch": -0.02139876468232792,
+        "left_node_link_pitch": 0.017959078379955844,
+        "left_parallel_link_pitch": -0.02139834130680531,
+        "left_hip_pitch": 0.01278913654382237,
+        "left_knee_pitch": 0.02139959145851721,
+        "left_wheel_spin": 0.0,
+        "right_active_link_pitch": 0.02550767464660851,
+        "right_long_link_pitch": 0.04403264353524142,
+        "right_node_link_pitch": -0.03687996800324851,
+        "right_parallel_link_pitch": 0.04403177308234771,
+        "right_hip_pitch": -0.025679689965500633,
+        "right_knee_pitch": -0.04403449918397831,
+        "right_wheel_spin": 0.0,
+        "guide_wheel_lower_right_01_spin": 0.0,
+        "guide_wheel_lower_right_02_spin": 0.0,
+        "guide_wheel_lower_right_03_spin": 0.0,
+        "guide_wheel_lower_right_04_spin": 0.0,
+        "guide_wheel_lower_left_01_spin": 0.0,
+        "guide_wheel_lower_left_02_spin": 0.0,
+        "guide_wheel_lower_left_03_spin": 0.0,
+        "guide_wheel_lower_left_04_spin": 0.0,
+        "guide_wheel_lower_left_05_spin": 0.0,
+        "guide_wheel_lower_left_06_spin": 0.0,
+        "guide_wheel_lower_left_07_spin": 0.0,
+        "guide_wheel_lower_left_08_spin": 0.0,
+        "guide_wheel_lower_right_05_spin": 0.0,
+        "guide_wheel_lower_right_06_spin": 0.0,
+        "guide_wheel_lower_right_07_spin": 0.0,
+        "guide_wheel_lower_right_08_spin": 0.0,
+        "guide_wheel_lower_left_09_spin": 0.0,
+        "guide_wheel_lower_left_10_spin": 0.0,
+        "guide_wheel_lower_left_11_spin": 0.0,
+        "guide_wheel_lower_left_12_spin": 0.0,
+        "guide_wheel_lower_right_09_spin": 0.0,
+        "guide_wheel_lower_right_10_spin": 0.0,
+        "guide_wheel_lower_right_11_spin": 0.0,
+        "guide_wheel_lower_right_12_spin": 0.0
+      },
+      "root_height_m": 0.3986191657444259,
+      "root_quaternion_xyzw": [
+        0.7071067811865476,
+        0.0,
+        0.0,
+        0.7071067811865476
+      ],
+      "chassis_bottom_clearance_m": 0.3286191657444259,
+      "closure_each_m": [
+        5.122274182214379e-09,
+        4.889443538960662e-09,
+        5.122274160385132e-09,
+        4.889443516731262e-09
+      ],
+      "ideal_collider_gaps_m": {
+        "/rm_train_ground/robot/collisions/collision_0/sphere": 0.3536191657444259,
+        "/rm_train_ground/robot/collisions/collision_1/box": 0.3286191657444259,
+        "/rm_train_ground/left_active_link/collisions/collision_0/capsule": 0.32116417964412136,
+        "/rm_train_ground/left_long_link/collisions/collision_0/capsule": 0.23313321374605378,
+        "/rm_train_ground/left_node_link/collisions/collision_0/capsule": 0.233132955340844,
+        "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule": 0.3033016816261348,
+        "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule": 0.24368208046838263,
+        "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule": 0.03999976891074153,
+        "/rm_train_ground/left_wheel/collisions/collision_0/cylinder": 0.0020000000000000018,
+        "/rm_train_ground/right_active_link/collisions/collision_0/capsule": 0.32211197096263655,
+        "/rm_train_ground/right_long_link/collisions/collision_0/capsule": 0.2347275828139302,
+        "/rm_train_ground/right_node_link/collisions/collision_0/capsule": 0.23472732645568603,
+        "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule": 0.3050646704823001,
+        "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule": 0.24570022261418667,
+        "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule": 0.04347876988841326,
+        "/rm_train_ground/right_wheel/collisions/collision_0/cylinder": 0.005479333306488865,
+        "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder": 0.24364516767466268,
+        "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder": 0.24789816769564352,
+        "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder": 0.24789816769564346,
+        "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder": 0.2435961726566573,
+        "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder": 0.24789816769564346,
+        "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder": 0.24789816769564352,
+        "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder": 0.24364516767466268,
+        "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder": 0.2435961726566573,
+        "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder": 0.24364516767466263,
+        "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder": 0.24789816769564346,
+        "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder": 0.24789816769564346,
+        "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder": 0.2435961726566573,
+        "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder": 0.24789816769564346,
+        "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder": 0.24789816769564346,
+        "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder": 0.2435961726566573,
+        "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder": 0.24364516767466263,
+        "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder": 0.23014516266787252,
+        "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder": 0.23014516266787252,
+        "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder": 0.23014516266787252,
+        "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder": 0.23014516266787255,
+        "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder": 0.23014516266787252,
+        "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder": 0.23014516266787255,
+        "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder": 0.23014516266787252,
+        "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder": 0.23014516266787252
+      },
+      "rejection_reason": null
+    },
+    {
+      "pose_id": "train_R0_1",
+      "split": "train",
+      "seed": 20261002,
+      "family": "R0",
+      "offline_valid": true,
+      "runtime_valid": null,
+      "joint_pos": {
+        "left_active_link_pitch": 0.023494904334915218,
+        "left_long_link_pitch": -0.04461058883700538,
+        "left_node_link_pitch": 0.037362067089723235,
+        "left_parallel_link_pitch": -0.044609706721715915,
+        "left_hip_pitch": 0.028366279272728452,
+        "left_knee_pitch": 0.044612471210448285,
+        "left_wheel_spin": 0.0,
+        "right_active_link_pitch": 0.021798121637732898,
+        "right_long_link_pitch": 0.035092886323756796,
+        "right_node_link_pitch": -0.02941614281234111,
+        "right_parallel_link_pitch": 0.0350921946919206,
+        "right_hip_pitch": -0.01897312617076663,
+        "right_knee_pitch": -0.03509433145843805,
+        "right_wheel_spin": 0.0,
+        "guide_wheel_lower_right_01_spin": 0.0,
+        "guide_wheel_lower_right_02_spin": 0.0,
+        "guide_wheel_lower_right_03_spin": 0.0,
+        "guide_wheel_lower_right_04_spin": 0.0,
+        "guide_wheel_lower_left_01_spin": 0.0,
+        "guide_wheel_lower_left_02_spin": 0.0,
+        "guide_wheel_lower_left_03_spin": 0.0,
+        "guide_wheel_lower_left_04_spin": 0.0,
+        "guide_wheel_lower_left_05_spin": 0.0,
+        "guide_wheel_lower_left_06_spin": 0.0,
+        "guide_wheel_lower_left_07_spin": 0.0,
+        "guide_wheel_lower_left_08_spin": 0.0,
+        "guide_wheel_lower_right_05_spin": 0.0,
+        "guide_wheel_lower_right_06_spin": 0.0,
+        "guide_wheel_lower_right_07_spin": 0.0,
+        "guide_wheel_lower_right_08_spin": 0.0,
+        "guide_wheel_lower_left_09_spin": 0.0,
+        "guide_wheel_lower_left_10_spin": 0.0,
+        "guide_wheel_lower_left_11_spin": 0.0,
+        "guide_wheel_lower_left_12_spin": 0.0,
+        "guide_wheel_lower_right_09_spin": 0.0,
+        "guide_wheel_lower_right_10_spin": 0.0,
+        "guide_wheel_lower_right_11_spin": 0.0,
+        "guide_wheel_lower_right_12_spin": 0.0
+      },
+      "root_height_m": 0.39654376591567597,
+      "root_quaternion_xyzw": [
+        0.7071067811865476,
+        0.0,
+        0.0,
+        0.7071067811865476
+      ],
+      "chassis_bottom_clearance_m": 0.32654376591567597,
+      "closure_each_m": [
+        5.122274160385132e-09,
+        4.889443516731263e-09,
+        5.122274160385132e-09,
+        4.889443516731262e-09
+      ],
+      "ideal_collider_gaps_m": {
+        "/rm_train_ground/robot/collisions/collision_0/sphere": 0.351543765915676,
+        "/rm_train_ground/robot/collisions/collision_1/box": 0.32654376591567597,
+        "/rm_train_ground/left_active_link/collisions/collision_0/capsule": 0.3198940893767401,
+        "/rm_train_ground/left_long_link/collisions/collision_0/capsule": 0.23269357813410205,
+        "/rm_train_ground/left_node_link/collisions/collision_0/capsule": 0.23269331954466854,
+        "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule": 0.30346849178740204,
+        "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule": 0.2440483531147193,
+        "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule": 0.041559152146991185,
+        "/rm_train_ground/left_wheel/collisions/collision_0/cylinder": 0.0035593793741282576,
+        "/rm_train_ground/right_active_link/collisions/collision_0/capsule": 0.3197741732492155,
+        "/rm_train_ground/right_long_link/collisions/collision_0/capsule": 0.23202035778030367,
+        "/rm_train_ground/right_node_link/collisions/collision_0/capsule": 0.2320201021717116,
+        "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule": 0.3019953762477993,
+        "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule": 0.24257194219504158,
+        "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule": 0.03999943753205948,
+        "/rm_train_ground/right_wheel/collisions/collision_0/cylinder": 0.0020000000000000018,
+        "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder": 0.24156976784591275,
+        "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder": 0.24582276786689358,
+        "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder": 0.24582276786689353,
+        "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder": 0.24152077282790738,
+        "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder": 0.24582276786689353,
+        "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder": 0.24582276786689358,
+        "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder": 0.24156976784591275,
+        "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder": 0.24152077282790738,
+        "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder": 0.2415697678459127,
+        "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder": 0.24582276786689353,
+        "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder": 0.24582276786689353,
+        "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder": 0.24152077282790738,
+        "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder": 0.24582276786689353,
+        "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder": 0.24582276786689353,
+        "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder": 0.24152077282790738,
+        "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder": 0.2415697678459127,
+        "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder": 0.2280697628391226,
+        "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder": 0.2280697628391226,
+        "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder": 0.2280697628391226,
+        "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder": 0.22806976283912261,
+        "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder": 0.2280697628391226,
+        "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder": 0.22806976283912261,
+        "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder": 0.2280697628391226,
+        "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder": 0.2280697628391226
+      },
+      "rejection_reason": null
+    },
+    {
+      "pose_id": "train_R0_2",
+      "split": "train",
+      "seed": 20261002,
+      "family": "R0",
+      "offline_valid": true,
+      "runtime_valid": null,
+      "joint_pos": {
+        "left_active_link_pitch": 0.015125214001254043,
+        "left_long_link_pitch": -0.038654689062931194,
+        "left_node_link_pitch": 0.03239138836236509,
+        "left_parallel_link_pitch": -0.038653926538251664,
+        "left_hip_pitch": 0.029794564661279263,
+        "left_knee_pitch": 0.038656297109631234,
+        "left_wheel_spin": 0.0,
+        "right_active_link_pitch": 0.023933940822719386,
+        "right_long_link_pitch": 0.036643709219218876,
+        "right_node_link_pitch": -0.030711817473472625,
+        "right_parallel_link_pitch": 0.036642986777715277,
+        "right_hip_pitch": -0.018643352630740045,
+        "right_knee_pitch": -0.0366452251811528,
+        "right_wheel_spin": 0.0,
+        "guide_wheel_lower_right_01_spin": 0.0,
+        "guide_wheel_lower_right_02_spin": 0.0,
+        "guide_wheel_lower_right_03_spin": 0.0,
+        "guide_wheel_lower_right_04_spin": 0.0,
+        "guide_wheel_lower_left_01_spin": 0.0,
+        "guide_wheel_lower_left_02_spin": 0.0,
+        "guide_wheel_lower_left_03_spin": 0.0,
+        "guide_wheel_lower_left_04_spin": 0.0,
+        "guide_wheel_lower_left_05_spin": 0.0,
+        "guide_wheel_lower_left_06_spin": 0.0,
+        "guide_wheel_lower_left_07_spin": 0.0,
+        "guide_wheel_lower_left_08_spin": 0.0,
+        "guide_wheel_lower_right_05_spin": 0.0,
+        "guide_wheel_lower_right_06_spin": 0.0,
+        "guide_wheel_lower_right_07_spin": 0.0,
+        "guide_wheel_lower_right_08_spin": 0.0,
+        "guide_wheel_lower_left_09_spin": 0.0,
+        "guide_wheel_lower_left_10_spin": 0.0,
+        "guide_wheel_lower_left_11_spin": 0.0,
+        "guide_wheel_lower_left_12_spin": 0.0,
+        "guide_wheel_lower_right_09_spin": 0.0,
+        "guide_wheel_lower_right_10_spin": 0.0,
+        "guide_wheel_lower_right_11_spin": 0.0,
+        "guide_wheel_lower_right_12_spin": 0.0
+      },
+      "root_height_m": 0.39629985744581786,
+      "root_quaternion_xyzw": [
+        0.7071067811865476,
+        0.0,
+        0.0,
+        0.7071067811865476
+      ],
+      "chassis_bottom_clearance_m": 0.32629985744581785,
+      "closure_each_m": [
+        5.122274160385132e-09,
+        4.889443516731262e-09,
+        5.122274160385132e-09,
+        4.889443516731262e-09
+      ],
+      "ideal_collider_gaps_m": {
+        "/rm_train_ground/robot/collisions/collision_0/sphere": 0.3512998574458179,
+        "/rm_train_ground/robot/collisions/collision_1/box": 0.32629985744581785,
+        "/rm_train_ground/left_active_link/collisions/collision_0/capsule": 0.3190604295041844,
+        "/rm_train_ground/left_long_link/collisions/collision_0/capsule": 0.23203176428859124,
+        "/rm_train_ground/left_node_link/collisions/collision_0/capsule": 0.23203150049188864,
+        "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule": 0.3036431034445479,
+        "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule": 0.24403001551605297,
+        "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule": 0.04038678391298034,
+        "/rm_train_ground/left_wheel/collisions/collision_0/cylinder": 0.002387014875356974,
+        "/rm_train_ground/right_active_link/collisions/collision_0/capsule": 0.31968123817689287,
+        "/rm_train_ground/right_long_link/collisions/collision_0/capsule": 0.23188625159279116,
+        "/rm_train_ground/right_node_link/collisions/collision_0/capsule": 0.23188599730082654,
+        "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule": 0.30165021353490595,
+        "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule": 0.24227642377073727,
+        "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule": 0.0399994367318704,
+        "/rm_train_ground/right_wheel/collisions/collision_0/cylinder": 0.0020000000000000018,
+        "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder": 0.24132585937605464,
+        "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder": 0.24557885939703547,
+        "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder": 0.24557885939703542,
+        "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder": 0.24127686435804926,
+        "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder": 0.24557885939703542,
+        "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder": 0.24557885939703547,
+        "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder": 0.24132585937605464,
+        "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder": 0.24127686435804926,
+        "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder": 0.24132585937605458,
+        "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder": 0.24557885939703542,
+        "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder": 0.24557885939703542,
+        "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder": 0.24127686435804926,
+        "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder": 0.24557885939703542,
+        "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder": 0.24557885939703542,
+        "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder": 0.24127686435804926,
+        "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder": 0.24132585937605458,
+        "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder": 0.22782585436926447,
+        "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder": 0.22782585436926447,
+        "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder": 0.22782585436926447,
+        "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder": 0.2278258543692645,
+        "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder": 0.22782585436926447,
+        "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder": 0.2278258543692645,
+        "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder": 0.22782585436926447,
+        "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder": 0.22782585436926447
+      },
+      "rejection_reason": null
+    },
+    {
+      "pose_id": "train_R0_3",
+      "split": "train",
+      "seed": 20261002,
+      "family": "R0",
+      "offline_valid": true,
+      "runtime_valid": null,
+      "joint_pos": {
+        "left_active_link_pitch": 0.024198482525189642,
+        "left_long_link_pitch": -0.044562434344973575,
+        "left_node_link_pitch": 0.03732190052034779,
+        "left_parallel_link_pitch": -0.044561553201871,
+        "left_hip_pitch": 0.027606556379009023,
+        "left_knee_pitch": 0.044564314490850764,
+        "left_wheel_spin": 0.0,
+        "right_active_link_pitch": 0.023799190951331033,
+        "right_long_link_pitch": 0.03719978774643404,
+        "right_node_link_pitch": -0.0311763170261858,
+        "right_parallel_link_pitch": 0.037199054235976844,
+        "right_hip_pitch": -0.019425786687613404,
+        "right_knee_pitch": -0.03720132914445209,
+        "right_wheel_spin": 0.0,
+        "guide_wheel_lower_right_01_spin": 0.0,
+        "guide_wheel_lower_right_02_spin": 0.0,
+        "guide_wheel_lower_right_03_spin": 0.0,
+        "guide_wheel_lower_right_04_spin": 0.0,
+        "guide_wheel_lower_left_01_spin": 0.0,
+        "guide_wheel_lower_left_02_spin": 0.0,
+        "guide_wheel_lower_left_03_spin": 0.0,
+        "guide_wheel_lower_left_04_spin": 0.0,
+        "guide_wheel_lower_left_05_spin": 0.0,
+        "guide_wheel_lower_left_06_spin": 0.0,
+        "guide_wheel_lower_left_07_spin": 0.0,
+        "guide_wheel_lower_left_08_spin": 0.0,
+        "guide_wheel_lower_right_05_spin": 0.0,
+        "guide_wheel_lower_right_06_spin": 0.0,
+        "guide_wheel_lower_right_07_spin": 0.0,
+        "guide_wheel_lower_right_08_spin": 0.0,
+        "guide_wheel_lower_left_09_spin": 0.0,
+        "guide_wheel_lower_left_10_spin": 0.0,
+        "guide_wheel_lower_left_11_spin": 0.0,
+        "guide_wheel_lower_left_12_spin": 0.0,
+        "guide_wheel_lower_right_09_spin": 0.0,
+        "guide_wheel_lower_right_10_spin": 0.0,
+        "guide_wheel_lower_right_11_spin": 0.0,
+        "guide_wheel_lower_right_12_spin": 0.0
+      },
+      "root_height_m": 0.3962129816148806,
+      "root_quaternion_xyzw": [
+        0.7071067811865476,
+        0.0,
+        0.0,
+        0.7071067811865476
+      ],
+      "chassis_bottom_clearance_m": 0.3262129816148806,
+      "closure_each_m": [
+        5.122274160385132e-09,
+        4.889443516731262e-09,
+        5.122274160385132e-09,
+        4.889443516731262e-09
+      ],
+      "ideal_collider_gaps_m": {
+        "/rm_train_ground/robot/collisions/collision_0/sphere": 0.3512129816148806,
+        "/rm_train_ground/robot/collisions/collision_1/box": 0.3262129816148806,
+        "/rm_train_ground/left_active_link/collisions/collision_0/capsule": 0.3196130817529559,
+        "/rm_train_ground/left_long_link/collisions/collision_0/capsule": 0.23235915570845617,
+        "/rm_train_ground/left_node_link/collisions/collision_0/capsule": 0.2323588978239995,
+        "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule": 0.30299907488274214,
+        "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule": 0.24359769994104563,
+        "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule": 0.041220262599613755,
+        "/rm_train_ground/left_wheel/collisions/collision_0/cylinder": 0.0032204894661655437,
+        "/rm_train_ground/right_active_link/collisions/collision_0/capsule": 0.31958482890804707,
+        "/rm_train_ground/right_long_link/collisions/collision_0/capsule": 0.23183846504528544,
+        "/rm_train_ground/right_node_link/collisions/collision_0/capsule": 0.231838210352511,
+        "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule": 0.301691799750663,
+        "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule": 0.24231202459843368,
+        "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule": 0.03999943682806434,
+        "/rm_train_ground/right_wheel/collisions/collision_0/cylinder": 0.0020000000000000018,
+        "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder": 0.24123898354511739,
+        "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder": 0.24549198356609822,
+        "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder": 0.24549198356609817,
+        "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder": 0.24118998852711201,
+        "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder": 0.24549198356609817,
+        "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder": 0.24549198356609822,
+        "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder": 0.24123898354511739,
+        "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder": 0.24118998852711201,
+        "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder": 0.24123898354511733,
+        "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder": 0.24549198356609817,
+        "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder": 0.24549198356609817,
+        "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder": 0.24118998852711201,
+        "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder": 0.24549198356609817,
+        "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder": 0.24549198356609817,
+        "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder": 0.24118998852711201,
+        "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder": 0.24123898354511733,
+        "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder": 0.22773897853832722,
+        "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder": 0.22773897853832722,
+        "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder": 0.22773897853832722,
+        "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder": 0.22773897853832725,
+        "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder": 0.22773897853832722,
+        "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder": 0.22773897853832725,
+        "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder": 0.22773897853832722,
+        "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder": 0.22773897853832722
+      },
+      "rejection_reason": null
+    },
+    {
+      "pose_id": "holdout_R0_0",
+      "split": "holdout",
+      "seed": 20261003,
+      "family": "R0",
+      "offline_valid": true,
+      "runtime_valid": null,
+      "joint_pos": {
+        "left_active_link_pitch": 0.02098694505576697,
+        "left_long_link_pitch": -0.03748967914591815,
+        "left_node_link_pitch": 0.0314184480761654,
+        "left_parallel_link_pitch": -0.03748893986055105,
+        "left_hip_pitch": 0.0225756982354384,
+        "left_knee_pitch": 0.03749123381239471,
+        "left_wheel_spin": 0.0,
+        "right_active_link_pitch": 0.02291305975018979,
+        "right_long_link_pitch": 0.03982035590169345,
+        "right_node_link_pitch": -0.033364666510282824,
+        "right_parallel_link_pitch": 0.03981957007449973,
+        "right_hip_pitch": -0.023364830215792796,
+        "right_knee_pitch": -0.0398220174503723,
+        "right_wheel_spin": 0.0,
+        "guide_wheel_lower_right_01_spin": 0.0,
+        "guide_wheel_lower_right_02_spin": 0.0,
+        "guide_wheel_lower_right_03_spin": 0.0,
+        "guide_wheel_lower_right_04_spin": 0.0,
+        "guide_wheel_lower_left_01_spin": 0.0,
+        "guide_wheel_lower_left_02_spin": 0.0,
+        "guide_wheel_lower_left_03_spin": 0.0,
+        "guide_wheel_lower_left_04_spin": 0.0,
+        "guide_wheel_lower_left_05_spin": 0.0,
+        "guide_wheel_lower_left_06_spin": 0.0,
+        "guide_wheel_lower_left_07_spin": 0.0,
+        "guide_wheel_lower_left_08_spin": 0.0,
+        "guide_wheel_lower_right_05_spin": 0.0,
+        "guide_wheel_lower_right_06_spin": 0.0,
+        "guide_wheel_lower_right_07_spin": 0.0,
+        "guide_wheel_lower_right_08_spin": 0.0,
+        "guide_wheel_lower_left_09_spin": 0.0,
+        "guide_wheel_lower_left_10_spin": 0.0,
+        "guide_wheel_lower_left_11_spin": 0.0,
+        "guide_wheel_lower_left_12_spin": 0.0,
+        "guide_wheel_lower_right_09_spin": 0.0,
+        "guide_wheel_lower_right_10_spin": 0.0,
+        "guide_wheel_lower_right_11_spin": 0.0,
+        "guide_wheel_lower_right_12_spin": 0.0
+      },
+      "root_height_m": 0.3961047367087642,
+      "root_quaternion_xyzw": [
+        0.7071067811865476,
+        0.0,
+        0.0,
+        0.7071067811865476
+      ],
+      "chassis_bottom_clearance_m": 0.3261047367087642,
+      "closure_each_m": [
+        5.122274160385132e-09,
+        4.889443516731262e-09,
+        5.122274160385132e-09,
+        4.889443516731262e-09
+      ],
+      "ideal_collider_gaps_m": {
+        "/rm_train_ground/robot/collisions/collision_0/sphere": 0.35110473670876424,
+        "/rm_train_ground/robot/collisions/collision_1/box": 0.3261047367087642,
+        "/rm_train_ground/left_active_link/collisions/collision_0/capsule": 0.31927787989702805,
+        "/rm_train_ground/left_long_link/collisions/collision_0/capsule": 0.23175037021779915,
+        "/rm_train_ground/left_node_link/collisions/collision_0/capsule": 0.23175011265933473,
+        "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule": 0.3021528590895727,
+        "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule": 0.2426977102551035,
+        "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule": 0.039999772098863406,
+        "/rm_train_ground/left_wheel/collisions/collision_0/cylinder": 0.0020000000000000018,
+        "/rm_train_ground/right_active_link/collisions/collision_0/capsule": 0.3194139193256051,
+        "/rm_train_ground/right_long_link/collisions/collision_0/capsule": 0.23191501351938182,
+        "/rm_train_ground/right_node_link/collisions/collision_0/capsule": 0.23191475669451894,
+        "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule": 0.3022362484364697,
+        "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule": 0.24282166916784148,
+        "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule": 0.04030190788035848,
+        "/rm_train_ground/right_wheel/collisions/collision_0/cylinder": 0.002302470491399089,
+        "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder": 0.241130738639001,
+        "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder": 0.24538373865998184,
+        "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder": 0.24538373865998178,
+        "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder": 0.24108174362099563,
+        "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder": 0.24538373865998178,
+        "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder": 0.24538373865998184,
+        "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder": 0.241130738639001,
+        "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder": 0.24108174362099563,
+        "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder": 0.24113073863900095,
+        "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder": 0.24538373865998178,
+        "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder": 0.24538373865998178,
+        "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder": 0.24108174362099563,
+        "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder": 0.24538373865998178,
+        "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder": 0.24538373865998178,
+        "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder": 0.24108174362099563,
+        "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder": 0.24113073863900095,
+        "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder": 0.22763073363221084,
+        "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder": 0.22763073363221084,
+        "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder": 0.22763073363221084,
+        "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder": 0.22763073363221087,
+        "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder": 0.22763073363221084,
+        "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder": 0.22763073363221087,
+        "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder": 0.22763073363221084,
+        "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder": 0.22763073363221084
+      },
+      "rejection_reason": null
+    },
+    {
+      "pose_id": "holdout_R0_1",
+      "split": "holdout",
+      "seed": 20261003,
+      "family": "R0",
+      "offline_valid": true,
+      "runtime_valid": null,
+      "joint_pos": {
+        "left_active_link_pitch": 0.018197277811413885,
+        "left_long_link_pitch": -0.041196913558565446,
+        "left_node_link_pitch": 0.03451375665851928,
+        "left_parallel_link_pitch": -0.041196100148351136,
+        "left_hip_pitch": 0.02968470308015532,
+        "left_knee_pitch": 0.041198638406745564,
+        "left_wheel_spin": 0.0,
+        "right_active_link_pitch": 0.02296943814053691,
+        "right_long_link_pitch": 0.04024098524823527,
+        "right_node_link_pitch": -0.03371582079738555,
+        "right_parallel_link_pitch": 0.040240191000038554,
+        "right_hip_pitch": -0.023798576337448224,
+        "right_knee_pitch": -0.040242666125537056,
+        "right_wheel_spin": 0.0,
+        "guide_wheel_lower_right_01_spin": 0.0,
+        "guide_wheel_lower_right_02_spin": 0.0,
+        "guide_wheel_lower_right_03_spin": 0.0,
+        "guide_wheel_lower_right_04_spin": 0.0,
+        "guide_wheel_lower_left_01_spin": 0.0,
+        "guide_wheel_lower_left_02_spin": 0.0,
+        "guide_wheel_lower_left_03_spin": 0.0,
+        "guide_wheel_lower_left_04_spin": 0.0,
+        "guide_wheel_lower_left_05_spin": 0.0,
+        "guide_wheel_lower_left_06_spin": 0.0,
+        "guide_wheel_lower_left_07_spin": 0.0,
+        "guide_wheel_lower_left_08_spin": 0.0,
+        "guide_wheel_lower_right_05_spin": 0.0,
+        "guide_wheel_lower_right_06_spin": 0.0,
+        "guide_wheel_lower_right_07_spin": 0.0,
+        "guide_wheel_lower_right_08_spin": 0.0,
+        "guide_wheel_lower_left_09_spin": 0.0,
+        "guide_wheel_lower_left_10_spin": 0.0,
+        "guide_wheel_lower_left_11_spin": 0.0,
+        "guide_wheel_lower_left_12_spin": 0.0,
+        "guide_wheel_lower_right_09_spin": 0.0,
+        "guide_wheel_lower_right_10_spin": 0.0,
+        "guide_wheel_lower_right_11_spin": 0.0,
+        "guide_wheel_lower_right_12_spin": 0.0
+      },
+      "root_height_m": 0.39573615185219213,
+      "root_quaternion_xyzw": [
+        0.7071067811865476,
+        0.0,
+        0.0,
+        0.7071067811865476
+      ],
+      "chassis_bottom_clearance_m": 0.3257361518521921,
+      "closure_each_m": [
+        5.122274160385132e-09,
+        4.889443516731262e-09,
+        5.122274160385132e-09,
+        4.889443516731262e-09
+      ],
+      "ideal_collider_gaps_m": {
+        "/rm_train_ground/robot/collisions/collision_0/sphere": 0.35073615185219215,
+        "/rm_train_ground/robot/collisions/collision_1/box": 0.3257361518521921,
+        "/rm_train_ground/left_active_link/collisions/collision_0/capsule": 0.3187126773648451,
+        "/rm_train_ground/left_long_link/collisions/collision_0/capsule": 0.23164624765242275,
+        "/rm_train_ground/left_node_link/collisions/collision_0/capsule": 0.23164598559308758,
+        "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule": 0.302993111027483,
+        "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule": 0.2434489493261695,
+        "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule": 0.04021897490672677,
+        "/rm_train_ground/left_wheel/collisions/collision_0/cylinder": 0.0022192045289932683,
+        "/rm_train_ground/right_active_link/collisions/collision_0/capsule": 0.31904931992194296,
+        "/rm_train_ground/right_long_link/collisions/collision_0/capsule": 0.23157618004137648,
+        "/rm_train_ground/right_node_link/collisions/collision_0/capsule": 0.23157592306673835,
+        "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule": 0.3019361796450012,
+        "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule": 0.24252125523549967,
+        "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule": 0.03999943739453654,
+        "/rm_train_ground/right_wheel/collisions/collision_0/cylinder": 0.0020000000000000018,
+        "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder": 0.2407621537824289,
+        "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder": 0.24501515380340974,
+        "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder": 0.24501515380340969,
+        "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder": 0.24071315876442353,
+        "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder": 0.24501515380340969,
+        "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder": 0.24501515380340974,
+        "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder": 0.2407621537824289,
+        "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder": 0.24071315876442353,
+        "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder": 0.24076215378242885,
+        "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder": 0.24501515380340969,
+        "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder": 0.24501515380340969,
+        "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder": 0.24071315876442353,
+        "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder": 0.24501515380340969,
+        "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder": 0.24501515380340969,
+        "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder": 0.24071315876442353,
+        "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder": 0.24076215378242885,
+        "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder": 0.22726214877563874,
+        "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder": 0.22726214877563874,
+        "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder": 0.22726214877563874,
+        "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder": 0.22726214877563877,
+        "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder": 0.22726214877563874,
+        "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder": 0.22726214877563877,
+        "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder": 0.22726214877563874,
+        "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder": 0.22726214877563874
+      },
+      "rejection_reason": null
+    },
+    {
+      "pose_id": "holdout_R0_2",
+      "split": "holdout",
+      "seed": 20261003,
+      "family": "R0",
+      "offline_valid": true,
+      "runtime_valid": null,
+      "joint_pos": {
+        "left_active_link_pitch": 0.024681403512846135,
+        "left_long_link_pitch": -0.037964220937418365,
+        "left_node_link_pitch": 0.03181477981266187,
+        "left_parallel_link_pitch": -0.03796347219205249,
+        "left_hip_pitch": 0.019434014373164575,
+        "left_knee_pitch": 0.03796579733612667,
+        "left_wheel_spin": 0.0,
+        "right_active_link_pitch": 0.01601202951993299,
+        "right_long_link_pitch": 0.03792798805630265,
+        "right_node_link_pitch": -0.03178451976542042,
+        "right_parallel_link_pitch": 0.03792724003353186,
+        "right_hip_pitch": -0.028061180914652116,
+        "right_knee_pitch": -0.03792956279514438,
+        "right_wheel_spin": 0.0,
+        "guide_wheel_lower_right_01_spin": 0.0,
+        "guide_wheel_lower_right_02_spin": 0.0,
+        "guide_wheel_lower_right_03_spin": 0.0,
+        "guide_wheel_lower_right_04_spin": 0.0,
+        "guide_wheel_lower_left_01_spin": 0.0,
+        "guide_wheel_lower_left_02_spin": 0.0,
+        "guide_wheel_lower_left_03_spin": 0.0,
+        "guide_wheel_lower_left_04_spin": 0.0,
+        "guide_wheel_lower_left_05_spin": 0.0,
+        "guide_wheel_lower_left_06_spin": 0.0,
+        "guide_wheel_lower_left_07_spin": 0.0,
+        "guide_wheel_lower_left_08_spin": 0.0,
+        "guide_wheel_lower_right_05_spin": 0.0,
+        "guide_wheel_lower_right_06_spin": 0.0,
+        "guide_wheel_lower_right_07_spin": 0.0,
+        "guide_wheel_lower_right_08_spin": 0.0,
+        "guide_wheel_lower_left_09_spin": 0.0,
+        "guide_wheel_lower_left_10_spin": 0.0,
+        "guide_wheel_lower_left_11_spin": 0.0,
+        "guide_wheel_lower_left_12_spin": 0.0,
+        "guide_wheel_lower_right_09_spin": 0.0,
+        "guide_wheel_lower_right_10_spin": 0.0,
+        "guide_wheel_lower_right_11_spin": 0.0,
+        "guide_wheel_lower_right_12_spin": 0.0
+      },
+      "root_height_m": 0.3960930869990195,
+      "root_quaternion_xyzw": [
+        0.7071067811865476,
+        0.0,
+        0.0,
+        0.7071067811865476
+      ],
+      "chassis_bottom_clearance_m": 0.3260930869990195,
+      "closure_each_m": [
+        5.122274160385132e-09,
+        4.889443516731262e-09,
+        5.122274160385132e-09,
+        4.889443516731262e-09
+      ],
+      "ideal_collider_gaps_m": {
+        "/rm_train_ground/robot/collisions/collision_0/sphere": 0.35109308699901953,
+        "/rm_train_ground/robot/collisions/collision_1/box": 0.3260930869990195,
+        "/rm_train_ground/left_active_link/collisions/collision_0/capsule": 0.31952737072394444,
+        "/rm_train_ground/left_long_link/collisions/collision_0/capsule": 0.23177271424551724,
+        "/rm_train_ground/left_node_link/collisions/collision_0/capsule": 0.2317724600364724,
+        "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule": 0.3015531817993419,
+        "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule": 0.2421934183411713,
+        "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule": 0.040063558798273446,
+        "/rm_train_ground/left_wheel/collisions/collision_0/cylinder": 0.0020637848667823255,
+        "/rm_train_ground/right_active_link/collisions/collision_0/capsule": 0.31891593733232815,
+        "/rm_train_ground/right_long_link/collisions/collision_0/capsule": 0.23177234389427684,
+        "/rm_train_ground/right_node_link/collisions/collision_0/capsule": 0.2317720813078344,
+        "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule": 0.3031365028973951,
+        "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule": 0.24354952625100357,
+        "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule": 0.039999440206806625,
+        "/rm_train_ground/right_wheel/collisions/collision_0/cylinder": 0.0020000000000000018,
+        "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder": 0.2411190889292563,
+        "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder": 0.24537208895023713,
+        "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder": 0.24537208895023707,
+        "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder": 0.24107009391125092,
+        "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder": 0.24537208895023707,
+        "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder": 0.24537208895023713,
+        "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder": 0.2411190889292563,
+        "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder": 0.24107009391125092,
+        "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder": 0.24111908892925624,
+        "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder": 0.24537208895023707,
+        "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder": 0.24537208895023707,
+        "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder": 0.24107009391125092,
+        "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder": 0.24537208895023707,
+        "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder": 0.24537208895023707,
+        "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder": 0.24107009391125092,
+        "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder": 0.24111908892925624,
+        "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder": 0.22761908392246613,
+        "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder": 0.22761908392246613,
+        "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder": 0.22761908392246613,
+        "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder": 0.22761908392246616,
+        "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder": 0.22761908392246613,
+        "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder": 0.22761908392246616,
+        "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder": 0.22761908392246613,
+        "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder": 0.22761908392246613
+      },
+      "rejection_reason": null
+    },
+    {
+      "pose_id": "holdout_R0_3",
+      "split": "holdout",
+      "seed": 20261003,
+      "family": "R0",
+      "offline_valid": true,
+      "runtime_valid": null,
+      "joint_pos": {
+        "left_active_link_pitch": 0.02996593987381347,
+        "left_long_link_pitch": -0.03613323224503644,
+        "left_node_link_pitch": 0.030285367411044862,
+        "left_parallel_link_pitch": -0.03613251995475843,
+        "left_hip_pitch": 0.012016825181841781,
+        "left_knee_pitch": 0.03613472487516828,
+        "left_wheel_spin": 0.0,
+        "right_active_link_pitch": 0.011012679848837423,
+        "right_long_link_pitch": 0.02091425679587052,
+        "right_node_link_pitch": -0.01755319926070839,
+        "right_parallel_link_pitch": 0.020913842785764344,
+        "right_hip_pitch": -0.013263564438227614,
+        "right_knee_pitch": -0.020915061927132998,
+        "right_wheel_spin": 0.0,
+        "guide_wheel_lower_right_01_spin": 0.0,
+        "guide_wheel_lower_right_02_spin": 0.0,
+        "guide_wheel_lower_right_03_spin": 0.0,
+        "guide_wheel_lower_right_04_spin": 0.0,
+        "guide_wheel_lower_left_01_spin": 0.0,
+        "guide_wheel_lower_left_02_spin": 0.0,
+        "guide_wheel_lower_left_03_spin": 0.0,
+        "guide_wheel_lower_left_04_spin": 0.0,
+        "guide_wheel_lower_left_05_spin": 0.0,
+        "guide_wheel_lower_left_06_spin": 0.0,
+        "guide_wheel_lower_left_07_spin": 0.0,
+        "guide_wheel_lower_left_08_spin": 0.0,
+        "guide_wheel_lower_right_05_spin": 0.0,
+        "guide_wheel_lower_right_06_spin": 0.0,
+        "guide_wheel_lower_right_07_spin": 0.0,
+        "guide_wheel_lower_right_08_spin": 0.0,
+        "guide_wheel_lower_left_09_spin": 0.0,
+        "guide_wheel_lower_left_10_spin": 0.0,
+        "guide_wheel_lower_left_11_spin": 0.0,
+        "guide_wheel_lower_left_12_spin": 0.0,
+        "guide_wheel_lower_right_09_spin": 0.0,
+        "guide_wheel_lower_right_10_spin": 0.0,
+        "guide_wheel_lower_right_11_spin": 0.0,
+        "guide_wheel_lower_right_12_spin": 0.0
+      },
+      "root_height_m": 0.39875750635890655,
+      "root_quaternion_xyzw": [
+        0.7071067811865476,
+        0.0,
+        0.0,
+        0.7071067811865476
+      ],
+      "chassis_bottom_clearance_m": 0.32875750635890655,
+      "closure_each_m": [
+        5.122274160385132e-09,
+        4.889443516731262e-09,
+        5.122274175687431e-09,
+        4.88944353192899e-09
+      ],
+      "ideal_collider_gaps_m": {
+        "/rm_train_ground/robot/collisions/collision_0/sphere": 0.35375750635890657,
+        "/rm_train_ground/robot/collisions/collision_1/box": 0.32875750635890655,
+        "/rm_train_ground/left_active_link/collisions/collision_0/capsule": 0.3225668083472064,
+        "/rm_train_ground/left_long_link/collisions/collision_0/capsule": 0.23431342212320008,
+        "/rm_train_ground/left_node_link/collisions/collision_0/capsule": 0.23431317393137752,
+        "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule": 0.3029111430617696,
+        "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule": 0.24370024857232234,
+        "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule": 0.0424529029670655,
+        "/rm_train_ground/left_wheel/collisions/collision_0/cylinder": 0.004453126198861901,
+        "/rm_train_ground/right_active_link/collisions/collision_0/capsule": 0.3212299191539292,
+        "/rm_train_ground/right_long_link/collisions/collision_0/capsule": 0.23323771404838622,
+        "/rm_train_ground/right_node_link/collisions/collision_0/capsule": 0.23323745487405012,
+        "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule": 0.30353868943161033,
+        "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule": 0.24389428428609106,
+        "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule": 0.03999944116037607,
+        "/rm_train_ground/right_wheel/collisions/collision_0/cylinder": 0.0020000000000000018,
+        "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder": 0.24378350828914333,
+        "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder": 0.24803650831012417,
+        "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder": 0.2480365083101241,
+        "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder": 0.24373451327113796,
+        "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder": 0.2480365083101241,
+        "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder": 0.24803650831012417,
+        "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder": 0.24378350828914333,
+        "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder": 0.24373451327113796,
+        "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder": 0.24378350828914327,
+        "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder": 0.2480365083101241,
+        "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder": 0.2480365083101241,
+        "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder": 0.24373451327113796,
+        "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder": 0.2480365083101241,
+        "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder": 0.2480365083101241,
+        "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder": 0.24373451327113796,
+        "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder": 0.24378350828914327,
+        "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder": 0.23028350328235317,
+        "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder": 0.23028350328235317,
+        "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder": 0.23028350328235317,
+        "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder": 0.2302835032823532,
+        "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder": 0.23028350328235317,
+        "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder": 0.2302835032823532,
+        "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder": 0.23028350328235317,
+        "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder": 0.23028350328235317
+      },
+      "rejection_reason": null
+    },
+    {
+      "pose_id": "train_R1_manual0001",
+      "split": "train",
+      "seed": 20261002,
+      "family": "R1",
+      "offline_valid": true,
+      "runtime_valid": null,
+      "joint_pos": {
+        "left_active_link_pitch": 1.431786060333252,
+        "left_hip_pitch": -0.023387694731354713,
+        "right_active_link_pitch": 1.4321625232696533,
+        "right_hip_pitch": 0.02338031865656376,
+        "guide_wheel_lower_right_01_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_02_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_03_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_04_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_01_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_02_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_03_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_04_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_05_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_06_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_07_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_08_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_05_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_06_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_07_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_08_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_09_spin": 4.045566558837891,
+        "guide_wheel_lower_left_10_spin": 3.4505369663238525,
+        "guide_wheel_lower_left_11_spin": 5.150420665740967,
+        "guide_wheel_lower_left_12_spin": 5.451693058013916,
+        "guide_wheel_lower_right_09_spin": 6.038624286651611,
+        "guide_wheel_lower_right_10_spin": 5.411306381225586,
+        "guide_wheel_lower_right_11_spin": 3.4132239818573,
+        "guide_wheel_lower_right_12_spin": 2.491342782974243,
+        "left_long_link_pitch": -1.0370433330535889,
+        "left_knee_pitch": 1.037146806716919,
+        "right_long_link_pitch": 1.0372488498687744,
+        "right_knee_pitch": -1.037351131439209,
+        "left_node_link_pitch": 0.6657156348228455,
+        "left_wheel_spin": 4.220009803771973,
+        "right_node_link_pitch": -0.6657426953315735,
+        "right_wheel_spin": 4.147587299346924,
+        "left_parallel_link_pitch": -1.0369845628738403,
+        "right_parallel_link_pitch": 1.0371899604797363
+      },
+      "root_height_m": 0.16847403347492218,
+      "root_quaternion_xyzw": [
+        0.7070949673652649,
+        -0.0041166930459439754,
+        -0.004116784315556288,
+        0.7070947289466858
+      ],
+      "chassis_bottom_clearance_m": 0.09847397357225418,
+      "closure_each_m": [
+        1.2682284585795728e-07,
+        2.7183441042769386e-07,
+        1.754549699379408e-07,
+        1.7365780368586294e-07
+      ],
+      "ideal_collider_gaps_m": {
+        "/rm_train_ground/robot/collisions/collision_0/sphere": 0.12347403168678284,
+        "/rm_train_ground/robot/collisions/collision_1/box": 0.09847397357225418,
+        "/rm_train_ground/left_active_link/collisions/collision_0/capsule": 0.15449810028076172,
+        "/rm_train_ground/left_long_link/collisions/collision_0/capsule": 0.10566584765911102,
+        "/rm_train_ground/left_node_link/collisions/collision_0/capsule": 0.09566394984722137,
+        "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule": 0.015079181641340256,
+        "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule": 0.007999248802661896,
+        "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule": 5.21540641784668e-08,
+        "/rm_train_ground/left_wheel/collisions/collision_0/cylinder": 6.332993507385254e-08,
+        "/rm_train_ground/right_active_link/collisions/collision_0/capsule": 0.1544981151819229,
+        "/rm_train_ground/right_long_link/collisions/collision_0/capsule": 0.10568837821483612,
+        "/rm_train_ground/right_node_link/collisions/collision_0/capsule": 0.09565161913633347,
+        "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule": 0.01506740227341652,
+        "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule": 0.008000418543815613,
+        "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule": -3.725290298461914e-08,
+        "/rm_train_ground/right_wheel/collisions/collision_0/cylinder": -1.2665987014770508e-07,
+        "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder": 0.013500168919563293,
+        "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder": 0.01775313913822174,
+        "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder": 0.01775316894054413,
+        "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder": 0.013451144099235535,
+        "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder": 0.017753079533576965,
+        "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder": 0.017753109335899353,
+        "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder": 0.013500109314918518,
+        "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder": 0.013451144099235535,
+        "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder": 0.01350007951259613,
+        "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder": 0.017753079533576965,
+        "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder": 0.017753079533576965,
+        "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder": 0.013451114296913147,
+        "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder": 0.017753079533576965,
+        "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder": 0.017753109335899353,
+        "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder": 0.013451114296913147,
+        "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder": 0.013500109314918518,
+        "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder": 1.3969838619232178e-08,
+        "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder": -1.5832483768463135e-08,
+        "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder": 7.264316082000732e-08,
+        "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder": 1.30385160446167e-08,
+        "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder": 1.3597309589385986e-07,
+        "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder": 1.9371509552001953e-07,
+        "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder": 1.3969838619232178e-08,
+        "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder": 4.284083843231201e-08
+      },
+      "rejection_reason": null,
+      "source_record": "/home/kellen/wheel_leg_native_train/runs/recovery_pose_capture_20261002_145814/pose_0001_73d09dbe.json",
+      "source_record_sha256": "1ebaf39d3c07283c01cb519f3ab8e5b3acd7c5d5ded4a08faa88f29ac41b699c",
+      "reset_velocity_semantics": "All velocities zeroed on new reset; source instantaneous low velocities not replayed",
+      "heldout_semantics": "Same easy R1 pose; separate environment seed, not pose-generalization certification"
+    },
+    {
+      "pose_id": "holdout_R1_manual0001",
+      "split": "holdout",
+      "seed": 20261003,
+      "family": "R1",
+      "offline_valid": true,
+      "runtime_valid": null,
+      "joint_pos": {
+        "left_active_link_pitch": 1.431786060333252,
+        "left_hip_pitch": -0.023387694731354713,
+        "right_active_link_pitch": 1.4321625232696533,
+        "right_hip_pitch": 0.02338031865656376,
+        "guide_wheel_lower_right_01_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_02_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_03_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_04_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_01_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_02_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_03_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_04_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_05_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_06_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_07_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_08_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_05_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_06_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_07_spin": -0.00042264608782716095,
+        "guide_wheel_lower_right_08_spin": -0.00042264608782716095,
+        "guide_wheel_lower_left_09_spin": 4.045566558837891,
+        "guide_wheel_lower_left_10_spin": 3.4505369663238525,
+        "guide_wheel_lower_left_11_spin": 5.150420665740967,
+        "guide_wheel_lower_left_12_spin": 5.451693058013916,
+        "guide_wheel_lower_right_09_spin": 6.038624286651611,
+        "guide_wheel_lower_right_10_spin": 5.411306381225586,
+        "guide_wheel_lower_right_11_spin": 3.4132239818573,
+        "guide_wheel_lower_right_12_spin": 2.491342782974243,
+        "left_long_link_pitch": -1.0370433330535889,
+        "left_knee_pitch": 1.037146806716919,
+        "right_long_link_pitch": 1.0372488498687744,
+        "right_knee_pitch": -1.037351131439209,
+        "left_node_link_pitch": 0.6657156348228455,
+        "left_wheel_spin": 4.220009803771973,
+        "right_node_link_pitch": -0.6657426953315735,
+        "right_wheel_spin": 4.147587299346924,
+        "left_parallel_link_pitch": -1.0369845628738403,
+        "right_parallel_link_pitch": 1.0371899604797363
+      },
+      "root_height_m": 0.16847403347492218,
+      "root_quaternion_xyzw": [
+        0.7070949673652649,
+        -0.0041166930459439754,
+        -0.004116784315556288,
+        0.7070947289466858
+      ],
+      "chassis_bottom_clearance_m": 0.09847397357225418,
+      "closure_each_m": [
+        1.2682284585795728e-07,
+        2.7183441042769386e-07,
+        1.754549699379408e-07,
+        1.7365780368586294e-07
+      ],
+      "ideal_collider_gaps_m": {
+        "/rm_train_ground/robot/collisions/collision_0/sphere": 0.12347403168678284,
+        "/rm_train_ground/robot/collisions/collision_1/box": 0.09847397357225418,
+        "/rm_train_ground/left_active_link/collisions/collision_0/capsule": 0.15449810028076172,
+        "/rm_train_ground/left_long_link/collisions/collision_0/capsule": 0.10566584765911102,
+        "/rm_train_ground/left_node_link/collisions/collision_0/capsule": 0.09566394984722137,
+        "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule": 0.015079181641340256,
+        "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule": 0.007999248802661896,
+        "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule": 5.21540641784668e-08,
+        "/rm_train_ground/left_wheel/collisions/collision_0/cylinder": 6.332993507385254e-08,
+        "/rm_train_ground/right_active_link/collisions/collision_0/capsule": 0.1544981151819229,
+        "/rm_train_ground/right_long_link/collisions/collision_0/capsule": 0.10568837821483612,
+        "/rm_train_ground/right_node_link/collisions/collision_0/capsule": 0.09565161913633347,
+        "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule": 0.01506740227341652,
+        "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule": 0.008000418543815613,
+        "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule": -3.725290298461914e-08,
+        "/rm_train_ground/right_wheel/collisions/collision_0/cylinder": -1.2665987014770508e-07,
+        "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder": 0.013500168919563293,
+        "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder": 0.01775313913822174,
+        "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder": 0.01775316894054413,
+        "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder": 0.013451144099235535,
+        "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder": 0.017753079533576965,
+        "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder": 0.017753109335899353,
+        "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder": 0.013500109314918518,
+        "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder": 0.013451144099235535,
+        "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder": 0.01350007951259613,
+        "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder": 0.017753079533576965,
+        "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder": 0.017753079533576965,
+        "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder": 0.013451114296913147,
+        "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder": 0.017753079533576965,
+        "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder": 0.017753109335899353,
+        "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder": 0.013451114296913147,
+        "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder": 0.013500109314918518,
+        "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder": 1.3969838619232178e-08,
+        "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder": -1.5832483768463135e-08,
+        "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder": 7.264316082000732e-08,
+        "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder": 1.30385160446167e-08,
+        "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder": 1.3597309589385986e-07,
+        "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder": 1.9371509552001953e-07,
+        "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder": 1.3969838619232178e-08,
+        "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder": 4.284083843231201e-08
+      },
+      "rejection_reason": null,
+      "source_record": "/home/kellen/wheel_leg_native_train/runs/recovery_pose_capture_20261002_145814/pose_0001_73d09dbe.json",
+      "source_record_sha256": "1ebaf39d3c07283c01cb519f3ab8e5b3acd7c5d5ded4a08faa88f29ac41b699c",
+      "reset_velocity_semantics": "All velocities zeroed on new reset; source instantaneous low velocities not replayed",
+      "heldout_semantics": "Same easy R1 pose; separate environment seed, not pose-generalization certification"
+    }
+  ],
+  "collision_inventory": [
+    {
+      "path": "/rm_train_ground/robot/collisions/collision_0/sphere",
+      "body": "robot",
+      "type": "Sphere"
+    },
+    {
+      "path": "/rm_train_ground/robot/collisions/collision_1/box",
+      "body": "robot",
+      "type": "Cube"
+    },
+    {
+      "path": "/rm_train_ground/left_active_link/collisions/collision_0/capsule",
+      "body": "left_active_link",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/left_long_link/collisions/collision_0/capsule",
+      "body": "left_long_link",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/left_node_link/collisions/collision_0/capsule",
+      "body": "left_node_link",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule",
+      "body": "left_parallel_link",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule",
+      "body": "left_upper_leg",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule",
+      "body": "left_lower_leg",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/left_wheel/collisions/collision_0/cylinder",
+      "body": "left_wheel",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/right_active_link/collisions/collision_0/capsule",
+      "body": "right_active_link",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/right_long_link/collisions/collision_0/capsule",
+      "body": "right_long_link",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/right_node_link/collisions/collision_0/capsule",
+      "body": "right_node_link",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule",
+      "body": "right_parallel_link",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule",
+      "body": "right_upper_leg",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule",
+      "body": "right_lower_leg",
+      "type": "Capsule"
+    },
+    {
+      "path": "/rm_train_ground/right_wheel/collisions/collision_0/cylinder",
+      "body": "right_wheel",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_01",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_02",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_03",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_04",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_01",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_02",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_03",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_04",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_05",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_06",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_07",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_08",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_05",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_06",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_07",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_08",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_09",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_10",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_11",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_12",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_09",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_10",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_11",
+      "type": "Cylinder"
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_12",
+      "type": "Cylinder"
+    }
+  ],
+  "collision_geometry": [
+    {
+      "path": "/rm_train_ground/robot/collisions/collision_0/sphere",
+      "body": "robot",
+      "type": "Sphere",
+      "radius": 0.045,
+      "matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          -7.785560636570997e-23,
+          0.0
+        ],
+        [
+          0.0,
+          2.946844249180485e-23,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/robot/collisions/collision_1/box",
+      "body": "robot",
+      "type": "Cube",
+      "size": 1.0,
+      "matrix": [
+        [
+          0.32,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.13999999999999999,
+          -1.9899509955776988e-23,
+          0.0
+        ],
+        [
+          0.0,
+          7.316404805563361e-24,
+          0.14,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/left_active_link/collisions/collision_0/capsule",
+      "body": "left_active_link",
+      "type": "Capsule",
+      "radius": 0.014,
+      "height": 0.095227,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9911844764245602,
+          0.048255203146335496,
+          -0.1233886909902051,
+          0.005874999999999991
+        ],
+        [
+          0.04825520314633548,
+          0.7358563435549611,
+          0.6754160769623634,
+          -0.03215899999999999
+        ],
+        [
+          0.12338869099020511,
+          -0.6754160769623634,
+          0.7270408199795213,
+          -0.03461700000000001
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/left_long_link/collisions/collision_0/capsule",
+      "body": "left_long_link",
+      "type": "Capsule",
+      "radius": 0.014,
+      "height": 0.11317,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9698221317070336,
+          -0.2184678923116467,
+          0.108244227929862,
+          -0.0061249999999999916
+        ],
+        [
+          -0.21846789231164673,
+          -0.5815636647276823,
+          0.7836169242030284,
+          -0.044340999999999964
+        ],
+        [
+          -0.10824422792986195,
+          -0.7836169242030285,
+          -0.6117415330206487,
+          0.03461600000000001
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/left_node_link/collisions/collision_0/capsule",
+      "body": "left_node_link",
+      "type": "Capsule",
+      "radius": 0.014,
+      "height": 0.176182,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9977984413140275,
+          -0.058128233728477814,
+          -0.03192771452679818,
+          0.002812000000000009
+        ],
+        [
+          -0.058128233728477814,
+          -0.5347724218852445,
+          -0.8429944040351619,
+          0.07425999999999999
+        ],
+        [
+          0.0319277145267982,
+          0.842994404035162,
+          -0.536973980571217,
+          0.047302
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/left_parallel_link/collisions/collision_0/capsule",
+      "body": "left_parallel_link",
+      "type": "Capsule",
+      "radius": 0.014,
+      "height": 0.115694,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9877923458245601,
+          0.144869631126441,
+          -0.05726317758998005,
+          0.0033120000000000094
+        ],
+        [
+          0.144869631126441,
+          -0.7191845149852312,
+          0.6795486909580116,
+          -0.03931000000000007
+        ],
+        [
+          0.05726317758998005,
+          -0.6795486909580117,
+          -0.7313921691606712,
+          0.04230900000000001
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/left_upper_leg/collisions/collision_0/capsule",
+      "body": "left_upper_leg",
+      "type": "Capsule",
+      "radius": 0.014,
+      "height": 0.210725,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9744516093714516,
+          0.20867996214160775,
+          -0.08304657966445797,
+          0.008750000000000008
+        ],
+        [
+          0.20867996214160775,
+          -0.704503709551157,
+          0.6783267624303474,
+          -0.07147000000000003
+        ],
+        [
+          0.08304657966445798,
+          -0.6783267624303476,
+          -0.7300521001797056,
+          0.07692
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/left_lower_leg/collisions/collision_0/capsule",
+      "body": "left_lower_leg",
+      "type": "Capsule",
+      "radius": 0.022,
+      "height": 0.251245,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.993616164953774,
+          0.04934345072580799,
+          -0.10145018784124744,
+          0.012745000000000006
+        ],
+        [
+          0.04934345072580795,
+          0.6186029068890772,
+          0.784152834247797,
+          -0.09850700000000001
+        ],
+        [
+          0.10145018784124746,
+          -0.7841528342477971,
+          0.6122190718428513,
+          -0.07690899999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/left_wheel/collisions/collision_0/cylinder",
+      "body": "left_wheel",
+      "type": "Cylinder",
+      "radius": 0.06,
+      "height": 0.033,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/right_active_link/collisions/collision_0/capsule",
+      "body": "right_active_link",
+      "type": "Capsule",
+      "radius": 0.014,
+      "height": 0.095227,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9911844764245602,
+          -0.048255203146335496,
+          0.1233886909902051,
+          -0.005874999999999991
+        ],
+        [
+          -0.04825520314633548,
+          0.7358563435549611,
+          0.6754160769623634,
+          -0.03215899999999999
+        ],
+        [
+          -0.12338869099020511,
+          -0.6754160769623634,
+          0.7270408199795213,
+          -0.03461700000000001
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/right_long_link/collisions/collision_0/capsule",
+      "body": "right_long_link",
+      "type": "Capsule",
+      "radius": 0.014,
+      "height": 0.11317,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9698221317070336,
+          0.2184678923116467,
+          -0.108244227929862,
+          0.0061249999999999916
+        ],
+        [
+          0.21846789231164673,
+          -0.5815636647276823,
+          0.7836169242030284,
+          -0.044340999999999964
+        ],
+        [
+          0.10824422792986195,
+          -0.7836169242030285,
+          -0.6117415330206487,
+          0.03461600000000001
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/right_node_link/collisions/collision_0/capsule",
+      "body": "right_node_link",
+      "type": "Capsule",
+      "radius": 0.014,
+      "height": 0.176182,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9977984413140275,
+          0.058128233728477814,
+          0.03192771452679818,
+          -0.002812000000000009
+        ],
+        [
+          0.058128233728477814,
+          -0.5347724218852445,
+          -0.8429944040351619,
+          0.07425999999999999
+        ],
+        [
+          -0.0319277145267982,
+          0.842994404035162,
+          -0.536973980571217,
+          0.047302
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/right_parallel_link/collisions/collision_0/capsule",
+      "body": "right_parallel_link",
+      "type": "Capsule",
+      "radius": 0.014,
+      "height": 0.115694,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9877923458245601,
+          -0.144869631126441,
+          0.05726317758998005,
+          -0.0033120000000000094
+        ],
+        [
+          -0.144869631126441,
+          -0.7191845149852312,
+          0.6795486909580116,
+          -0.03931000000000007
+        ],
+        [
+          -0.05726317758998005,
+          -0.6795486909580117,
+          -0.7313921691606712,
+          0.04230900000000001
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/right_upper_leg/collisions/collision_0/capsule",
+      "body": "right_upper_leg",
+      "type": "Capsule",
+      "radius": 0.014,
+      "height": 0.210725,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9744516093714516,
+          -0.20867996214160775,
+          0.08304657966445797,
+          -0.008750000000000008
+        ],
+        [
+          -0.20867996214160775,
+          -0.704503709551157,
+          0.6783267624303474,
+          -0.07147000000000003
+        ],
+        [
+          -0.08304657966445798,
+          -0.6783267624303476,
+          -0.7300521001797056,
+          0.07692
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/right_lower_leg/collisions/collision_0/capsule",
+      "body": "right_lower_leg",
+      "type": "Capsule",
+      "radius": 0.022,
+      "height": 0.251283,
+      "axis": "Z",
+      "matrix": [
+        [
+          0.9936062431018637,
+          -0.049392763890032484,
+          0.10152333989927459,
+          -0.012754999999999989
+        ],
+        [
+          -0.04939276389003247,
+          0.6184332367394793,
+          0.7842835498537726,
+          -0.09853900000000004
+        ],
+        [
+          -0.1015233398992746,
+          -0.7842835498537726,
+          0.6120394798413429,
+          -0.076897
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/right_wheel/collisions/collision_0/cylinder",
+      "body": "right_wheel",
+      "type": "Cylinder",
+      "radius": 0.06,
+      "height": 0.033,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_01/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_01",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_02/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_02",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_03/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_03",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          -5.551115123125783e-17
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_04/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_04",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_01/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_01",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          -5.551115123125783e-17
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_02/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_02",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_03/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_03",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_04/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_04",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_05/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_05",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          -5.551115123125783e-17
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_06/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_06",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          -5.551115123125783e-17
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_07/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_07",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          -5.551115123125783e-17
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_08/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_08",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_05/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_05",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          -5.551115123125783e-17
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_06/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_06",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          -5.551115123125783e-17
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_07/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_07",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_08/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_08",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          -5.551115123125783e-17
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_09/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_09",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_10/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_10",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_11/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_11",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_left_12/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_left_12",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          2.7755575615628914e-17
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_09/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_09",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_10/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_10",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          2.7755575615628914e-17
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_11/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_11",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "path": "/rm_train_ground/guide_wheel_lower_right_12/collisions/collision_0/cylinder",
+      "body": "guide_wheel_lower_right_12",
+      "type": "Cylinder",
+      "radius": 0.015,
+      "height": 0.009,
+      "axis": "Z",
+      "matrix": [
+        [
+          6.40121136430416e-07,
+          0.0,
+          0.9999999999997953,
+          0.0
+        ],
+        [
+          1.8373472474561882e-22,
+          1.0,
+          -6.359007565900148e-29,
+          0.0
+        ],
+        [
+          -0.9999999999997954,
+          2.946844249180485e-23,
+          6.40121136430416e-07,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    }
+  ],
+  "joint_limits_rad": {
+    "left_active_link_pitch": [
+      -2.599999963770265,
+      2.599999963770265
+    ],
+    "left_long_link_pitch": [
+      -2.599999963770265,
+      2.599999963770265
+    ],
+    "left_node_link_pitch": [
+      -2.599999963770265,
+      2.599999963770265
+    ],
+    "left_parallel_link_pitch": [
+      -2.599999963770265,
+      2.599999963770265
+    ],
+    "left_hip_pitch": [
+      -3.0999999363171535,
+      3.0999999363171535
+    ],
+    "left_knee_pitch": [
+      -2.5000001290505525,
+      2.5000001290505525
+    ],
+    "right_active_link_pitch": [
+      -2.599999963770265,
+      2.599999963770265
+    ],
+    "right_long_link_pitch": [
+      -2.599999963770265,
+      2.599999963770265
+    ],
+    "right_node_link_pitch": [
+      -2.599999963770265,
+      2.599999963770265
+    ],
+    "right_parallel_link_pitch": [
+      -2.599999963770265,
+      2.599999963770265
+    ],
+    "right_hip_pitch": [
+      -3.0999999363171535,
+      3.0999999363171535
+    ],
+    "right_knee_pitch": [
+      -2.5000001290505525,
+      2.5000001290505525
+    ]
+  },
+  "geometry_limitation": "Chassis robot bottom stays ~0.10m above floor at guide-wheel-supported low pose; body-bottom-on-floor is not valid with current USD."
+}

@@ -1,0 +1,27 @@
+{
+  "experiment": "motion_recipe_interface_probe_20261004",
+  "interpreter": "/home/kellen/anaconda3/envs/issaclab/bin/python",
+  "authorization": "AUTHORIZED",
+  "asset_module_root": "/home/kellen/桌面/11 (1)/11/wheeled-legged_RL/source/agent_world",
+  "recipe": {
+    "curriculum": {"active_stage": 1, "episode_length_s": 9.0, "schedule_s": [1.0, 1.0, 4.0, 1.0], "stages": [{"id":1,"name":"L1","commands":[[0,0],[0.1,0],[-0.1,0],[0.2,0],[-0.2,0]],"weights":[0.4,0.15,0.15,0.15,0.15],"schedule_s":[1.0,1.0,4.0,1.0],"episode_length_s":9.0,"command_mode":"fixed"}]},
+    "control": {"height_command_m":0.4,"physics_dt_s":0.001,"pd_dt_s":0.005,"policy_dt_s":0.01,"leg_kp":60.0,"leg_kd":2.0,"wheel_kv":1.0,"closure_fault_m":0.005},
+    "action": {"leg_scale_rad":0.5,"leg_pair_radius_rad":0.0,"wheel_scale_rad_s":100.0},
+    "ground": {"height_m":0.0,"normal_axis":"Z","width_m":128.0,"length_m":128.0,"static_friction":0.5,"dynamic_friction":0.5,"restitution":0.0,"material_path":"/World/native_ground_material"},
+    "termination": {"fall_root_height_m":0.2,"minimum_up_cos":0.5,"body_contact_max_n":200.0,"active_leg_angle_max_rad":0.5},
+    "reward": {"upright":2.0,"height":2.0,"linear_velocity_tracking":4.0,"yaw_velocity_tracking":4.0,"two_wheel_contact":0.5,"effort":-0.02,"action_delta":-0.01,"joint_margin":-0.05,"height_width_m":0.06,"terminal_penalty":-1.0,"stage_linear_denominators":{"1":0.04},"stage_yaw_denominators":{"1":0.09},"tracking_mode":"separate","action_delta_wheel_factor":16.666666666666668},
+    "seed": 20260930,
+    "asset_module_path": "/home/kellen/桌面/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/rmuc_wheel_leg.py",
+    "asset_module_sha256": "90436170bb1d816747b19e2a29a6510e21499240fb0c8e1bf99e7220595e1f4f",
+    "colleague_config_path": "/home/kellen/桌面/11 (1)/11/wheeled-legged_RL/configs/rmuc_wheel_leg.yaml",
+    "colleague_config_sha256": "176be702416d4ecbd346ef336506697486e7f76666a776bd4c31b944b2225df6",
+    "asset_sha256": "6bf6ce7f64f8d46cdc759bdf48dba0def85f6e9e6915acca27c543dbcf031a27"
+  },
+  "probe": {"envs": 8, "steps": 40, "seed": 20261004, "wall_limit_s": 300,
+    "trials": [
+      {"name":"left_wheel_pos","action":[0,0,0.05,0,0,0]}, {"name":"left_wheel_neg","action":[0,0,-0.05,0,0,0]},
+      {"name":"right_wheel_pos","action":[0,0,0,0,0,0.05]}, {"name":"right_wheel_neg","action":[0,0,0,0,0,-0.05]},
+      {"name":"both_wheel_pos","action":[0,0,0.05,0,0,0.05]}, {"name":"differential","action":[0,0,0.05,0,0,-0.05]},
+      {"name":"left_leg_pos","action":[0.05,0.05,0,0,0,0]}, {"name":"right_leg_pos","action":[0,0,0,0.05,0.05,0]}
+    ]}
+}

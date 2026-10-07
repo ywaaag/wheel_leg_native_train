@@ -1,0 +1,1324 @@
+{
+  "experiment": "native_wide_leg_from_scratch_20261002",
+  "version": 6,
+  "source_checkpoint": null,
+  "source_sha256": "RANDOM_INITIALIZATION_NO_CHECKPOINT",
+  "asset_path": "/home/kellen/桌面/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/usd_files/rmuc_wheel_leg/rmuc_robot_closed_loop.usd",
+  "asset_sha256": "6bf6ce7f64f8d46cdc759bdf48dba0def85f6e9e6915acca27c543dbcf031a27",
+  "asset_module_root": "/home/kellen/桌面/11 (1)/11/wheeled-legged_RL/source/agent_world",
+  "asset_module_path": "/home/kellen/桌面/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/rmuc_wheel_leg.py",
+  "asset_module_sha256": "90436170bb1d816747b19e2a29a6510e21499240fb0c8e1bf99e7220595e1f4f",
+  "colleague_config_path": "/home/kellen/桌面/11 (1)/11/wheeled-legged_RL/configs/rmuc_wheel_leg.yaml",
+  "colleague_config_sha256": "6c159f7ab188b95759fe2b2f82265847b07acee3f457c7959dae97b9e1221677",
+  "ground": {
+    "collider": "plane",
+    "height_m": 0.0,
+    "normal_axis": "Z",
+    "width_m": 128.0,
+    "length_m": 128.0,
+    "static_friction": 0.5,
+    "dynamic_friction": 0.5,
+    "restitution": 0.0,
+    "material_path": "/World/native_ground_material"
+  },
+  "interpreter": "/home/kellen/anaconda3/envs/issaclab/bin/python",
+  "seed": 20260930,
+  "observation": {
+    "frame_dim": 25,
+    "fields": [
+      "angular_body:3",
+      "gravity_body:3",
+      "command_vx_yaw_height:3",
+      "physical_leg_offset:4",
+      "physical_active_velocity:6",
+      "previous_clipped_action:6"
+    ],
+    "scales": [
+      0.25,
+      1.0,
+      2.0,
+      0.25,
+      5.0,
+      2.0,
+      0.05,
+      1.0
+    ]
+  },
+  "history": {
+    "frames": 5,
+    "dim": 125,
+    "order": "oldest_to_newest",
+    "reset": "five_current_frames"
+  },
+  "action": {
+    "dim": 6,
+    "order": [
+      "left_hip_pitch",
+      "left_active_link_pitch",
+      "left_wheel_spin",
+      "right_hip_pitch",
+      "right_active_link_pitch",
+      "right_wheel_spin"
+    ],
+    "leg_scale_rad": 0.5,
+    "leg_pair_radius_rad": 0.0,
+    "wheel_scale_rad_s": 100.0
+  },
+  "control": {
+    "physics_dt_s": 0.001,
+    "pd_dt_s": 0.005,
+    "policy_dt_s": 0.01,
+    "leg_kp": 60.0,
+    "leg_kd": 2.0,
+    "wheel_kv": 1.0,
+    "effort_limits_nm": [
+      40,
+      40,
+      5.5,
+      40,
+      40,
+      5.5
+    ],
+    "height_command_m": 0.4,
+    "closure_fault_m": 0.005
+  },
+  "termination": {
+    "fall_root_height_m": 0.2,
+    "minimum_up_cos": 0.5,
+    "body_contact_max_n": 200.0,
+    "active_leg_angle_max_rad": 0.5
+  },
+  "reward": {
+    "upright": 2.0,
+    "height": 2.0,
+    "velocity_tracking": 1.0,
+    "two_wheel_contact": 0.5,
+    "effort": -0.02,
+    "action_delta": -0.01,
+    "joint_margin": -0.05,
+    "height_width_m": 0.06,
+    "linear_error_denominator": 0.01,
+    "yaw_error_denominator": 0.09,
+    "terminal_penalty": -1.0,
+    "stage_linear_denominators": {
+      "0": 0.01,
+      "1": 0.01,
+      "2": 0.010000000000000002,
+      "3": 0.0625,
+      "4": 0.25,
+      "5": 1.0,
+      "6": 2.25,
+      "7": 4.0,
+      "8": 4.0,
+      "9": 4.0,
+      "10": 4.0,
+      "11": 4.0,
+      "12": 4.0
+    },
+    "stage_yaw_denominators": {
+      "0": 0.09,
+      "1": 0.09,
+      "2": 0.09,
+      "3": 0.09,
+      "4": 0.09,
+      "5": 0.09,
+      "6": 0.09,
+      "7": 0.09,
+      "8": 0.09,
+      "9": 0.25,
+      "10": 1.0,
+      "11": 2.25,
+      "12": 4.0
+    },
+    "action_delta_wheel_factor": 16.666666666666668,
+    "action_delta_semantics": "wheel differences converted to source6rad/s coordinates; preserves physical wheel smoothness weight despite new100rad/s normalization"
+  },
+  "curriculum": {
+    "active_stage": 0,
+    "episode_length_s": 6.0,
+    "schedule_s": [
+      0.5,
+      0.5,
+      7.0,
+      1.0
+    ],
+    "minimum_zero_fraction": 0.4,
+    "stages": [
+      {
+        "id": 0,
+        "name": "H",
+        "commands": [
+          [
+            0,
+            0
+          ]
+        ],
+        "weights": [
+          1.0
+        ]
+      },
+      {
+        "id": 1,
+        "name": "T1",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.3,
+          0.3
+        ]
+      },
+      {
+        "id": 2,
+        "name": "T2",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.1,
+          0.1,
+          0.2,
+          0.2
+        ]
+      },
+      {
+        "id": 3,
+        "name": "T3",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.075,
+          0.075,
+          0.075,
+          0.075,
+          0.15,
+          0.15
+        ]
+      },
+      {
+        "id": 4,
+        "name": "T4",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.049999999999999996,
+          0.049999999999999996,
+          0.049999999999999996,
+          0.049999999999999996,
+          0.049999999999999996,
+          0.049999999999999996,
+          0.15,
+          0.15
+        ]
+      },
+      {
+        "id": 5,
+        "name": "T5",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.15,
+          0.15
+        ]
+      },
+      {
+        "id": 6,
+        "name": "T6",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.15,
+          0.15
+        ]
+      },
+      {
+        "id": 7,
+        "name": "T7",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.15,
+          0.15
+        ]
+      },
+      {
+        "id": 8,
+        "name": "Y1",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.075,
+          0.075,
+          0.075,
+          0.075
+        ]
+      },
+      {
+        "id": 9,
+        "name": "Y2",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            -0.5
+          ],
+          [
+            0,
+            1.0
+          ],
+          [
+            0,
+            -1.0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.075,
+          0.075,
+          0.075,
+          0.075
+        ]
+      },
+      {
+        "id": 10,
+        "name": "Y3",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            -0.5
+          ],
+          [
+            0,
+            1.0
+          ],
+          [
+            0,
+            -1.0
+          ],
+          [
+            0,
+            2.0
+          ],
+          [
+            0,
+            -2.0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.15,
+          0.15
+        ]
+      },
+      {
+        "id": 11,
+        "name": "Y4",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            -0.5
+          ],
+          [
+            0,
+            1.0
+          ],
+          [
+            0,
+            -1.0
+          ],
+          [
+            0,
+            2.0
+          ],
+          [
+            0,
+            -2.0
+          ],
+          [
+            0,
+            3.0
+          ],
+          [
+            0,
+            -3.0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.15,
+          0.15
+        ]
+      },
+      {
+        "id": 12,
+        "name": "Y5",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            -0.5
+          ],
+          [
+            0,
+            1.0
+          ],
+          [
+            0,
+            -1.0
+          ],
+          [
+            0,
+            2.0
+          ],
+          [
+            0,
+            -2.0
+          ],
+          [
+            0,
+            3.0
+          ],
+          [
+            0,
+            -3.0
+          ],
+          [
+            0,
+            4.0
+          ],
+          [
+            0,
+            -4.0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.15,
+          0.15
+        ]
+      }
+    ],
+    "future_order": [
+      "dynamic_start_stop",
+      "combined_turning"
+    ],
+    "episode_curriculum": {
+      "lengths_s": [
+        6,
+        10,
+        20,
+        30
+      ],
+      "episodes_per_window": 128,
+      "consecutive_windows": 2,
+      "gates": {
+        "normal_timeout_min": 0.95,
+        "metric_episode_pass_min": 0.95,
+        "vx_abs_max_mps": 0.02,
+        "yaw_abs_max_rad_s": 0.03,
+        "excursion_max_m": 0.2,
+        "tilt_max_rad": 0.2,
+        "dual_contact_min": 0.95,
+        "height_m": [
+          0.39,
+          0.41
+        ],
+        "saturation_max": 0.05,
+        "closure_max_m": 0.005
+      },
+      "deadline_semantics": "assigned at reset; existing episode unchanged; complete episodes grouped by assigned level",
+      "window_semantics": "128 complete episodes, non-overlapping, 95% normal timeouts and 95% per-episode metric passes",
+      "bootstrap": "installed RSL-RL timeout reward bootstrap; task failures have time_outs=false",
+      "evaluation_interruptions": "milestone evaluation explicitly resets unfinished training episodes; not counted as completed windows"
+    },
+    "task_progression": null
+  },
+  "evaluation": {
+    "seed": 104,
+    "envs": 64,
+    "scored_envs": 8,
+    "seconds": 10,
+    "light_seconds": 2,
+    "steady_window_s": [
+      2,
+      10
+    ],
+    "light_window_s": [
+      0.5,
+      2
+    ],
+    "standing_height_m": [
+      0.39,
+      0.41
+    ],
+    "standing_drift_max_m": 0.2,
+    "standing_excursion_max_m": 0.2,
+    "dual_contact_min": 0.95,
+    "peak_tilt_max_rad": 0.2,
+    "saturation_fraction_max": 0.05,
+    "closure_max_m": 0.005,
+    "vx_error_max_mps": 0.02,
+    "yaw_error_max_rad_s": 0.03,
+    "light_every_updates": 0,
+    "full_every_updates": 500,
+    "checkpoint_every_updates": 100,
+    "unlock_full_updates": [],
+    "durability_seconds": 100,
+    "durability_only_for_selected": true,
+    "durability_steady_window_s": [
+      2,
+      100
+    ],
+    "vy_abs_max_mps": 0.02,
+    "height_steady_fraction_min": 0.9,
+    "motion_window_s": [
+      2,
+      8
+    ],
+    "motion_vx_error_max_mps": 0.03,
+    "motion_yaw_error_max_rad_s": 0.03,
+    "full_at_final": true,
+    "relative_motion_error_fraction": 0.3
+  },
+  "ppo": {
+    "envs": 64,
+    "steps_per_env": 128,
+    "hidden_dims": [
+      256,
+      128,
+      64
+    ],
+    "learning_rate": 3e-05,
+    "epochs": 4,
+    "minibatches": 4,
+    "gamma": 0.99,
+    "lam": 0.95,
+    "entropy_coef": 0.001
+  },
+  "budget": {
+    "source_eval_wall_s": 600,
+    "smoke_wall_s": 300,
+    "formal_wall_s": 7200,
+    "source_eval_updates": 0,
+    "smoke_updates": 5,
+    "formal_updates": 1000,
+    "sample_limit": 8192000
+  },
+  "artifacts": {
+    "keep_full_trace": [
+      "source_baseline",
+      "final_selected",
+      "failure_window"
+    ],
+    "checkpoint_name": "model_update_{update}.pt",
+    "progress_name": "progress.json",
+    "terminal_name": "terminal_report.json",
+    "manifest_name": "manifest.json"
+  },
+  "phase_initialization": "Strict150D actor/critic/Adam from update500; LR reapplied3e-5. Smoke/formal independently initialize the same source; environment full reset. Critic/Adam initialization does not imply old value accuracy for changed reward.",
+  "authorization": {
+    "hapi_session": "6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1",
+    "user_scope": "From-scratch random initialization; no historical checkpoint; 0.5 rad leg envelope; wheel scale 100 rad/s."
+  },
+  "source_input_dim": 150,
+  "source_update": 0,
+  "source_spec_sha256": "c1b6e9740b98a4711ff5edaf0d7565e5a731b94029fea79df6f3fa308382f88c",
+  "diagnostics": {
+    "source_eval": true,
+    "policy_sampling_hz": 100,
+    "duration_s": 10,
+    "PD_sampling_limitation": "held latest5ms torque; no per-physics independent force estimate"
+  },
+  "wheel_envelope_conversion": {
+    "source_scale_rad_s": 100.0,
+    "destination_scale_rad_s": 100.0,
+    "semantics": "source update2000 and wide-leg experiment both use 100 rad/s wheel target normalization"
+  },
+  "initialization": "random"
+}

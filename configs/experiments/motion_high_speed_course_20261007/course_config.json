@@ -1,0 +1,17 @@
+{
+  "spec": "/home/kellen/wheel_leg_native_train/configs/experiments/motion_high_speed_course_20261007/spec.json",
+  "spec_sha256": "536f82de53c6a13d1e6c6b75a93a9f00fe046261dbb6b3b8aa054b0c82c27b9d",
+  "source_checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt",
+  "source_sha256": "5d3389d5b8e33b7915d12d21308702f3105248485741b27ec91d0aaf4b90b89e",
+  "gpu": 1,
+  "formal_updates": 4500,
+  "stage_updates": 1500,
+  "smoke_updates": 10,
+  "wall_s": 64800,
+  "hapi_session": "191bacc3-e5c7-4b8f-ae3d-5677eada837b",
+  "stages": [
+    "L2",
+    "L3",
+    "L4"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "base_spec": "/home/kellen/wheel_leg_native_train/configs/tools/recovery_capture_base_knee_stop_0233.json",
+  "base_spec_sha256": "d370af2d09e727b9f8bc10535f352018883ff2bc75a8819a89c4f14e6eb9f090",
+  "colleague_config_sha256": "176be702416d4ecbd346ef336506697486e7f76666a776bd4c31b944b2225df6",
+  "purpose": "PPO0 mechanical stop diagnostic"
+}

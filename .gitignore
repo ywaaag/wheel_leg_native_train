@@ -1,0 +1,33 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+runs/*
+!runs/.gitkeep
+*.launcher.log
+*.lock
+
+# Immutable local training evidence and binary inputs are provisioned separately.
+/isolated/
+/assets/
+*.pt
+*.pth
+*.onnx
+*.npz
+*.npy
+*.log
+
+# Mutable runtime accounting must never be restored from a Git checkout.
+/configs/**/budget*.json
+/configs/**/ledger*.json
+/configs/**/*submission*.json
+/configs/**/candidate_review*.json
+/configs/**/source_snapshot/
+/configs/**/execution_snapshot/
+
+# Local credentials and editor state are not project source.
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/

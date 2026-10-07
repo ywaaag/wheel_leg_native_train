@@ -1,0 +1,555 @@
+{
+  "experiment": "recovery_standing_yaw_20261006",
+  "version": 6,
+  "source_checkpoint": "/home/kellen/wheel_leg_native_train/runs/recovery_stage0_stand_from1000_20261005_chain/formal/model_update_1500.pt",
+  "source_sha256": "c82125438bc17cdb5f559dcad3ca40cc7dff654f2dcc9d5fae97ec700a69fc82",
+  "source_update": 1500,
+  "source_input_dim": 150,
+  "source_spec_sha256": "da750c40aebdc9460b9ccf11626a415000c74e2c86d7888ef9d3d8da97ea5bb9",
+  "asset_path": "/home/kellen/wheel_leg_native_train/assets/diagnostic/rmuc_robot_closed_loop_knee_stop_0233_v2.usd",
+  "asset_sha256": "32a56efc5ee677a7ae3b5e59c3848a141276ec4957757acde239b774b0c901b7",
+  "asset_module_root": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world",
+  "asset_module_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/rmuc_wheel_leg.py",
+  "asset_module_sha256": "90436170bb1d816747b19e2a29a6510e21499240fb0c8e1bf99e7220595e1f4f",
+  "colleague_config_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/configs/rmuc_wheel_leg.yaml",
+  "colleague_config_sha256": "1cd67917524a468b9893c65de7c3082d3108df0cc43639ba40118478dbd81263",
+  "ground": {
+    "collider": "plane",
+    "height_m": 0.0,
+    "normal_axis": "Z",
+    "width_m": 128.0,
+    "length_m": 128.0,
+    "static_friction": 0.5,
+    "dynamic_friction": 0.5,
+    "restitution": 0.0,
+    "material_path": "/World/native_ground_material"
+  },
+  "interpreter": "/home/kellen/anaconda3/envs/issaclab/bin/python",
+  "seed": 20260930,
+  "restore_source_rng": false,
+  "restore_recovery_curriculum": false,
+  "observation": {
+    "frame_dim": 25,
+    "fields": [
+      "angular_body:3",
+      "gravity_body:3",
+      "command_vx_yaw_height:3",
+      "physical_leg_offset:4",
+      "physical_active_velocity:6",
+      "previous_clipped_action:6"
+    ],
+    "scales": [
+      0.25,
+      1.0,
+      2.0,
+      0.25,
+      5.0,
+      2.0,
+      0.05,
+      1.0
+    ]
+  },
+  "history": {
+    "frames": 5,
+    "dim": 125,
+    "order": "oldest_to_newest",
+    "reset": "five_current_frames"
+  },
+  "action": {
+    "dim": 6,
+    "order": [
+      "left_hip_pitch",
+      "left_active_link_pitch",
+      "left_wheel_spin",
+      "right_hip_pitch",
+      "right_active_link_pitch",
+      "right_wheel_spin"
+    ],
+    "leg_scale_rad": 1.6,
+    "leg_pair_radius_rad": 0.0,
+    "wheel_scale_rad_s": 100.0
+  },
+  "control": {
+    "physics_dt_s": 0.001,
+    "pd_dt_s": 0.005,
+    "policy_dt_s": 0.01,
+    "leg_kp": 60.0,
+    "leg_kd": 2.0,
+    "wheel_kv": 1.0,
+    "effort_limits_nm": [
+      40,
+      40,
+      5.5,
+      40,
+      40,
+      5.5
+    ],
+    "height_command_m": 0.36,
+    "closure_fault_m": 0.005
+  },
+  "termination": {
+    "fall_root_height_m": 0.0,
+    "minimum_up_cos": 0.5,
+    "body_contact_max_n": 200.0,
+    "active_leg_angle_max_rad": 3.1,
+    "joint_limit_mode": "usd_authored"
+  },
+  "reward": {
+    "lift": 0.0,
+    "upright": 0.0,
+    "effort": -0.02,
+    "action_delta": -0.01,
+    "joint_margin": -0.05,
+    "success_once": 10.0,
+    "failure_once": -1.0,
+    "height_overshoot": -1.0,
+    "height_overshoot_scale_m": 0.04,
+    "pitch_level": -4.0,
+    "pitch_level_scale_rad": 0.12,
+    "pitch_level_start_m": 0.3,
+    "pitch_level_full_m": 0.36,
+    "roll_level": -4.0,
+    "roll_level_scale_rad": 0.12,
+    "roll_level_start_m": 0.3,
+    "roll_level_full_m": 0.36,
+    "support": 0.5,
+    "support_force_threshold_n": 2.0,
+    "low_height_wheel_spin": -0.02,
+    "wheel_gate_start_m": 0.2,
+    "wheel_gate_full_m": 0.32,
+    "support_balance": -0.02,
+    "wheel_spin_scale_rad_s": 100.0,
+    "leg_symmetry_start_m": 0.32,
+    "leg_symmetry_full_m": 0.36,
+    "pitch_level_gate_mode": "unconditional",
+    "roll_level_gate_mode": "unconditional"
+  },
+  "curriculum": {
+    "active_stage": 0,
+    "episode_length_s": 16.0,
+    "schedule_s": [
+      0.5,
+      0.5,
+      7.0,
+      1.0
+    ],
+    "minimum_zero_fraction": 0.4,
+    "stages": [
+      {
+        "id": 0,
+        "name": "R0_STAND_036",
+        "commands": [
+          [
+            0,
+            0
+          ]
+        ],
+        "weights": [
+          1.0
+        ]
+      }
+    ],
+    "future_order": [
+      "dynamic_start_stop",
+      "combined_turning"
+    ],
+    "episode_curriculum": null,
+    "task_progression": null
+  },
+  "evaluation": {
+    "seed": 104,
+    "envs": 64,
+    "scored_envs": 8,
+    "seconds": 10,
+    "light_seconds": 2,
+    "steady_window_s": [
+      2,
+      10
+    ],
+    "light_window_s": [
+      0.5,
+      2
+    ],
+    "standing_height_m": [
+      0.34,
+      0.38
+    ],
+    "standing_drift_max_m": 0.2,
+    "standing_excursion_max_m": 0.2,
+    "dual_contact_min": 0.95,
+    "peak_tilt_max_rad": 0.12,
+    "saturation_fraction_max": 0.05,
+    "closure_max_m": 0.005,
+    "vx_error_max_mps": 0.03,
+    "yaw_error_max_rad_s": 0.03,
+    "light_every_updates": 100,
+    "full_every_updates": 50,
+    "checkpoint_every_updates": 100,
+    "unlock_full_updates": [],
+    "durability_seconds": 100,
+    "durability_only_for_selected": true,
+    "durability_steady_window_s": [
+      2,
+      100
+    ],
+    "vy_abs_max_mps": 0.03,
+    "height_steady_fraction_min": 0.9,
+    "motion_window_s": [
+      2,
+      8
+    ],
+    "motion_vx_error_max_mps": 0.03,
+    "motion_yaw_error_max_rad_s": 0.03,
+    "full_at_final": true,
+    "relative_motion_error_fraction": 0.3,
+    "run_final_durability": false
+  },
+  "ppo": {
+    "envs": 64,
+    "steps_per_env": 128,
+    "hidden_dims": [
+      256,
+      128,
+      64
+    ],
+    "learning_rate": 3e-05,
+    "epochs": 4,
+    "minibatches": 4,
+    "gamma": 0.99,
+    "lam": 0.95,
+    "entropy_coef": 0.001
+  },
+  "budget": {
+    "source_eval_wall_s": 300,
+    "smoke_wall_s": 300,
+    "formal_wall_s": null,
+    "source_eval_updates": 0,
+    "smoke_updates": 3,
+    "formal_updates": 100,
+    "sample_limit": 843776,
+    "durability_wall_s": 600,
+    "chain_wall_s": null
+  },
+  "artifacts": {
+    "keep_full_trace": [
+      "source_baseline",
+      "final_selected",
+      "failure_window"
+    ],
+    "checkpoint_name": "model_update_{update}.pt",
+    "progress_name": "progress.json",
+    "terminal_name": "terminal_report.json",
+    "manifest_name": "manifest.json",
+    "run_name": "recovery_standing_yaw_20261006"
+  },
+  "phase_initialization": "Strict source update1500 actor/critic/Adam; configured LR3e-5; new environment reset.",
+  "authorization": {
+    "hapi_session": "6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1",
+    "user_scope": "2026-10-06 user agreed yaw-only intervention;103remaining updates transferred,3smoke+100formal; no automatic extension."
+  },
+  "diagnostics": {
+    "source_eval": true,
+    "policy_sampling_hz": 100,
+    "duration_s": 10,
+    "PD_sampling_limitation": "held latest5ms torque; no per-physics independent force estimate"
+  },
+  "initialization": "warmstart",
+  "task": "recovery",
+  "recovery": {
+    "stand_checkpoint": "/home/kellen/wheel_leg_native_train/runs/wide_leg_from_scratch_20261002_formal/model_update_500.pt",
+    "stand_sha256": "fc51370b5d02e3337f8c73af0cb4223e82635e6a36640a0977fd80a429e631e1",
+    "stand_spec": "/home/kellen/wheel_leg_native_train/runs/wide_leg_from_scratch_20261002_formal/source_snapshot/spec.json",
+    "stand_frozen": true,
+    "active_family": "R0",
+    "pose_library": "/home/kellen/wheel_leg_native_train/configs/experiments/recovery_standing_balance_20261006/poses.json",
+    "geometry_definition_confirmed": true,
+    "runtime_initialization_validated": false,
+    "runtime_initialization_evidence": null,
+    "handover_domain_validated": false,
+    "fsm": {
+      "gate_dwell_s": 0.5,
+      "blend_s": 0.3,
+      "verify_s": 2.0,
+      "timeout_s": 15.0,
+      "success_mode": "autonomous_hold"
+    },
+    "gate": {
+      "height_m": [
+        0.385,
+        0.415
+      ],
+      "tilt_max_rad": 0.14,
+      "angular_speed_max_rad_s": 0.3,
+      "linear_speed_max_mps": 0.05,
+      "joint_speed_max_rad_s": 0.5,
+      "joint_abs_max_rad": 0.15,
+      "dual_contact_min_n": 2.0,
+      "chassis_clearance_min_m": 0.25,
+      "target_jump_max_rad": 0.15,
+      "stand_vx_abs_max_mps": 0.02,
+      "stand_yaw_abs_max_rad_s": 0.03,
+      "stand_excursion_max_m": 0.2,
+      "wheel_target_jump_max_rad_s": 2.0,
+      "stand_vy_abs_max_mps": 0.02
+    },
+    "initialization": {
+      "root_quaternion_xyzw": [
+        0.7071067811865476,
+        0.0,
+        0.0,
+        0.7071067811865476
+      ],
+      "ideal_gap_m": 0.002,
+      "offline_closure_max_m": 0.0001,
+      "runtime_closure_max_m": 0.005,
+      "severe_penetration_m": 0.005,
+      "settled_linear_speed_max_mps": 0.05,
+      "settled_angular_speed_max_rad_s": 0.1,
+      "seeds": {
+        "train": 20261002,
+        "holdout": 20261003
+      },
+      "families": {
+        "R0": {
+          "active_q": [
+            0.02,
+            0.02,
+            -0.02,
+            0.02
+          ],
+          "jitter_rad": 0.01,
+          "count_per_split": 4
+        },
+        "R1": {
+          "active_q": [
+            1.4,
+            -1.2,
+            -1.4,
+            -1.2
+          ],
+          "jitter_rad": 0.0,
+          "count_per_split": 1
+        },
+        "R2": {
+          "active_q": [
+            1.4,
+            -1.2,
+            -1.4,
+            -1.2
+          ],
+          "jitter_rad": 0.03,
+          "count_per_split": 8
+        },
+        "R3": {
+          "active_q": [
+            1.4,
+            -1.2,
+            -1.4,
+            -1.2
+          ],
+          "jitter_rad": 0.1,
+          "count_per_split": 8
+        }
+      },
+      "mode": "passive_settle",
+      "settle_min_s": 0.2,
+      "settle_dwell_s": 0.2,
+      "settle_max_s": 1.0,
+      "settled_joint_speed_max_rad_s": 0.3,
+      "tilt_max_rad": 0.15,
+      "low_root_height_m": [
+        0.12,
+        0.25
+      ],
+      "chassis_clearance_m": [
+        0.0,
+        0.15
+      ]
+    },
+    "contacts": {
+      "allowed_candidate": [
+        "robot",
+        "left_wheel",
+        "right_wheel",
+        "guide_wheel_lower_*",
+        "*_active_link",
+        "*_long_link",
+        "*_node_link",
+        "*_parallel_link",
+        "*_upper_leg",
+        "*_lower_leg"
+      ],
+      "restricted": [],
+      "restricted_force_max_n": 200.0,
+      "weak_component_modeling": "UNKNOWN: no separately named camera/lidar/gimbal collider; no hardware load certification",
+      "linkage_support_user_confirmed": true,
+      "confirmation": "2026-10-02 user explicitly confirmed linkage support safety; unmodeled weak parts remain UNKNOWN"
+    },
+    "curriculum": {
+      "levels": [
+        {
+          "id": "R0",
+          "pose_family": "R0",
+          "description": "nominal70% and small perturbations30%"
+        },
+        {
+          "id": "R1",
+          "pose_family": "R0_perturbed",
+          "description": "enlarged near-standing perturbations"
+        },
+        {
+          "id": "R2",
+          "pose_family": "R1",
+          "description": "captured bottom-down low pose"
+        },
+        {
+          "id": "R3",
+          "pose_family": "R2_R3",
+          "description": "expanded asymmetric low poses"
+        }
+      ],
+      "windows_required": 2,
+      "episodes_per_window": 128,
+      "success_rate_min": 0.9,
+      "automatic_upgrade": true,
+      "upgrade_only_on_next_reset": true,
+      "runtime_fault_blocks": true,
+      "max_enabled_stage": 0,
+      "full_confirmations_required": 2
+    },
+    "pose_library_sha256": "99571cb4abd5cf5738197af32c8ffb1a257721e9d9cd761b605d961f44a5375a",
+    "stand_spec_sha256": "06c4a949565a8ff048bf44cfc4459912f05238b9ae1233ed4f7e3eb9dfb4a31e",
+    "initial_pose_record": "/home/kellen/wheel_leg_native_train/runs/recovery_capture_20261003_224308/pose_0000_d9204dc9.json",
+    "initial_pose_record_sha256": "980f0e7ee889347e18614d78c5b7bcd2714875b6127943993230d668d2c26a37",
+    "scope": "Reverse curriculum; direct closure-valid zero-velocity reset for R0/R1; passive settle for captured R2/R3. No initialization stabilizer.",
+    "authorization_note": "Only R0 yaw-only controlled continuation; no new difficulty.",
+    "physical_gate_evidence": {
+      "autonomous_baseline": "/home/kellen/wheel_leg_native_train/runs/recovery_self_stand_from1500_20261003_baseline/result.json"
+    },
+    "handover_domain_scope": "Autonomous standing; no frozen STAND takeover certification",
+    "settling_reward": {
+      "kind": "pseudo_huber",
+      "height_start_m": 0.32,
+      "height_full_m": 0.36,
+      "linear_scale_mps": 0.1,
+      "angular_scale_rad_s": 0.35,
+      "settling_linear_weight": -0.6,
+      "settling_angular_weight": -0.4,
+      "gate_mode": "unconditional",
+      "settling_yaw_weight": -0.8,
+      "yaw_scale_rad_s": 0.35
+    },
+    "autonomous_stability": {
+      "height_m": [
+        0.34,
+        0.38
+      ],
+      "tilt_max_rad": 0.1,
+      "linear_speed_max_mps": 0.05,
+      "angular_speed_max_rad_s": 0.1,
+      "dual_contact_min_n": 2.0,
+      "chassis_clearance_min_m": 0.25
+    },
+    "gate_diagnostics": false,
+    "autonomous_stability_note": "2s qualifies training success only; does not certify10s/100s standing, disturbance recovery or STAND takeover.",
+    "wheel_radius_m": 0.06,
+    "standing_task": {
+      "version": 2,
+      "protocol": {
+        "version": "standing_balance_v1",
+        "seconds": 10.0,
+        "steady_window_s": [
+          2.0,
+          10.0
+        ],
+        "height_m": [
+          0.34,
+          0.38
+        ],
+        "height_fraction_min": 0.9,
+        "vx_abs_max_mps": 0.03,
+        "vy_abs_max_mps": 0.03,
+        "yaw_abs_max_rad_s": 0.03,
+        "excursion_max_m": 0.2,
+        "dual_contact_min": 0.95,
+        "level_mean_max_rad": 0.05,
+        "level_peak_max_rad": 0.1,
+        "peak_tilt_max_rad": 0.12,
+        "mirror_error_max_rad": 0.1,
+        "leg_length_difference_max_m": 0.01,
+        "support_difference_max": 0.3,
+        "saturation_max": 0.05,
+        "closure_max_m": 0.005
+      },
+      "reward": {
+        "gate_start_m": 0.3,
+        "gate_full_m": 0.36,
+        "height_width_m": 0.04,
+        "vertical_scale_mps": 0.1,
+        "level_angular_scale_rad_s": 0.3,
+        "mirror_deadband_rad": 0.03,
+        "mirror_scale_rad": 0.2,
+        "leg_length_scale_m": 0.02,
+        "wheel_difference_scale_rad_s": 10.0,
+        "weights": {
+          "standing_height": 3.0,
+          "vertical_motion": -0.1,
+          "level_angular_motion": -0.1,
+          "mirror_posture": -0.02,
+          "leg_length_balance": -0.02,
+          "wheel_difference": -0.01
+        },
+        "gate_mode": "unconditional"
+      },
+      "hip_anchors_root_m": [
+        [
+          0.17749999463558197,
+          2.4000000848900527e-05,
+          -1.4000000192027073e-05
+        ],
+        [
+          -0.17749999463558197,
+          2.4000000848900527e-05,
+          -1.4000000192027073e-05
+        ]
+      ],
+      "retention": {
+        "enabled": true,
+        "coefficient": 0.02,
+        "max_samples_per_rollout": 256,
+        "height_min_m": 0.3,
+        "height_max_m": 0.4,
+        "scope_note": "Actual valid R0 zero-command inputs at0.30-0.40m; source behavior outside its observed near-standing range is not certified. This is actor preservation, not teacher control or a success guarantee."
+      },
+      "source_baseline_run": null,
+      "note": "Teacher is frozen update1500 with leg1.6/wheel100 semantics; old STAND update500 is not used as a teacher for this auxiliary loss."
+    }
+  },
+  "experiment_variable": "Add only canonical-Y yaw Pseudo-Huber cost(-0.8,scale0.35rad/s); source1500 and Adam retained. No action/physics/symmetry/height/termination change. Full confirmations at50/100 for this100-update controlled test.",
+  "authorization_note": "2026-10-06 user agreed yaw-only intervention;103remaining updates transferred,3smoke+100formal; no automatic extension.",
+  "diagnostic_source_spec": "/home/kellen/wheel_leg_native_train/runs/recovery_settle_from433_formal_20261002b/source_snapshot/spec.json",
+  "diagnostic_checkpoint_sha256": "cb5ccd4307a3b9c799bd8543b9c7b9f56eb239c1637534b81852f70b82fb06f5",
+  "source_asset_sha256": "32a56efc5ee677a7ae3b5e59c3848a141276ec4957757acde239b774b0c901b7",
+  "revision_of_spec_sha256": "ccf17d788ace53c077d3c957dd79b6ac91ca0b08302e3d1ec154e17657faa191",
+  "budget_remaining_at_preparation": {
+    "smoke": 7,
+    "formal": 2726
+  },
+  "recipe_parent_spec_sha256": "a0b50b75c3ca3cf1ebcdcad4ec076208dc6595f5040b42a3b374340c03c453a3",
+  "dependency_identity_changes": {
+    "colleague_config_path": {
+      "previous": "66818b95f82dae54a3c0ed2210b0189bedcaa9c50ddc7ab53290554c9ce88aed",
+      "current": "1cd67917524a468b9893c65de7c3082d3108df0cc43639ba40118478dbd81263"
+    }
+  },
+  "proposed_durability_budget": {
+    "wall_s": 600,
+    "ppo_updates": 0,
+    "seconds": 100
+  },
+  "comparison_evidence": {
+    "source1500": "runs/standing_level_v2_check_20261006_151025/source_eval/evaluation_source.json",
+    "old_update250": "/home/kellen/wheel_leg_native_train/runs/recovery_standing_level_v2_long_20261006/formal/evaluation_250_0_0.json",
+    "old_run_terminal": "/home/kellen/wheel_leg_native_train/runs/recovery_standing_level_v2_long_20261006/formal/terminal_report.json"
+  }
+}

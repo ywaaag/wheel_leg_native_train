@@ -1,0 +1,6 @@
+{
+  "base_spec": "/home/kellen/wheel_leg_native_train/configs/experiments/recovery_r1_20261002/spec.json",
+  "base_spec_sha256": "143ef831a6e29dced2b108bdb1bbab37a663a5364d6af92fee008f7172348811",
+  "colleague_config_sha256": "176be702416d4ecbd346ef336506697486e7f76666a776bd4c31b944b2225df6",
+  "purpose": "Manual GUI candidate collection only; current external YAML differs from historical Recovery preparation identity; no PPO or historical behavior-equivalence claim."
+}

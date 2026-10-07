@@ -1,0 +1,1656 @@
+{
+  "experiment": "motion_fixed_20261003",
+  "version": 6,
+  "source_checkpoint": "/home/kellen/wheel_leg_native_train/runs/wide_leg_from_scratch_20261002_formal/model_update_500.pt",
+  "source_sha256": "fc51370b5d02e3337f8c73af0cb4223e82635e6a36640a0977fd80a429e631e1",
+  "asset_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/usd_files/rmuc_wheel_leg/rmuc_robot_closed_loop.usd",
+  "asset_sha256": "6bf6ce7f64f8d46cdc759bdf48dba0def85f6e9e6915acca27c543dbcf031a27",
+  "asset_module_root": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world",
+  "asset_module_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/rmuc_wheel_leg.py",
+  "asset_module_sha256": "90436170bb1d816747b19e2a29a6510e21499240fb0c8e1bf99e7220595e1f4f",
+  "colleague_config_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/configs/rmuc_wheel_leg.yaml",
+  "colleague_config_sha256": "176be702416d4ecbd346ef336506697486e7f76666a776bd4c31b944b2225df6",
+  "ground": {
+    "collider": "plane",
+    "height_m": 0.0,
+    "normal_axis": "Z",
+    "width_m": 128.0,
+    "length_m": 128.0,
+    "static_friction": 0.5,
+    "dynamic_friction": 0.5,
+    "restitution": 0.0,
+    "material_path": "/World/native_ground_material"
+  },
+  "interpreter": "/home/kellen/anaconda3/envs/issaclab/bin/python",
+  "seed": 20260930,
+  "observation": {
+    "frame_dim": 25,
+    "fields": [
+      "angular_body:3",
+      "gravity_body:3",
+      "command_vx_yaw_height:3",
+      "physical_leg_offset:4",
+      "physical_active_velocity:6",
+      "previous_clipped_action:6"
+    ],
+    "scales": [
+      0.25,
+      1.0,
+      2.0,
+      0.25,
+      5.0,
+      2.0,
+      0.05,
+      1.0
+    ]
+  },
+  "history": {
+    "frames": 5,
+    "dim": 125,
+    "order": "oldest_to_newest",
+    "reset": "five_current_frames"
+  },
+  "action": {
+    "dim": 6,
+    "order": [
+      "left_hip_pitch",
+      "left_active_link_pitch",
+      "left_wheel_spin",
+      "right_hip_pitch",
+      "right_active_link_pitch",
+      "right_wheel_spin"
+    ],
+    "leg_scale_rad": 0.5,
+    "leg_pair_radius_rad": 0.0,
+    "wheel_scale_rad_s": 100.0
+  },
+  "control": {
+    "physics_dt_s": 0.001,
+    "pd_dt_s": 0.005,
+    "policy_dt_s": 0.01,
+    "leg_kp": 60.0,
+    "leg_kd": 2.0,
+    "wheel_kv": 1.0,
+    "effort_limits_nm": [
+      40,
+      40,
+      5.5,
+      40,
+      40,
+      5.5
+    ],
+    "height_command_m": 0.4,
+    "closure_fault_m": 0.005
+  },
+  "termination": {
+    "fall_root_height_m": 0.2,
+    "minimum_up_cos": 0.5,
+    "body_contact_max_n": 200.0,
+    "active_leg_angle_max_rad": 0.5
+  },
+  "reward": {
+    "upright": 2.0,
+    "height": 2.0,
+    "velocity_tracking": 1.0,
+    "linear_velocity_tracking": 4.0,
+    "yaw_velocity_tracking": 4.0,
+    "two_wheel_contact": 0.5,
+    "effort": -0.02,
+    "action_delta": -0.01,
+    "joint_margin": -0.05,
+    "height_width_m": 0.06,
+    "linear_error_denominator": 0.01,
+    "yaw_error_denominator": 0.09,
+    "terminal_penalty": -1.0,
+    "stage_linear_denominators": {
+      "0": 0.01,
+      "1": 0.04000000000000001,
+      "2": 0.25,
+      "3": 1.0,
+      "4": 4.0,
+      "5": 9.0,
+      "6": 16.0,
+      "7": 16.0,
+      "8": 16.0,
+      "9": 16.0,
+      "10": 16.0,
+      "11": 16.0,
+      "12": 16.0
+    },
+    "stage_yaw_denominators": {
+      "0": 0.09,
+      "1": 0.09,
+      "2": 0.09,
+      "3": 0.09,
+      "4": 0.09,
+      "5": 0.09,
+      "6": 0.09,
+      "7": 0.09,
+      "8": 0.25,
+      "9": 1.0,
+      "10": 4.0,
+      "11": 9.0,
+      "12": 16.0
+    },
+    "action_delta_wheel_factor": 16.666666666666668,
+    "action_delta_semantics": "wheel differences converted to source6rad/s coordinates; preserves physical wheel smoothness weight despite new100rad/s normalization"
+  },
+  "curriculum": {
+    "active_stage": 1,
+    "episode_length_s": 9.0,
+    "schedule_s": [
+      1.0,
+      1.0,
+      4.0,
+      1.0
+    ],
+    "minimum_zero_fraction": 0.4,
+    "stages": [
+      {
+        "id": 0,
+        "name": "L0",
+        "commands": [
+          [
+            0,
+            0
+          ]
+        ],
+        "weights": [
+          1.0
+        ],
+        "schedule_s": [
+          1.0,
+          1.0,
+          4.0,
+          1.0
+        ],
+        "episode_length_s": 10.0,
+        "boundary": [
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      {
+        "id": 1,
+        "name": "L1",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.15,
+          0.15,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          1.0,
+          4.0,
+          1.0
+        ],
+        "episode_length_s": 9.0,
+        "acceleration_limit": 0.5,
+        "command_mode": "fixed"
+      },
+      {
+        "id": 2,
+        "name": "L2",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.075,
+          0.075,
+          0.075,
+          0.075,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          1.0,
+          4.0,
+          1.0
+        ],
+        "episode_length_s": 9.0,
+        "acceleration_limit": 0.5
+      },
+      {
+        "id": 3,
+        "name": "L3",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.049999999999999996,
+          0.049999999999999996,
+          0.049999999999999996,
+          0.049999999999999996,
+          0.049999999999999996,
+          0.049999999999999996,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          2.0,
+          4.0,
+          2.0
+        ],
+        "episode_length_s": 11.0,
+        "acceleration_limit": 0.5
+      },
+      {
+        "id": 4,
+        "name": "L4",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.0375,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          4.0,
+          4.0,
+          4.0
+        ],
+        "episode_length_s": 15.0,
+        "acceleration_limit": 0.5
+      },
+      {
+        "id": 5,
+        "name": "L5",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          6.0,
+          4.0,
+          6.0
+        ],
+        "episode_length_s": 19.0,
+        "acceleration_limit": 0.5
+      },
+      {
+        "id": 6,
+        "name": "L6",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.024999999999999998,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          8.0,
+          4.0,
+          8.0
+        ],
+        "episode_length_s": 23.0,
+        "acceleration_limit": 0.5
+      },
+      {
+        "id": 7,
+        "name": "Y1",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.02142857142857143,
+          0.075,
+          0.075,
+          0.075,
+          0.075
+        ],
+        "boundary": [
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          1.0,
+          4.0,
+          1.0
+        ],
+        "episode_length_s": 9.0,
+        "acceleration_limit": 1.0
+      },
+      {
+        "id": 8,
+        "name": "Y2",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            -0.5
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.016666666666666666,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            -0.5
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          1.0,
+          4.0,
+          1.0
+        ],
+        "episode_length_s": 9.0,
+        "acceleration_limit": 1.0
+      },
+      {
+        "id": 9,
+        "name": "Y3",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            -0.5
+          ],
+          [
+            0,
+            1.0
+          ],
+          [
+            0,
+            -1.0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            0,
+            1.0
+          ],
+          [
+            0,
+            -1.0
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          1.0,
+          4.0,
+          1.0
+        ],
+        "episode_length_s": 9.0,
+        "acceleration_limit": 1.0
+      },
+      {
+        "id": 10,
+        "name": "Y4",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            -0.5
+          ],
+          [
+            0,
+            1.0
+          ],
+          [
+            0,
+            -1.0
+          ],
+          [
+            0,
+            2.0
+          ],
+          [
+            0,
+            -2.0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.013636363636363636,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            0,
+            2.0
+          ],
+          [
+            0,
+            -2.0
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          2.0,
+          4.0,
+          2.0
+        ],
+        "episode_length_s": 11.0,
+        "acceleration_limit": 1.0
+      },
+      {
+        "id": 11,
+        "name": "Y5",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            -0.5
+          ],
+          [
+            0,
+            1.0
+          ],
+          [
+            0,
+            -1.0
+          ],
+          [
+            0,
+            2.0
+          ],
+          [
+            0,
+            -2.0
+          ],
+          [
+            0,
+            3.0
+          ],
+          [
+            0,
+            -3.0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.012499999999999999,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            0,
+            3.0
+          ],
+          [
+            0,
+            -3.0
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          3.0,
+          4.0,
+          3.0
+        ],
+        "episode_length_s": 13.0,
+        "acceleration_limit": 1.0
+      },
+      {
+        "id": 12,
+        "name": "Y6",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            0
+          ],
+          [
+            -0.1,
+            0
+          ],
+          [
+            0.2,
+            0
+          ],
+          [
+            -0.2,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ],
+          [
+            0,
+            0.1
+          ],
+          [
+            0,
+            -0.1
+          ],
+          [
+            0,
+            0.2
+          ],
+          [
+            0,
+            -0.2
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            -0.5
+          ],
+          [
+            0,
+            1.0
+          ],
+          [
+            0,
+            -1.0
+          ],
+          [
+            0,
+            2.0
+          ],
+          [
+            0,
+            -2.0
+          ],
+          [
+            0,
+            3.0
+          ],
+          [
+            0,
+            -3.0
+          ],
+          [
+            0,
+            4.0
+          ],
+          [
+            0,
+            -4.0
+          ]
+        ],
+        "weights": [
+          0.4,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.011538461538461537,
+          0.15,
+          0.15
+        ],
+        "boundary": [
+          [
+            0,
+            4.0
+          ],
+          [
+            0,
+            -4.0
+          ]
+        ],
+        "schedule_s": [
+          1.0,
+          4.0,
+          4.0,
+          4.0
+        ],
+        "episode_length_s": 15.0,
+        "acceleration_limit": 1.0
+      }
+    ],
+    "future_order": [
+      "dynamic_start_stop",
+      "combined_turning"
+    ],
+    "episode_curriculum": null
+  },
+  "evaluation": {
+    "seed": 104,
+    "envs": 64,
+    "scored_envs": 8,
+    "seconds": 10,
+    "light_seconds": 2,
+    "steady_window_s": [
+      2,
+      10
+    ],
+    "light_window_s": [
+      0.5,
+      2
+    ],
+    "standing_height_m": [
+      0.39,
+      0.41
+    ],
+    "standing_drift_max_m": 0.2,
+    "standing_excursion_max_m": 0.2,
+    "dual_contact_min": 0.95,
+    "peak_tilt_max_rad": 0.2,
+    "saturation_fraction_max": 0.05,
+    "closure_max_m": 0.005,
+    "vx_error_max_mps": 0.02,
+    "yaw_error_max_rad_s": 0.03,
+    "light_every_updates": 0,
+    "full_every_updates": 500,
+    "checkpoint_every_updates": 100,
+    "unlock_full_updates": [],
+    "durability_seconds": 100,
+    "durability_only_for_selected": true,
+    "durability_steady_window_s": [
+      2,
+      100
+    ],
+    "vy_abs_max_mps": 0.02,
+    "height_steady_fraction_min": 0.9,
+    "motion_window_s": [
+      2,
+      8
+    ],
+    "motion_vx_error_max_mps": 0.03,
+    "motion_yaw_error_max_rad_s": 0.03,
+    "full_at_final": true,
+    "relative_motion_error_fraction": 0.15,
+    "direction_fraction_min": 0.95,
+    "stop_window_s": 2.0,
+    "hold_seconds": 4.0
+  },
+  "ppo": {
+    "envs": 64,
+    "steps_per_env": 128,
+    "hidden_dims": [
+      256,
+      128,
+      64
+    ],
+    "learning_rate": 3e-05,
+    "epochs": 4,
+    "minibatches": 4,
+    "gamma": 0.99,
+    "lam": 0.95,
+    "entropy_coef": 0.001
+  },
+  "budget": {
+    "source_eval_wall_s": 450,
+    "smoke_wall_s": 450,
+    "formal_wall_s": 43200,
+    "source_eval_updates": 0,
+    "smoke_updates": 3,
+    "formal_updates": 1497,
+    "sample_limit": 40960000,
+    "wall_limit_enabled": false
+  },
+  "artifacts": {
+    "keep_full_trace": [
+      "source_baseline",
+      "final_selected",
+      "failure_window"
+    ],
+    "checkpoint_name": "model_update_{update}.pt",
+    "progress_name": "progress.json",
+    "terminal_name": "terminal_report.json",
+    "manifest_name": "manifest.json"
+  },
+  "phase_initialization": "Strict150D actor/critic/Adam from update500; LR reapplied3e-5. Smoke/formal independently initialize the same source; environment full reset. Critic/Adam initialization does not imply old value accuracy for changed reward.",
+  "authorization": {
+    "hapi_session": "967b73ed-f83d-45b8-876c-ab80f515e51f",
+    "user_scope": "GPU1 only; diagnostics<=900s/10updates; one formal chain<=5000updates/40960000samples/43200s"
+  },
+  "source_input_dim": 150,
+  "source_update": 500,
+  "source_spec_sha256": "06c4a949565a8ff048bf44cfc4459912f05238b9ae1233ed4f7e3eb9dfb4a31e",
+  "diagnostics": {
+    "source_eval": true,
+    "duration_s": 10,
+    "policy_sampling_hz": 100
+  },
+  "wheel_envelope_conversion": {
+    "source_scale_rad_s": 100.0,
+    "destination_scale_rad_s": 100.0,
+    "semantics": "source update2000 and wide-leg experiment both use 100 rad/s wheel target normalization"
+  },
+  "initialization": "warmstart",
+  "reward_revision": {
+    "tracking_terms": "split_linear_and_yaw",
+    "linear_weight": 4.0,
+    "yaw_weight": 4.0,
+    "dt_application": "exactly_once_at_policy_dt_after_weighted_sum",
+    "clip": "none"
+  },
+  "device": {
+    "physical_index": 1,
+    "uuid": "GPU-dfc076b6-b082-3065-512a-e21064067db1",
+    "logical": "cuda:0",
+    "headless": true
+  },
+  "ppo_diagnostics": {
+    "updates": 3,
+    "total_ppo_ceiling": 1500
+  },
+  "experiment_variable": "Fixed per-episode command sampling only; no reward/PPO/physical change",
+  "authorization_note": "2026-10-03 user authorized total1500 PPO updates, no wall limit; diagnostic3+formal1497; no retries",
+  "asset_identity_note": "External YAML current identity re-pinned; immutable USD/module/source still strictly verified"
+}
