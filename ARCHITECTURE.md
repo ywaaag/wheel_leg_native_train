@@ -1,5 +1,44 @@
 # Execution chain
 
+当前工程能力与验证范围见docs/ENGINEERING_STATUS.md。源码描述下一次执行，
+已运行实验始终按自身冻结实现解释；本次文档更新不更新训练阶段或行为结论。
+
+EpisodeSummary v1 joins device rollout producers and certificate readers.
+Recovery task_protocol preserves legacy behavior while recording holding/rising
+identity; pose episode metrics keep geometry, initialization and capability distinct.
+Execution identity records declaration and actual copy location separately.
+Read docs/EPISODE_IDENTITY_RECOVERY_FIX_20261007.md for the restricted offline
+certificate/usage publication tool and its authorization boundary.
+
+Completed-episode smoke receipts consume the actual RolloutMetrics field completed,
+with completed_episodes only as a legacy fallback. A phase owner may issue a fresh
+offline corrected receipt for that exact reader failure; historical receipts stay
+unchanged. Reused source/smoke attempts carry explicit evidence-spec SHA and external
+certificate SHA; current recipe equivalence and all original inputs remain strict.
+Formal-only resumes preserve imported usage/exact IDs, do not rerun smoke, and do
+not grant a second budget. Health validates the declared matching evidence spec.
+
+Strict execution identity accepts a relocated shared-chain worker only against
+its submission receipt: unchanged frozen spec SHA, declared source root, and exact
+Python module hashes. It does not accept arbitrary alternate roots or bypass source
+identity. Existing frozen workers/receipts are not modified retroactively.
+
+Opt-in recovery.rising_task uses pure recovery/rising.py to score the first
+standing-entry sample followed by a complete10s same-episode hold, within a23s
+observation horizon and11.5s active recovery deadline. Per-env windows are explicit;
+no episode stitching or shortened early-failure acceptance. Static reset rehearsal
+keeps40%R0, no automatic stage upgrade. Rising stays on student targets without
+STAND forward/control. A validated ordinary source recovery failure may permit
+wiring smoke; missing initialization/runtime fault/protocol mismatch cannot.
+Historical baseline and fixed-horizon scoring remain unchanged. See
+docs/RECOVERY_RISE_LOW_20261007.md and its independent spec/ledger.
+
+New shared chain uses tools.run_state for canonical lifecycle records and
+startup/terminal projections; IO stays outside pure domain. Motion and Recovery
+requests validate independently via tools.motion_batch/recovery_batch and pure
+domain.evaluation_requests before shared runtime creation. Existing frozen runs
+retain their old implementations. See docs/STATE_REQUEST_FIX_20261007.md.
+
 Recovery retention explicitly selects first(default) or uniform_rollout eligible
 indices once per rollout without RNG consumption. Coefficient and optimizer hook
 are unchanged. Explicit balanced_pose_cycle provides evaluation-only initial pose

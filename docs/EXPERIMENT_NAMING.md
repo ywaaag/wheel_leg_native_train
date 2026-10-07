@@ -35,5 +35,8 @@ date '+%Y_%-m_%-d-%H_%M'
 命名规范不授权创建预算、启动仿真/PPO或复用历史授权。
 
 本轮将规则写入AGENTS和当前入口文档，未对历史spec实施追溯schema校验。
-当前兼容工具尚未统一自动生成或强制校验此前缀，执行者必须遵守此规则；
+共享命名接口为domain.experiment_naming；公开coverage准备器的CLI及prepare
+函数均校验新根目录名称。历史复现工具保持冻结名称，不做追溯修改。
+新增公开准备器必须复用new_experiment_name/validate_new_experiment_name，
+不能自行硬编码日期。未迁移的历史工具仍由执行者遵守其复现边界；
 避免仅因目录名合法就推断其配置、证据或权限有效。

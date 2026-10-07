@@ -1,6 +1,79 @@
 # Status
 
+工程摘要入口：[ENGINEERING_STATUS](docs/ENGINEERING_STATUS.md)。最近完整CPU验证为
+435项通过；下面415/423等数值属于对应阶段历史检查，不相互替代。
+本次仅文档/版本整理，未查看进程或轮询训练日志；下方启动记录不证明当前存活。
+
+## Episode / Identity / Recovery Engineering — 2026-10-07
+
+[本轮接口修复](docs/EPISODE_IDENTITY_RECOVERY_FIX_20261007.md)：EpisodeSummary v1、
+声明/执行源码身份分离、per-pose事件摘要、holding/rising身份及受限零写恢复plan。
+CPU435项通过，127个Python文件语法通过；真实冻结preflight子进程未导入Isaac。
+原15_58失败证书仅做一次离线plan，15项输入绑定、历史SHA未变，未发布新配置、
+未恢复PPO或追加预算。下方运行记录原样保留，本工程验证不判断当前任务存活。
+
+## Recovery自主低位起身 — 2026-10-07
+
+现行正式阶段根：`2026_10_7-16_18__recovery_rise_formal_from50`，
+[spec](configs/experiments/2026_10_7-16_18__recovery_rise_formal_from50/spec.json)。
+15_58链source与smoke均COMPLETED，smoke实际10更新，无runtime fault，R0回归8/8；
+但冻结证书读取completed_episodes而实际producer写completed，误报事件缺失并阻止formal。
+550个已完成episode、最长2.18秒的原始证据均保留；修复读取后phase owner在新目录
+生成corrected_smoke_certificate.json/PASSED，原FAILED证书不改写。
+新ledger完整导入source1/smoke10使用与原exact-ID记录，formal仍0/<=100，累计110不变；
+导入attempt按ID去重，不能跨账本重复累计。original failed证书仍阻止旧链再次formal。
+423 CPU passed；formal-only plan PASS，来源/smoke预算已耗尽与未起身属于既有事实，
+不是formal身份阻塞。已通过公共supervisor提交formal-only，首更新证据另记。
+
+formal单次握手已验证：RUNNING/actual_updates1、identity_verified=true、started=true；
+exact attempt `b6ae54f673d7480f93988c6511a79345`，trainer3359946、monitor3359944。
+握手文件runs/2026_10_7-16_18__recovery_rise_formal_from50/formal/handshake.json；
+此为当前argv/start/spec/output/attempt匹配的首更新证据，不能凭PID推断后续存活。
+后台monitor负责后续评估/结算/通知；不再会话轮询训练日志，不自动续训。
+
+当前提交根改为`2026_10_7-15_58__recovery_rise_low_from50`：原15_51链在AppLauncher
+之前被strict源码根检查拦住，原attempts空/used全0，保留FAILED证据，不修改旧链。
+合法冻结worker现在通过提交receipt逐文件SHA验证，未关闭strict身份检查。
+422 CPU passed，新source plan-only PASS/health无finding；新spec记录原失败证据SHA，
+原定总110更新上限不变。已通过supervisor提交，首更新证据另记；本段不代表已训练。
+
+新15_58链来源阶段已COMPLETED/PPO0/failure=null：低位8/8有效初始化、fault0，
+新起身证书0/8；retained R0在事件协议下8/8。smoke阶段已观察实际3更新、
+actor_parameters_changed=true。正式首更新与smoke持久证书仍待后台owner验证，
+不能据此称已学会起身或formal已经开始。
+
+用户批准[新起身方案](docs/RECOVERY_RISE_LOW_20261007.md)。新独立spec：
+configs/experiments/2026_10_7-15_51__recovery_rise_low_from50/spec.json；
+run根runs/2026_10_7-15_51__recovery_rise_low_from50。
+source50、低位family R1 60%+R0 40%，不自动晋级；10smoke+<=100formal，
+总<=110updates/901120samples。source<=600s、smoke<=600s、formal<=3600s。
+23秒事件对齐评估，起身<=11.5秒后完整保持10秒；不启用100秒durability。
+PPO0定位已COMPLETED：runs/2026_10_7-15_46__recovery_rise_source_locator，
+三个请求完成，零PPO；两个新中间姿态初始化被拒绝，未纳入训练；
+已有低位8/8有效，source约0.23m后倾角失败。未将定位standing gate当起身认证。
+CPU420项通过（后续增量检查与启动状态另记），source plan-only PASS/health无finding。
+运行事实以新run终态为准；本段准备状态不表示formal首更新已验证。
+
+Coverage A/B两组均COMPLETED：A100为0/8因roll；B100为8/8。
+两组best_new25、best_overall source50，durability NOT_RUN；不续训旧链。
+
+## State / Request Engineering -- 2026-10-07
+
+[本轮接口修复](docs/STATE_REQUEST_FIX_20261007.md)：共享链RunState、Motion/Recovery
+独立请求schema、历史CLI保护、集中命名及选定update覆盖诊断。
+CPU415项通过，Python语法121文件通过，plan-only零输出、输入spec/ledger SHA不变。
+未启动仿真/PPO，未改活动run冻结副本；旧独立A/B及Recovery历史链未追溯迁移。
+以下coverage任务状态属于另一任务，原记录保留，不从工程验证推断其终态。
+
 ## Recovery Coverage A/B authorized -- 2026-10-07
+
+source_capability COMPLETED/exit0/PPO0/329.2028s，R0与R1(family R0_perturbed)
+seed104/205四项均8/8，总32/32、fault0。来源已具备本组R1初态能力。
+A_first/B_uniform detached提交已核验，submitted/submission_verified=true，
+current_stage=source_eval；formal首更新尚未在本启动记录中验证。
+worker3225689/3225690，独立冻结run与账本，后台owner负责后续训练/终态，
+不重复提交或自动追加系数实验。局部同输入离线报告：
+isolated/recovery_coverage_ab_20261007/source_completed/review.json。
 
 [新方案](docs/RECOVERY_COVERAGE_AB_20261007.md)：用户批准source50的R0/R1
 PPO0双seed平衡初态复核与BC样本覆盖A_first/B_uniform受控对照。

@@ -21,6 +21,12 @@
 
 ### 本次增量提交
 
+后续工程提交包含状态机/请求schema、后台唤醒约束、EpisodeSummary与受限恢复，
+以及现场已存在的coverage/起身实现、工具和声明配置。不同任务的改动按当前
+相互依赖实现保存，不把所有变化归因于同一实验。最新交接和验证范围见
+[ENGINEERING_STATUS](ENGINEERING_STATUS.md)；下述387项属于前一次接口提交。
+publication receipts与budget同属本地运行数据，保持Git排除。
+
 本次保存当前工作树中相互依赖的接口修复和已存在的Motion/Recovery实现，
 不是把所有改动归为同一作者或同一次实验。按代码与CPU回归、工具与声明配置、
 文档拆分提交；详细文件清单由各commit提供。现有声明spec保存其原身份和

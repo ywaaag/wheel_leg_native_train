@@ -41,7 +41,47 @@ from this project's `src/`; the colleague asset module root is supplied at
 the CLI boundary after identity checks. Pure domain modules must not read
 files, environment variables or Isaac runtime state.
 
+## Detached Training and Terminal Wake-up
+
+Submit authorized training through the detached supervisor/monitor chain. The
+interactive Codex worker may perform one resource snapshot and one bounded startup
+handshake, then must end the interaction. A submission receipt alone does not prove
+formal training started; report the exact verified stage and missing evidence.
+
+Do not personally poll training logs, progress.json, metrics, checkpoint files,
+processes or GPU state to wait for training. No repeated tail/ps/nvidia-smi, shell
+while loops, periodic sleep/wait, or repeated tool calls that keep the conversation
+alive. Do not move that polling into a newly created watcher or sub-agent. Existing
+owned monitors may enforce process/budget deadlines and evaluate frozen milestones.
+Foreground bounded CPU tests or diagnostic evaluations are separate from long training.
+
+The background owner waits for its own child exit, reconciles the exact attempt,
+writes a compact terminal report and report_ready event, then invokes the existing
+completion.notify hook to wake the execution worker's current HAPI session. Validate
+the current session before submission; never inherit a session from a historical
+spec or example. Notification requires a hash-matched ready report, event-ID dedup,
+and no automatic continuation. A failed/unknown delivery is not a training failure
+and must not trigger restart, duplicate submission or an unlimited send retry.
+
+On terminal wake-up, read the report once, review immutable evidence and acknowledge
+the event. Do not automatically resume training from a notification. Only explicit
+new user input permits a one-shot status inspection or diagnosed engineering repair;
+do not use that exception to resume polling. See docs/DETACHED_TRAINING_POLICY.md.
+
 ## Evidence and Interface Changes
+
+Use docs/ENGINEERING_STATUS.md as the current engineering index. Dated test counts,
+startup PIDs and protocol statements remain historical; verify exact frozen run
+evidence before claiming current process state or learned capability. A documentation
+or Git task never authorizes simulation, polling, notification sending or resumption.
+
+Use domain.episode_summary for completed-episode producer/reader contracts.
+Conflicting legacy aliases must fail. Read docs/EPISODE_IDENTITY_RECOVERY_FIX_20261007.md
+before correcting an engineering certificate. Never use aggregate episode counts
+to prove a new family/pose path was observed. Declared source identity and actual
+frozen location are separate; relocation still needs the submission receipt and
+exact module hashes. Engineering recovery defaults to a zero-write plan and never
+grants budget/launch authorization, even when publication is explicitly requested.
 
 Read `docs/NATIVE_INTERFACE_EVIDENCE_FOLLOWUP_20261007.md` before changing
 evaluation, gate aggregation, diagnostics, preflight or submission interfaces.
@@ -77,6 +117,10 @@ minute/name already exists, append a collision suffix or use seconds; never
 overwrite. Phase/arm children (source_eval/smoke/formal/A/B) keep their semantic
 names. Do not rename existing/prepared/frozen experiments or historical evidence.
 See docs/EXPERIMENT_NAMING.md; naming never grants runtime authorization.
+New public preparers must use domain.experiment_naming rather than hardcoded names.
+Read docs/STATE_REQUEST_FIX_20261007.md for canonical chain RunState and distinct
+Motion/Recovery batch request schemas. Legacy handshake fields are evidence, not
+a second lifecycle. Do not migrate or edit an active task's frozen execution code.
 
 Use TOOL_INDEX.md for current public entries and TOOL_INDEX_HISTORY.md only for
 historical reproduction. Only supervisor is the public submission CLI; launcher,

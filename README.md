@@ -1,7 +1,25 @@
 # Native closed-chain training
 
-当前Recovery任务：[source50能力复核与BC覆盖对照](docs/RECOVERY_COVERAGE_AB_20261007.md)。
-按STATUS对应新spec/独立账本执行；旧hold10已结算，不代表续训许可。
+当前工程总入口：[工程状态与剩余缺口](docs/ENGINEERING_STATUS.md)。
+近期验证435项CPU通过；工程接口与历史训练事实分别记录，提交不授予运行权限。
+
+最新证据工程：[冻结身份、episode schema与受限恢复](docs/EPISODE_IDENTITY_RECOVERY_FIX_20261007.md)。
+工程恢复只生成未授权新配置，不自动恢复训练；历史证据和活动快照保持不变。
+
+训练执行遵守[后台与终态唤醒规则](docs/DETACHED_TRAINING_POLICY.md)：一次握手后
+结束交互，后台owner结算并通知当前HAPI会话；Codex不得亲自轮询日志等待长训。
+
+当前Recovery转入[低位自主起身](docs/RECOVERY_RISE_LOW_20261007.md)，
+使用独立日期时间spec/ledger；coverage A/B已完成，保留source50。
+起身后保持采用事件对齐窗口，不将近站立或2秒成功称为完整起身认证。
+准确提交/首更新/终态见STATUS与新run证据，旧段落仅日期任务记录。
+
+最新工程接口：[状态机、任务请求与历史工具保护](docs/STATE_REQUEST_FIX_20261007.md)。
+共享链状态和formal首更新证据分开；Motion/Recovery请求不混用。
+这些接口修复不授权新的仿真或训练，也不替换活动run的冻结副本。
+
+已完成Recovery任务：[source50能力复核与BC覆盖对照](docs/RECOVERY_COVERAGE_AB_20261007.md)。
+保留其独立账本和原始证据；旧hold10已结算，不代表续训许可。
 
 公共入口只见[当前工具清单](TOOL_INDEX.md)；旧日期命令集中在
 [历史工具清单](TOOL_INDEX_HISTORY.md)。新提交仅使用supervisor。
