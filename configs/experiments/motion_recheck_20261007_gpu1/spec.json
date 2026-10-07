@@ -1,0 +1,960 @@
+{
+  "experiment": "motion_recheck_20261007",
+  "version": 6,
+  "external_prerequisites": [],
+  "source_checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt",
+  "source_sha256": "5d3389d5b8e33b7915d12d21308702f3105248485741b27ec91d0aaf4b90b89e",
+  "asset_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/usd_files/rmuc_wheel_leg/rmuc_robot_closed_loop.usd",
+  "asset_sha256": "6bf6ce7f64f8d46cdc759bdf48dba0def85f6e9e6915acca27c543dbcf031a27",
+  "asset_module_root": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world",
+  "asset_module_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/rmuc_wheel_leg.py",
+  "asset_module_sha256": "90436170bb1d816747b19e2a29a6510e21499240fb0c8e1bf99e7220595e1f4f",
+  "colleague_config_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/configs/rmuc_wheel_leg.yaml",
+  "colleague_config_sha256": "1cd67917524a468b9893c65de7c3082d3108df0cc43639ba40118478dbd81263",
+  "ground": {
+    "collider": "plane",
+    "height_m": 0.0,
+    "normal_axis": "Z",
+    "width_m": 128.0,
+    "length_m": 128.0,
+    "static_friction": 0.5,
+    "dynamic_friction": 0.5,
+    "restitution": 0.0,
+    "material_path": "/World/native_ground_material"
+  },
+  "interpreter": "/home/kellen/anaconda3/envs/issaclab/bin/python",
+  "seed": 20261007,
+  "observation": {
+    "frame_dim": 25,
+    "fields": [
+      "angular_body:3",
+      "gravity_body:3",
+      "command_vx_yaw_height:3",
+      "physical_leg_offset:4",
+      "physical_active_velocity:6",
+      "previous_clipped_action:6"
+    ],
+    "scales": [
+      0.25,
+      1.0,
+      2.0,
+      0.25,
+      5.0,
+      2.0,
+      0.05,
+      1.0
+    ]
+  },
+  "history": {
+    "frames": 5,
+    "dim": 125,
+    "order": "oldest_to_newest",
+    "reset": "five_current_frames"
+  },
+  "action": {
+    "dim": 6,
+    "order": [
+      "left_hip_pitch",
+      "left_active_link_pitch",
+      "left_wheel_spin",
+      "right_hip_pitch",
+      "right_active_link_pitch",
+      "right_wheel_spin"
+    ],
+    "leg_scale_rad": 0.5,
+    "leg_pair_radius_rad": 0.0,
+    "wheel_scale_rad_s": 100.0
+  },
+  "control": {
+    "physics_dt_s": 0.001,
+    "pd_dt_s": 0.005,
+    "policy_dt_s": 0.01,
+    "leg_kp": 60.0,
+    "leg_kd": 2.0,
+    "wheel_kv": 1.0,
+    "effort_limits_nm": [
+      40,
+      40,
+      5.5,
+      40,
+      40,
+      5.5
+    ],
+    "height_command_m": 0.4,
+    "closure_fault_m": 0.005
+  },
+  "termination": {
+    "fall_root_height_m": 0.2,
+    "minimum_up_cos": 0.5,
+    "body_contact_max_n": 200.0,
+    "active_leg_angle_max_rad": 0.5
+  },
+  "reward": {
+    "upright": 2.0,
+    "height": 2.0,
+    "velocity_tracking": 8.0,
+    "two_wheel_contact": 0.5,
+    "effort": -0.02,
+    "action_delta": -0.01,
+    "joint_margin": -0.05,
+    "height_width_m": 0.06,
+    "linear_error_denominator": 1.0,
+    "yaw_error_denominator": 0.09,
+    "terminal_penalty": -1.0,
+    "stage_linear_denominators": {
+      "0": 0.04,
+      "1": 1.0,
+      "2": 1.0,
+      "3": 1.0
+    },
+    "stage_yaw_denominators": {
+      "0": 0.09,
+      "1": 0.09,
+      "2": 0.09,
+      "3": 0.09
+    },
+    "action_delta_wheel_factor": 16.666666666666668,
+    "action_delta_semantics": "wheel differences converted to source6rad/s coordinates; preserves physical wheel smoothness weight despite new100rad/s normalization",
+    "tracking_mode": "combined",
+    "width_diagnostics": true,
+    "linear_cohort_width": {
+      "retained_commands": [
+        [
+          0,
+          0
+        ],
+        [
+          0.5,
+          0
+        ],
+        [
+          -0.5,
+          0
+        ]
+      ],
+      "retained_denominator": 0.04
+    }
+  },
+  "curriculum": {
+    "active_stage": 1,
+    "episode_length_s": 31.0,
+    "schedule_s": [
+      1.0,
+      2.0,
+      24.0,
+      2.0
+    ],
+    "minimum_zero_fraction": 0.25,
+    "stages": [
+      {
+        "id": 0,
+        "name": "L0",
+        "commands": [
+          [
+            0,
+            0
+          ]
+        ],
+        "weights": [
+          1.0
+        ],
+        "boundary": [
+          [
+            0,
+            0
+          ]
+        ],
+        "command_mode": "ramp",
+        "sampling_slots": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "schedule_s": [
+          2.0,
+          8.0,
+          8.0,
+          8.0
+        ],
+        "episode_length_s": 30.0
+      },
+      {
+        "id": 1,
+        "name": "L2",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.25,
+          0.09375,
+          0.09375,
+          0.09375,
+          0.09375,
+          0.1875,
+          0.1875
+        ],
+        "boundary": [
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ]
+        ],
+        "command_mode": "ramp",
+        "sampling_slots": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "schedule_s": [
+          2.0,
+          8.0,
+          8.0,
+          8.0
+        ],
+        "episode_length_s": 30.0
+      },
+      {
+        "id": 2,
+        "name": "L3",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.25,
+          0.0625,
+          0.0625,
+          0.0625,
+          0.0625,
+          0.0625,
+          0.0625,
+          0.1875,
+          0.1875
+        ],
+        "boundary": [
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ]
+        ],
+        "command_mode": "ramp",
+        "sampling_slots": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          3,
+          3,
+          3,
+          3,
+          4,
+          4,
+          4,
+          4,
+          5,
+          5,
+          5,
+          5,
+          6,
+          6,
+          6,
+          6,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          7,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "schedule_s": [
+          2.0,
+          8.0,
+          8.0,
+          8.0
+        ],
+        "episode_length_s": 30.0
+      },
+      {
+        "id": 3,
+        "name": "L4",
+        "commands": [
+          [
+            0,
+            0
+          ],
+          [
+            0.5,
+            0
+          ],
+          [
+            -0.5,
+            0
+          ],
+          [
+            1.0,
+            0
+          ],
+          [
+            -1.0,
+            0
+          ],
+          [
+            2.0,
+            0
+          ],
+          [
+            -2.0,
+            0
+          ],
+          [
+            3.0,
+            0
+          ],
+          [
+            -3.0,
+            0
+          ],
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ]
+        ],
+        "weights": [
+          0.25,
+          0.046875,
+          0.046875,
+          0.046875,
+          0.046875,
+          0.046875,
+          0.046875,
+          0.046875,
+          0.046875,
+          0.1875,
+          0.1875
+        ],
+        "boundary": [
+          [
+            4.0,
+            0
+          ],
+          [
+            -4.0,
+            0
+          ]
+        ],
+        "command_mode": "ramp",
+        "sampling_slots": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          3,
+          3,
+          3,
+          4,
+          4,
+          4,
+          5,
+          5,
+          5,
+          6,
+          6,
+          6,
+          7,
+          7,
+          7,
+          8,
+          8,
+          8,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          9,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "schedule_s": [
+          2.0,
+          8.0,
+          8.0,
+          8.0
+        ],
+        "episode_length_s": 30.0
+      }
+    ],
+    "task_progression": {
+      "initial_stage": 1,
+      "max_enabled_stage": 1,
+      "consecutive_confirmations": 1,
+      "standing_regression_confirmations": 2,
+      "learned_regression_confirmations": 2,
+      "confirmation_spacing_updates": 250,
+      "merge_nearby_updates": 0,
+      "max_updates_per_stage": 1500,
+      "blocked_reason": "L2-L4 straight-line capability course"
+    },
+    "retention": {
+      "full_every_updates": 25,
+      "consecutive_failures": 2,
+      "stop_on_failure": true,
+      "commands": [
+        [
+          0,
+          0
+        ]
+      ],
+      "protocol": "zero-command standing only; missing is failure",
+      "motion_progress_is_not_retention": true
+    },
+    "episode_curriculum": null
+  },
+  "evaluation": {
+    "motion_protocol": "ramp",
+    "seed": 104,
+    "envs": 64,
+    "scored_envs": 8,
+    "seconds": 30.0,
+    "light_seconds": 4.0,
+    "steady_window_s": [
+      10.0,
+      18.0
+    ],
+    "light_window_s": [
+      0.5,
+      2
+    ],
+    "standing_height_m": [
+      0.34,
+      0.46
+    ],
+    "dual_contact_min": 0.95,
+    "peak_tilt_max_rad": 0.5,
+    "saturation_fraction_max": 0.5,
+    "closure_max_m": 0.005,
+    "yaw_error_max_rad_s": 0.3,
+    "light_every_updates": 0,
+    "full_every_updates": 250,
+    "checkpoint_every_updates": 100,
+    "unlock_full_updates": [],
+    "durability_seconds": 100,
+    "durability_only_for_selected": true,
+    "durability_steady_window_s": [
+      2,
+      100
+    ],
+    "vy_abs_max_mps": 0.02,
+    "motion_window_s": [
+      10.0,
+      18.0
+    ],
+    "motion_vx_error_max_mps": 0.3,
+    "motion_yaw_error_max_rad_s": 0.3,
+    "full_at_final": true,
+    "direction_fraction_min": 0.95,
+    "hold_seconds": 4.0,
+    "command_mode": "ramp",
+    "tracking_mode": "combined",
+    "protocol_identity": "motion_absolute_v3",
+    "motion_commands": [
+      [
+        0,
+        0
+      ],
+      [
+        0.5,
+        0
+      ],
+      [
+        -0.5,
+        0
+      ]
+    ],
+    "yaw_drift_max_m": 0.3,
+    "yaw_excursion_max_m": 0.5,
+    "evaluation_schedule_s": [
+      2.0,
+      8.0,
+      8.0,
+      8.0
+    ],
+    "final_evaluation_seeds": [
+      104,
+      137,
+      173
+    ],
+    "run_final_durability": false,
+    "gate_identity": "absolute_error_0p3_glide_0p5_v1",
+    "parking_window_s": [
+      26.0,
+      30.0
+    ],
+    "zero_mode": "low_speed",
+    "zero_mean_abs_vx_max_mps": 0.5,
+    "straight_yaw_max_rad_s": 0.3,
+    "yaw_translation_max_mps": 0.3,
+    "field_boundary_max_m": 60.0
+  },
+  "ppo": {
+    "envs": 64,
+    "steps_per_env": 128,
+    "hidden_dims": [
+      256,
+      128,
+      64
+    ],
+    "learning_rate": 3e-05,
+    "epochs": 4,
+    "minibatches": 4,
+    "gamma": 0.99,
+    "lam": 0.95,
+    "entropy_coef": 0.001
+  },
+  "budget": {
+    "source_eval_wall_s": 1800,
+    "smoke_wall_s": 1200,
+    "formal_wall_s": 64800,
+    "source_eval_updates": 0,
+    "smoke_updates": 0,
+    "formal_updates": 0,
+    "sample_limit": 0,
+    "formal_samples": 0,
+    "wall_limit_enabled": true,
+    "terminal_reserve_s": 180,
+    "evaluation_wall_s": 3600.0
+  },
+  "artifacts": {
+    "checkpoint_name": "model_update_{update}.pt"
+  },
+  "phase_initialization": "Frozen B250 actor only for evaluation; no optimizer constructed, no PhysX resume",
+  "authorization": "AUTHORIZED",
+  "source_input_dim": 150,
+  "source_update": 250,
+  "source_spec_sha256": "51544bffe1101a4c1334b2eb24ec61c8bef74533332467a935401346c378d657",
+  "diagnostics": {
+    "source_eval": true,
+    "duration_s": 10,
+    "policy_sampling_hz": 100
+  },
+  "wheel_envelope_conversion": {
+    "source_scale_rad_s": 100.0,
+    "destination_scale_rad_s": 100.0
+  },
+  "initialization": "warmstart",
+  "device": {
+    "physical_index": 1,
+    "uuid": "GPU-dfc076b6-b082-3065-512a-e21064067db1",
+    "logical": "cuda:0",
+    "headless": true
+  },
+  "authorization_note": "User authorized GPU1 PPO0 engineering/capability recheck <=3600s, at most two startup retries; no optimizer or training",
+  "asset_identity_note": "External YAML current identity re-pinned; immutable USD/module/source still strictly verified",
+  "execution_source_root": "/home/kellen/wheel_leg_native_train/src",
+  "execution_version": "shared_native_20261007",
+  "ppo_diagnostics": {
+    "updates": 0
+  },
+  "restore_source_rng": true,
+  "cuda_visible_devices": "0",
+  "objective": "global_adv_norm",
+  "retention": {
+    "enabled": false
+  },
+  "safety_stop_commands": [],
+  "cohort_width_ab": false,
+  "source_evaluation_commands": [
+    [
+      0.5,
+      0
+    ],
+    [
+      -0.5,
+      0
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      -1,
+      0
+    ]
+  ],
+  "source_required_commands": [
+    [
+      0.5,
+      0
+    ],
+    [
+      -0.5,
+      0
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      -1,
+      0
+    ]
+  ],
+  "straight_high_speed_course": true,
+  "effective_recipe_version": 1,
+  "evaluation_only": true,
+  "diagnostic_identity_only": true,
+  "source_evidence": {
+    "historical_spec": "/home/kellen/wheel_leg_native_train/runs/motion_high_speed_course_20261007/formal/source_snapshot/spec.json",
+    "sha256": "536f82de53c6a13d1e6c6b75a93a9f00fe046261dbb6b3b8aa054b0c82c27b9d"
+  },
+  "evaluation_requests": [
+    {
+      "checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt",
+      "sha256": "5d3389d5b8e33b7915d12d21308702f3105248485741b27ec91d0aaf4b90b89e",
+      "role": "source",
+      "target": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt",
+      "sha256": "5d3389d5b8e33b7915d12d21308702f3105248485741b27ec91d0aaf4b90b89e",
+      "role": "source",
+      "target": [
+        1.0,
+        0.0
+      ]
+    },
+    {
+      "checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt",
+      "sha256": "5d3389d5b8e33b7915d12d21308702f3105248485741b27ec91d0aaf4b90b89e",
+      "role": "source",
+      "target": [
+        -1.0,
+        0.0
+      ]
+    },
+    {
+      "checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt",
+      "sha256": "5d3389d5b8e33b7915d12d21308702f3105248485741b27ec91d0aaf4b90b89e",
+      "role": "source",
+      "target": [
+        1.5,
+        0.0
+      ]
+    },
+    {
+      "checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt",
+      "sha256": "5d3389d5b8e33b7915d12d21308702f3105248485741b27ec91d0aaf4b90b89e",
+      "role": "source",
+      "target": [
+        -1.5,
+        0.0
+      ]
+    },
+    {
+      "checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt",
+      "sha256": "5d3389d5b8e33b7915d12d21308702f3105248485741b27ec91d0aaf4b90b89e",
+      "role": "source",
+      "target": [
+        2.0,
+        0.0
+      ]
+    },
+    {
+      "checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt",
+      "sha256": "5d3389d5b8e33b7915d12d21308702f3105248485741b27ec91d0aaf4b90b89e",
+      "role": "source",
+      "target": [
+        -2.0,
+        0.0
+      ]
+    },
+    {
+      "checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_high_speed_course_20261007/formal/model_update_250.pt",
+      "sha256": "5edcd3fb78bed39b131a12e56552674a62c8993d03a57e01cfe9b32770a799c4",
+      "role": "candidate",
+      "target": [
+        1.5,
+        0.0
+      ]
+    },
+    {
+      "checkpoint": "/home/kellen/wheel_leg_native_train/runs/motion_high_speed_course_20261007/formal/model_update_250.pt",
+      "sha256": "5edcd3fb78bed39b131a12e56552674a62c8993d03a57e01cfe9b32770a799c4",
+      "role": "candidate",
+      "target": [
+        -1.5,
+        0.0
+      ]
+    }
+  ]
+}
