@@ -1,5 +1,16 @@
 # Execution chain
 
+Recovery retention explicitly selects first(default) or uniform_rollout eligible
+indices once per rollout without RNG consumption. Coefficient and optimizer hook
+are unchanged. Explicit balanced_pose_cycle provides evaluation-only initial pose
+coverage; weighted training reset remains intact. Shared batch evaluator dispatches
+Recovery family/seed requests through the same environment and scoring implementation.
+
+Public entry inventory: TOOL_INDEX.md; dated commands: TOOL_INDEX_HISTORY.md.
+tools.entrypoints supplies a read-only catalog and historical CLI guards.
+This catalog does not parse recipes, authorize runs or replace supervisor health,
+preflight, identity and ledger checks. No new submission wrapper is introduced.
+
 Current engineering contract: [entry/episode semantics](docs/ENTRY_SEMANTICS_FIX_20261007.md).
 Pure resource policy, candidate roles, episode result and execution plan live in
 domain; file/process/GPU reads stay at CLI boundaries. Shared supervisor records

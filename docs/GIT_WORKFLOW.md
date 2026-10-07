@@ -62,6 +62,9 @@
 
 ## 提交流程
 
+新实验目录和声明名称遵守[EXPERIMENT_NAMING.md](EXPERIMENT_NAMING.md)，
+使用创建日期时间前缀；历史路径不因文档规范或Git提交被移动、重命名。
+
 先读取最近的 AGENTS，检查 `git status` 与 index。按明确路径 stage，
 不要使用 `git add .` 将历史数据或无关用户改动混入提交。
 

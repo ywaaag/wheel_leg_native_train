@@ -1,5 +1,23 @@
 # Status
 
+## Recovery Coverage A/B authorized -- 2026-10-07
+
+[新方案](docs/RECOVERY_COVERAGE_AB_20261007.md)：用户批准source50的R0/R1
+PPO0双seed平衡初态复核与BC样本覆盖A_first/B_uniform受控对照。
+配置根configs/experiments/recovery_coverage_ab_20261007，各独立spec/budget。
+各组10smoke+<=100formal，合计<=220updates/1802240samples，仅BC选择方式不同。
+CPU403passed、三项plan-only PASS；运行事实以新run终态为准。
+GPU0共享已获明确授权，不停止任何其他进程，不重启旧hold10、不启用R1 PPO。
+
+## Public Entry Consolidation -- 2026-10-07
+
+当前工具与历史命令已拆分：TOOL_INDEX.md / TOOL_INDEX_HISTORY.md。
+旧固定GPU/run/session的高速preparation runtime入口退役；三旧Motion
+声明生成器默认拒绝，显式历史复现仍不得覆盖已有目录。新提交只走supervisor。
+本轮仅工程修改与CPU核验，不生成新实验配方、不启动仿真或续训。
+当前Motion来源建议仍是B250；旧报告早期new250建议已被最终复核替代。
+全量CPU回归399项通过；详见docs/ENTRYPOINT_CONSOLIDATION_20261007.md。
+
 ## Entry Semantics Engineering -- 2026-10-07
 
 [本轮局部修复与验证](docs/ENTRY_SEMANTICS_FIX_20261007.md)：明确资源共享授权、

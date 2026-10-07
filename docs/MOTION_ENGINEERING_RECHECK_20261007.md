@@ -80,7 +80,9 @@ policy采样任一通道限矩占比≤.5。不能宣称是每5ms限矩审计；
 上述B250和new250已测命令新评分均8/8；new500 ±2为0/8。逐环境、旧gate、新gate及
 原始文件SHA在isolated/motion_recheck_20261007/high_speed_rescore/rescore.json，
 cohort_rescore/rescore.json。来源original±2缺失，不能宣称new250新学会±2。
-new250最符合已有更广命令覆盖；B250低速误差更小，是回退来源。不能拼不同模型点。
+当时的暂定判断：new250最符合已有更广命令覆盖；B250低速误差更小，是回退来源。
+此早期来源推荐已被本文最后的GPU1同协议复核替代：当前推荐B250。
+不能拼不同模型点，也不能把这条暂定判断作为当前提交依据。
 下一次先补±1.5，再决定起点和最高完整0.5步长能力。yaw均UNKNOWN。
 
 ## CPU/plan-only与物理入口

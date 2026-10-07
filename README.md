@@ -1,5 +1,15 @@
 # Native closed-chain training
 
+当前Recovery任务：[source50能力复核与BC覆盖对照](docs/RECOVERY_COVERAGE_AB_20261007.md)。
+按STATUS对应新spec/独立账本执行；旧hold10已结算，不代表续训许可。
+
+公共入口只见[当前工具清单](TOOL_INDEX.md)；旧日期命令集中在
+[历史工具清单](TOOL_INDEX_HISTORY.md)。新提交仅使用supervisor。
+新实验使用[日期时间前缀命名](docs/EXPERIMENT_NAMING.md)，例如
+`2026_10_7-14_27__motion_width_ab`；已有实验不重命名。
+当前Motion推荐来源为B250，早期new250推荐已被后续物理复核替代；
+Recovery hold10已结束，不授予续训权限。
+
 Current engineering entry: [入口、资源与episode语义修复](docs/ENTRY_SEMANTICS_FIX_20261007.md)。
 exclusive/shared、source/best_new/best_overall、提交阶段和formal首更新分别记录。
 工程代码更新不授权运行；现有训练冻结快照与历史证据保持不变。

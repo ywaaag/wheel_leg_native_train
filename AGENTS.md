@@ -69,6 +69,21 @@ AUTHORIZED field or terminal notification never grants new simulation permission
 
 ## Git and Documentation
 
+For every newly created experiment, prefix its root directory and experiment
+name with the creation date/time in Asia/Shanghai: YYYY_M_D-HH_MM__<purpose>,
+for example 2026_10_7-14_27__motion_width_ab. Use the same name for the config
+root, run root, spec.experiment and artifacts.run_name where present. If the
+minute/name already exists, append a collision suffix or use seconds; never
+overwrite. Phase/arm children (source_eval/smoke/formal/A/B) keep their semantic
+names. Do not rename existing/prepared/frozen experiments or historical evidence.
+See docs/EXPERIMENT_NAMING.md; naming never grants runtime authorization.
+
+Use TOOL_INDEX.md for current public entries and TOOL_INDEX_HISTORY.md only for
+historical reproduction. Only supervisor is the public submission CLI; launcher,
+monitor and stand_chain remain internal components. Recipe-specific preparers are
+not generic configuration tools. Historical replay acknowledgment never grants
+simulation authorization; retired fixed-GPU/run/session drivers cannot launch.
+
 New submission interfaces are documented in `docs/ENTRY_SEMANTICS_FIX_20261007.md`.
 Default GPU ownership is exclusive; shared mode requires a recorded explicit user
 authorization note. Never exempt owners merely by process name or treat sharing as
