@@ -1,5 +1,7 @@
 # Native closed-chain project rules
 
+Before submission-interface changes, read `docs/SUBMISSION_CONTRACT_FIX_20261007.md`. A preflight PASS is not submission readiness; current-session/GPU/authorization checks are separate. That documentation-only commit leaves its implementation in the working tree, so verify the local CLI before use.
+
 New Codex sessions must also read `docs/CODEX_START_HERE.md` for current entrypoints, command usage, authorization boundaries, and the no-polling policy. This handoff does not grant simulation or training authorization.
 
 This project is `/home/kellen/wheel_leg_native_train`. Read `README.md`,

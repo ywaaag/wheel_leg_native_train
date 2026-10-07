@@ -1,5 +1,7 @@
 # Status
 
+提交契约工程复验：[authorization/session 修复](docs/SUBMISSION_CONTRACT_FIX_20261007.md)，CPU 466 passed；未启动仿真、未查训练进度。本轮只提交文档，代码修复尚未提交。
+
 新会话操作入口：[CODEX_START_HERE](docs/CODEX_START_HERE.md)。本页各条运行状态属于记录时刻，最新事实以对应 run 的原始证据为准。
 
 工程摘要入口：[ENGINEERING_STATUS](docs/ENGINEERING_STATUS.md)。最近完整CPU验证为

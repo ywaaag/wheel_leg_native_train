@@ -1,5 +1,7 @@
 # Current Tool Index
 
+supervisor 新增只读 `--check-submission`，区分配置检查与提交就绪，见[提交契约用法](docs/SUBMISSION_CONTRACT_FIX_20261007.md)。相关代码本轮不提交；使用前先核对工作树与 `--help`。
+
 首次使用请读：[新 Codex 会话入口与命令用法](docs/CODEX_START_HERE.md)。公开提交只用 supervisor；旧 preparer 不作通用入口。
 
 [当前工程能力、验证边界和剩余缺口](docs/ENGINEERING_STATUS.md)。工具可调用

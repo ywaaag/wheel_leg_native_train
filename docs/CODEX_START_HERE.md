@@ -32,6 +32,10 @@ source_snapshot 和外部仓库只读。不得停止、重启或修改其他任�
 
 ## 当前入口与安全命令
 
+提交契约修复与 `--check-submission` 用法见
+[authorization/session 提交检查](SUBMISSION_CONTRACT_FIX_20261007.md)。
+该轮按要求仅提交文档，相关代码仍在工作树；只 checkout HEAD 时先核对接口是否存在。
+
 唯一公开提交入口是 `native_stand.command_v6.supervisor`。
 launcher、monitor、stand_chain 是内部组件，不是另一条供用户选择的提交路线。
 

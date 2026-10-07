@@ -1,5 +1,7 @@
 # Native closed-chain training
 
+提交接口修复：[authorization/session 契约与可提交检查](docs/SUBMISSION_CONTRACT_FIX_20261007.md)。默认 plan PASS 不等于可提交；本轮仅文档入 Git，修复代码保留工作树。
+
 新 Codex 会话先读：[入口、用法与授权边界](docs/CODEX_START_HERE.md)。历史“当前”记录不代表实时进程状态。
 
 当前工程总入口：[工程状态与剩余缺口](docs/ENGINEERING_STATUS.md)。
