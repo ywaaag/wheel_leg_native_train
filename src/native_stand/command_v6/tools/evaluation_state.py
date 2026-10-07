@@ -1,6 +1,7 @@
 """Restore evaluation-only runtime switches and RNG, including setup failures."""
 from functools import wraps
 from inspect import signature
+import sys
 import torch
 
 
@@ -31,10 +32,12 @@ def isolated_evaluation(function):
                    env.fsm.config['timeout_s'],env.recovery_config.get('gate_diagnostics',False))
         else:
             saved=(env.cfg.episode_length_s,env.schedule_s,getattr(env,'capture_terminal',False))
+            forced_target=getattr(env,'forced_target',None)
         try:
             if actor_training is not None:actor.eval()
             return function(actor,wrapped,env,**kwargs)
         finally:
+            original_error=sys.exception()
             try:
                 if recovery:
                     family,split,training,continuous,timeout,diagnostics=saved
@@ -47,6 +50,10 @@ def isolated_evaluation(function):
                 else:
                     env.cfg.episode_length_s,env.schedule_s,env.capture_terminal=saved
                     env.clear_evaluation_target()
+                    if hasattr(env,'forced_target'):env.forced_target=forced_target
+            except BaseException as cleanup_error:
+                if original_error is None:raise
+                original_error.add_note('evaluation cleanup also failed: '+repr(cleanup_error))
             finally:
                 try:
                     if actor_training is not None:actor.train(actor_training)

@@ -10,16 +10,21 @@ from native_stand.command_v6.domain import contract
 from native_stand.recovery.domain import RecoveryFSM,Mode,blend_targets,process_reward,autonomous_stable,ReverseRecoveryCurriculum
 from native_stand.recovery.initialization import settlement_joint_indices,zero_initial_velocities
 from native_stand.recovery.standing import POSTURE_FIELDS,posture,standing_success_mask,pose_sampling
+from native_stand.command_v6.domain.episode_result import recovery_episode_mode
 
 
 class RecoveryEnv(CommandEnv):
     def __init__(self,cfg,*,recovery_config,pose_library,stand_policy,initialization_only=False,**kwargs):
         self.recovery_config=recovery_config
+        self.episode_mode=recovery_episode_mode(recovery_config)
         self.pose_library=pose_library
         self.initialization_only=initialization_only
-        self.stand_policy=stand_policy.eval()
-        for parameter in self.stand_policy.parameters():
-            parameter.requires_grad_(False)
+        if stand_policy is None and self.episode_mode!='continuous_holding':
+            raise ValueError('Recovery handover/autonomous_hold requires frozen STAND dependency')
+        self.stand_policy=stand_policy.eval() if stand_policy is not None else None
+        if self.stand_policy is not None:
+            for parameter in self.stand_policy.parameters():
+                parameter.requires_grad_(False)
         self.recovery_ready=False
         self.continuous_evaluation=False
         super().__init__(cfg,**kwargs)
@@ -43,6 +48,13 @@ class RecoveryEnv(CommandEnv):
         self.recovery_cause_snapshot=torch.zeros((self.num_envs,6),device=self.device,dtype=torch.bool)
         self.recovery_snapshot_valid=torch.zeros(self.num_envs,dtype=torch.bool,device=self.device)
         self.standing_snapshot=torch.zeros((self.num_envs,10),device=self.device)
+        self.holding_episode=None
+        if self.episode_mode=='continuous_holding':
+            from native_stand.recovery.holding import HoldingEpisode
+            self.holding_episode=HoldingEpisode(self.num_envs,self.device,dt=self.step_dt,
+                protocol=recovery_config['standing_task']['protocol'])
+        self.holding_rollout_counts=torch.zeros(2,device=self.device,dtype=torch.long)
+        self.episode_result_snapshot=torch.zeros((self.num_envs,5),device=self.device,dtype=torch.bool)
         self.wheel_longitudinal_offset=torch.zeros(self.num_envs,device=self.device)
         self.wheel_geometry_snapshot=torch.zeros((self.num_envs,13),device=self.device)
         self.wheel_geometry_stats=torch.zeros((),device=self.device)
@@ -152,6 +164,8 @@ class RecoveryEnv(CommandEnv):
         self.robot.write_joint_velocity_to_sim_index(velocity=torch.zeros_like(all_q[choice]),env_ids=ids)
         self.initial_height[ids]=poses[:,2]
         self.fsm.reset(ids)
+        if self.holding_episode is not None:
+            self.holding_episode.reset(ids)
         self.fsm.mode[ids]=int(Mode.INITIALIZING)
         self.initial_age[ids]=0.;self.settle_dwell[ids]=0.
         self.initial_velocity_zeroed[ids]=False
@@ -172,19 +186,26 @@ class RecoveryEnv(CommandEnv):
     def _pre_physics_step(self,actions):
         super()._pre_physics_step(actions)
         student_legs=self.leg_target.clone();student_wheels=self.wheel_target.clone()
-        with torch.no_grad():
-            teacher_action=self.stand_policy({'policy':self.stand_frame,'history':self.stand_history})
-        _,teacher_legs,teacher_wheels=contract.targets(teacher_action,self.reference,
-            leg_scale=.5,combined_radius=0.,wheel_scale=100.)
-        self.control_jump.copy_((student_legs-teacher_legs).abs().amax(-1))
-        self.wheel_control_jump.copy_((student_wheels-teacher_wheels).abs().amax(-1))
-        blending=self.fsm.mode==int(Mode.HANDOVER)
-        standing=(self.fsm.mode==int(Mode.STAND_VERIFY))|(self.fsm.mode==int(Mode.STAND))
-        fraction=torch.where(standing,torch.ones_like(self.fsm.age),
-            torch.where(blending,self.fsm.dwell/self.recovery_config['fsm']['blend_s'],0.))
-        blend_leg=torch.where(blending[:,None],self.handover_leg,student_legs)
-        blend_wheel=torch.where(blending[:,None],self.handover_wheel,student_wheels)
-        legs,wheels=blend_targets(blend_leg,blend_wheel,teacher_legs,teacher_wheels,fraction)
+        if self.episode_mode=='continuous_holding':
+            # This task never hands control to STAND. Its checkpoint identity is
+            # still validated at assembly, but no unused forward runs each step.
+            legs,wheels=student_legs,student_wheels
+            blending=standing=torch.zeros_like(self.initialization_checked)
+            self.control_jump.zero_();self.wheel_control_jump.zero_()
+        else:
+            with torch.no_grad():
+                teacher_action=self.stand_policy({'policy':self.stand_frame,'history':self.stand_history})
+            _,teacher_legs,teacher_wheels=contract.targets(teacher_action,self.reference,
+                leg_scale=.5,combined_radius=0.,wheel_scale=100.)
+            self.control_jump.copy_((student_legs-teacher_legs).abs().amax(-1))
+            self.wheel_control_jump.copy_((student_wheels-teacher_wheels).abs().amax(-1))
+            blending=self.fsm.mode==int(Mode.HANDOVER)
+            standing=(self.fsm.mode==int(Mode.STAND_VERIFY))|(self.fsm.mode==int(Mode.STAND))
+            fraction=torch.where(standing,torch.ones_like(self.fsm.age),
+                torch.where(blending,self.fsm.dwell/self.recovery_config['fsm']['blend_s'],0.))
+            blend_leg=torch.where(blending[:,None],self.handover_leg,student_legs)
+            blend_wheel=torch.where(blending[:,None],self.handover_wheel,student_wheels)
+            legs,wheels=blend_targets(blend_leg,blend_wheel,teacher_legs,teacher_wheels,fraction)
         initializing=self.fsm.mode==int(Mode.INITIALIZING)
         hold=initializing & self.pose_initial_hold[self.initial_pose_index]
         legs=torch.where(hold[:,None],self.initial_leg_targets,legs)
@@ -335,6 +356,8 @@ class RecoveryEnv(CommandEnv):
             self.gate_diagnostic_snapshot.copy_(torch.cat((checks.float(),velocity,
                 data.root_ang_vel_w.torch,self.control_jump[:,None],self.wheel_control_jump[:,None],
                 self.fsm.dwell[:,None]),-1))
+            if self.episode_mode=='continuous_holding':
+                self.gate_diagnostic_snapshot[:,[8,9,17,18]]=float('nan')
         enter=(self.fsm.mode==int(Mode.RECOVERY))&eligible&(self.fsm.dwell+self.step_dt>=self.fsm.config['gate_dwell_s']-1e-6)
         self.handover_origin[enter]=data.root_pos_w.torch[enter,:2]
         self.handover_leg[enter]=self.executed_leg[enter]
@@ -352,8 +375,21 @@ class RecoveryEnv(CommandEnv):
                 stable &= standing_success_mask(self.standing_snapshot,protocol)
             enter=torch.zeros_like(enter)  # No teacher handover in this task.
         previous_mode=self.fsm.mode.clone()
-        pulse,failed,fault=self.fsm.step(eligible&~accepted,stable,fault,tilt|restricted|rejected,
-            dt=self.step_dt,finish_on_success=not self.continuous_evaluation)
+        timeout=torch.zeros_like(fault)
+        if self.holding_episode is not None and not self.continuous_evaluation:
+            self.fsm.age.add_((~initializing).float()*self.step_dt)
+            failed=(tilt|restricted|rejected)&~fault
+            self.holding_episode.observe(self.root_height,self.contact_force,self.standing_snapshot[:,:2],
+                torch.acos(self.up.clamp(-1.,1.)),self.closure_each.amax(-1),
+                (self.effort.abs()>=self.effort.new_tensor(contract.EFFORT_LIMITS)-1e-4).any(-1),
+                active=~initializing,valid=self.initialization_checked&~failed&~fault)
+            timeout,pulse=self.holding_episode.outcome(failed=failed,fault=fault)
+            self.fsm.mode[failed]=int(Mode.RECOVERY_FAILED)
+            self.fsm.mode[fault]=int(Mode.RUNTIME_FAULT)
+            self.holding_rollout_counts.add_(torch.stack((timeout.long().sum(),(timeout&~pulse).long().sum())))
+        else:
+            pulse,failed,fault=self.fsm.step(eligible&~accepted,stable,fault,tilt|restricted|rejected,
+                dt=self.step_dt,finish_on_success=not self.continuous_evaluation)
         self.success_pulse.copy_(pulse)
         self.initializing_step=initializing
         self.rollout_events.add_(torch.stack((initializing.long().sum(),
@@ -361,15 +397,21 @@ class RecoveryEnv(CommandEnv):
             pulse.long().sum(),(failed&~fault).long().sum(),fault.long().sum(),rejected.long().sum())))
         self.terminal_causes={'nonfinite':nonfinite,'closure':closure|penetration|outside,
             'height':torch.zeros_like(fault),'tilt':tilt,'body_contact':restricted,'joint_safety':outside}
-        terminated=failed|fault|(pulse & (not self.continuous_evaluation))
+        terminated=failed|fault
+        if self.holding_episode is None:
+            terminated |= pulse & (not self.continuous_evaluation)
+        certificate_evaluated=(timeout if self.holding_episode is not None and not self.continuous_evaluation
+                               else pulse|terminated)
+        self.episode_result_snapshot.copy_(torch.stack((terminated,timeout,pulse,fault,certificate_evaluated),-1))
+        if self.holding_episode is not None and not self.continuous_evaluation:
+            self.holding_episode.record_outcomes(terminated=terminated,truncated=timeout,fault=fault)
         if self.reverse_curriculum is not None and self.curriculum_training:
             self.reverse_events.copy_(torch.stack((self.episode_stage,pulse.long(),fault.long()),-1))
-            self.reverse_event_valid.copy_(terminated)
+            self.reverse_event_valid.copy_(terminated|timeout)
             if self.reverse_cursor>=len(self.reverse_buffer): raise RuntimeError('Reverse rollout buffer exhausted')
             self.reverse_buffer[self.reverse_cursor].copy_(self.reverse_events)
-            self.reverse_valid[self.reverse_cursor].copy_(terminated)
+            self.reverse_valid[self.reverse_cursor].copy_(terminated|timeout)
             self.reverse_cursor+=1
-        timeout=torch.zeros_like(terminated)  # Recovery timeout is task failure; no timeout bootstrap.
         # One batched pre-reset snapshot. Never read the replacement episode.
         scalar=torch.stack((self.fsm.age,self.fsm.verify,pulse.float(),
             failed.float(),fault.float(),self.initial_pose_index.float(),self.root_height,
@@ -387,7 +429,7 @@ class RecoveryEnv(CommandEnv):
         self.recovery_control_snapshot.copy_(torch.cat((q[:,self.ids],dq,self.raw_action,self.action,
             self.target_before_joint_limit,self.leg_target,self.effort_pre,self.effort,
             data.applied_torque.torch[:,self.ids],self.closure_each),-1))
-        self.recovery_snapshot_valid.copy_(terminated)
+        self.recovery_snapshot_valid.copy_(terminated|timeout)
         return terminated,timeout
 
     def _get_rewards(self):
@@ -456,6 +498,9 @@ class RecoveryEnv(CommandEnv):
 
     def begin_task_rollout(self):
         self.rollout_events.zero_()
+        self.holding_rollout_counts.zero_()
+        if self.holding_episode is not None:
+            self.holding_episode.begin_rollout()
         self.height_stats.zero_();self.height_count.zero_()
         self.standing_stats.zero_()
         self.wheel_geometry_stats.zero_()
@@ -492,7 +537,17 @@ class RecoveryEnv(CommandEnv):
             'initialization_steps_charge_sample_budget':True,
             'success_requires_frozen_stand_5s':self.fsm.config.get('success_mode')!='autonomous_hold',
             'success_mode':self.fsm.config.get('success_mode','handover'),
-            'required_stable_s':self.fsm.config['verify_s'],
+            'episode_mode':self.episode_mode,
+            'teacher_forward_enabled':self.episode_mode!='continuous_holding',
+            'required_stable_s':None if self.holding_episode is not None else self.fsm.config['verify_s'],
+            'training_episode':({
+                'mode':'fixed_horizon','seconds':self.holding_episode.protocol['seconds'],
+                'steady_window_s':self.holding_episode.protocol['steady_window_s'],
+                'normal_timeouts':int(self.holding_rollout_counts[0].cpu()),
+                'window_failed_timeouts':int(self.holding_rollout_counts[1].cpu()),
+                'episode_results':self.holding_episode.rollout_summary(),
+                'success_ends_episode':False,'timeout_bootstrap':'installed PPO transition value'}
+                if self.holding_episode is not None else None),
             'standing_posture':dict(zip(('mean_abs_'+field for field in POSTURE_FIELDS),
                 (self.standing_stats/self.height_count.clamp_min(1)).cpu().tolist()))
                 if self.recovery_config.get('standing_task') else None}

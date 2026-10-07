@@ -22,7 +22,8 @@ height_fraction_min height_m leg_length_difference_max_m level_mean_max_rad leve
 mirror_error_max_rad objective saturation_max support_difference_max version vx_abs_max_mps
 yaw_abs_max_rad_s parking_window_s requested_seconds actual_duration_seconds sample_rate_hz
 termination_semantics metric_scope effective_protocol_sha256 diagnostics
-observed_duration_per_env_s scoring_protocol_sha256'''.split())
+observed_duration_per_env_s scoring_protocol_sha256 yaw_translation_max_mps
+straight_yaw_max_rad_s field_boundary_max_m zero_every_updates'''.split())
 
 
 def effective_protocol(protocol, *, requested_seconds, actual_duration_seconds=None,
@@ -33,6 +34,21 @@ def effective_protocol(protocol, *, requested_seconds, actual_duration_seconds=N
         raise TypeError("evaluation protocol must be an object")
     unknown=set(protocol)-PROTOCOL_FIELDS
     if unknown:raise ValueError('unknown evaluation protocol fields: '+', '.join(sorted(unknown)))
+    if protocol.get('protocol_identity') == 'motion_absolute_v3':
+        required=('motion_window_s','steady_window_s','parking_window_s','standing_height_m',
+            'closure_max_m','peak_tilt_max_rad','saturation_fraction_max','dual_contact_min',
+            'vy_abs_max_mps','zero_mean_abs_vx_max_mps','motion_vx_error_max_mps',
+            'motion_yaw_error_max_rad_s','direction_fraction_min','straight_yaw_max_rad_s',
+            'yaw_translation_max_mps','yaw_drift_max_m','yaw_excursion_max_m','field_boundary_max_m')
+        absent=[key for key in required if key not in protocol]
+        if absent:raise ValueError('absolute protocol missing fields: '+', '.join(absent))
+        if protocol.get('command_mode') != 'ramp':
+            raise ValueError('absolute_v3 recheck explicitly requires ramp command mode')
+        for key in required:
+            if key.endswith('_s') or key=='standing_height_m':continue
+            value=protocol[key]
+            if not isinstance(value,(int,float)) or not math.isfinite(value) or value<=0:
+                raise ValueError('invalid absolute protocol threshold: '+key)
     duration = float(requested_seconds if actual_duration_seconds is None else actual_duration_seconds)
     requested = float(requested_seconds)
     rate = float(sample_rate_hz)

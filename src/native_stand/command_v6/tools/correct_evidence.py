@@ -445,8 +445,77 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', type=Path, required=True)
     parser.add_argument('--output-dir', type=Path, required=True)
+    parser.add_argument('--protocol-spec',type=Path,help='fresh protocol: rescore saved traces, no new ability claim')
     args = parser.parse_args()
+    if args.protocol_spec:
+        print(json.dumps(rescore_run(args.run,args.protocol_spec,args.output_dir),indent=2));return
     print(json.dumps(audit_run(args.run, args.output_dir), indent=2))
+
+
+def rescore_run(run,spec_path,output):
+    """Reuse online score/gate and selector on immutable recorded policy-step traces."""
+    import torch
+    from .evaluate_checkpoint import protocol_for_spec
+    from ..domain.protocol import score,capability_gate,CAUSES
+    from ..completion import classify,choose_capability,evaluation_identity
+    output=Path(output)
+    if output.exists():raise FileExistsError(output)
+    spec=json.loads(Path(spec_path).read_text())
+    protocol=protocol_for_spec(spec,30.,True)
+    expected=evaluation_identity(spec,'offline_same_score_gate')
+    entries=[];summaries=[];inputs={str(Path(spec_path).resolve()):digest(spec_path)}
+    for path in sorted(Path(run).rglob('evaluation*.json')):
+        if 'source_snapshot' in path.parts or path.name.endswith('.terminal.json'):continue
+        raw=json.loads(path.read_text())
+        if not raw.get('per_env'):continue
+        inputs[str(path.resolve())]=digest(path)
+        trace_rows=raw['per_env']
+        if len(trace_rows)!=8 or any(not row.get('trace') for row in trace_rows):
+            summaries.append({'path':str(path),'status':'MISSING_EVIDENCE:full_trace'});continue
+        lengths=[len(row['trace']) for row in trace_rows]
+        rows=torch.zeros(max(lengths),8,18,dtype=torch.float64)
+        valid=torch.zeros(rows.shape[:2],dtype=torch.bool)
+        done=torch.zeros_like(valid);causes=torch.zeros(8,len(CAUSES),dtype=torch.bool)
+        timeout=torch.zeros(8,dtype=torch.bool)
+        for i,row in enumerate(trace_rows):
+            rows[:lengths[i],i]=torch.tensor(row['trace'],dtype=rows.dtype)
+            valid[:lengths[i],i]=True
+            if row['outcome']!='completed':
+                done[lengths[i]-1,i]=True
+                if row['outcome']=='runtime_fault':causes[i,0]=True
+                else:causes[i,2]=True
+        result=score(rows,valid,done,causes,timeout,dt=raw['dt'],target_window=(10.,18.),
+            requested_steps=3000,full_trace=True,effective_protocol=protocol)
+        result.update(seconds=30.,target=raw['target'],effective_protocol=protocol)
+        result['capability_gate']=capability_gate(result,raw['target'],protocol)
+        model_path=raw.get('checkpoint',raw.get('checkpoint_path'))
+        model_sha=raw.get('checkpoint_sha256')
+        if not model_sha:
+            # Frozen manifests/registry may supply identity; no inference from filename number.
+            registry=path.parent/'candidate_registry.json'
+            if registry.exists():
+                item=next((r for r in json.loads(registry.read_text()) if r.get('evaluation')==path.name),None)
+                if item:model_sha=item.get('checkpoint_sha256');model_path=item.get('checkpoint')
+        role='source' if model_sha==spec['source_sha256'] else 'candidate'
+        entry={'role':role,'kind':'full','identity':expected,'checkpoint_sha256':model_sha,
+               'checkpoint':model_path,'command':raw['target'][:2],'result':result,'update':raw.get('update',0),
+               'evaluation':str(path)}
+        classified=classify(entry,expected)
+        if not model_sha:classified['eligible']=False
+        entries.append(classified)
+        summaries.append({'path':str(path),'checkpoint':model_path,'checkpoint_sha256':model_sha,
+            'target':raw['target'],'old_gate':raw.get('capability_gate',raw.get('standing_gate')),
+            'new_gate':result['capability_gate'],'per_env':[_summary_row(r) for r in result['per_env']],
+            'interpretation':'same historical trajectory rescored; no learned capability improvement',
+            'code_compatibility':'historical source SHA differs; new physical results cannot silently certify a combined same-code set'})
+    output.mkdir(parents=True,exist_ok=False)
+    report={'evaluations':summaries,'effective_protocol':protocol,'inputs':inputs,
+            'candidates':choose_capability(entries,None,expected),
+            'online_PPO':0,'offline_optimizer_updates':0,'simulation':0}
+    with (output/'rescore.json').open('x') as stream:json.dump(report,stream,indent=2,allow_nan=False)
+    for path,sha in inputs.items():
+        if digest(path)!=sha:raise ValueError('historical input changed')
+    return {'output':str(output),'evaluations':len(summaries),'historical_inputs_unchanged':True}
 
 
 if __name__ == '__main__':

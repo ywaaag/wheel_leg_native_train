@@ -14,12 +14,16 @@ def digest(path):
 def check(spec_path,output_dir):
     spec=json.loads(Path(spec_path).read_text());errors=validate(spec)
     config=spec['recovery']
-    for path,sha in ((spec['asset_path'],spec['asset_sha256']),
+    dependencies=[(spec['asset_path'],spec['asset_sha256']),
                      (spec['asset_module_path'],spec['asset_module_sha256']),
                      (spec['colleague_config_path'],spec['colleague_config_sha256']),
-                     (config['stand_checkpoint'],config['stand_sha256']),
-                     (config['stand_spec'],config['stand_spec_sha256']),
-                     (config['pose_library'],config['pose_library_sha256'])):
+                     (config['pose_library'],config['pose_library_sha256'])]
+    from native_stand.command_v6.domain.episode_result import requires_stand
+    if requires_stand(config):
+        for name,identity in (('stand_checkpoint','stand_sha256'),('stand_spec','stand_spec_sha256')):
+            if name not in config or identity not in config:errors.append('Recovery '+name+' identity missing')
+            else:dependencies.append((config[name],config[identity]))
+    for path,sha in dependencies:
         if not Path(path).is_file() or digest(path)!=sha:errors.append(f'Identity differs: {path}')
     if Path(output_dir).exists():errors.append('Output already exists')
     library=json.loads(Path(config['pose_library']).read_text())
@@ -33,7 +37,7 @@ def check(spec_path,output_dir):
                 if not poses: errors.append(f"Missing curriculum pose family: {level['pose_family']}/{split}")
                 elif any('initial_root_height_m' not in p or 'initial_chassis_clearance_m' not in p for p in poses):
                     errors.append(f"Missing stage initialization bounds: {level['pose_family']}/{split}")
-    if not errors:
+    if not errors and config.get('stand_checkpoint'):
         state=torch.load(config['stand_checkpoint'],map_location='cpu',weights_only=False)
         if state['actor']['mlp.0.weight'].shape!=(256,150) or state['critic']['mlp.0.weight'].shape!=(256,150):
             errors.append('STAND is not the frozen 150D network')
@@ -52,7 +56,7 @@ def check(spec_path,output_dir):
     if config.get('standing_task'):blockers.append('new_pose_continuous10s_source_baseline_pending')
     return {'cpu_valid':not errors,'errors':errors,'runtime_blockers':blockers,
         'budget_authorization':book.get('authorization','UNAUTHORIZED'),
-        'stand_sha256':config['stand_sha256'],'simulation':0,'ppo':0,'files_written':0,
+        'stand_sha256':config.get('stand_sha256'),'simulation':0,'ppo':0,'files_written':0,
         'proposed_samples_smoke':spec['budget']['smoke_updates']*spec['ppo']['envs']*spec['ppo']['steps_per_env'],
         'proposed_samples_formal':spec['budget']['formal_updates']*spec['ppo']['envs']*spec['ppo']['steps_per_env']}
 

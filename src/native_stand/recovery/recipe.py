@@ -1,8 +1,10 @@
 """CLI-boundary task assembly for the shared trainer; no Isaac on import."""
 import json
+import math
 from pathlib import Path
 import torch
 from native_stand.command_v6.tools.evaluation_state import isolated_evaluation,failure_evidence
+from native_stand.command_v6.domain.episode_result import episode_result,recovery_episode_mode,requires_stand
 
 
 REWARD_FIELDS=('lift','upright','effort','action_delta','joint_margin')
@@ -13,15 +15,20 @@ def environment(cfg,spec,*,initialization_only=False):
     from native_stand.command_v6.learning import model
     from tensordict import TensorDict
     config=spec['recovery']
-    stand_spec=json.loads(Path(config['stand_spec']).read_text())
-    dummy=TensorDict({'policy':torch.zeros(cfg.scene.num_envs,25,device=cfg.sim.device),
-        'history':torch.zeros(cfg.scene.num_envs,125,device=cfg.sim.device)},batch_size=[cfg.scene.num_envs])
-    # STAND has no PPO object; critic and optimizer are never instantiated.
-    stand=model(dummy,actor=True,spec=stand_spec).to(cfg.sim.device)
-    checkpoint=torch.load(config['stand_checkpoint'],map_location=cfg.sim.device,weights_only=False)
-    stand.load_state_dict(checkpoint['actor'],strict=True)
-    stand.eval()
-    for parameter in stand.parameters():parameter.requires_grad_(False)
+    stand=None
+    declared=[bool(config.get(name)) for name in ('stand_checkpoint','stand_spec','stand_sha256')]
+    if requires_stand(config):
+        if not all(declared):
+            raise ValueError('Incomplete frozen STAND dependency declaration')
+        stand_spec=json.loads(Path(config['stand_spec']).read_text())
+        dummy=TensorDict({'policy':torch.zeros(cfg.scene.num_envs,25,device=cfg.sim.device),
+            'history':torch.zeros(cfg.scene.num_envs,125,device=cfg.sim.device)},batch_size=[cfg.scene.num_envs])
+        # STAND has no PPO object; critic and optimizer are never instantiated.
+        stand=model(dummy,actor=True,spec=stand_spec).to(cfg.sim.device)
+        checkpoint=torch.load(config['stand_checkpoint'],map_location=cfg.sim.device,weights_only=False)
+        stand.load_state_dict(checkpoint['actor'],strict=True)
+        stand.eval()
+        for parameter in stand.parameters():parameter.requires_grad_(False)
     return RecoveryEnv(cfg,recovery_config=config,
         initialization_only=initialization_only,
         pose_library=json.loads(Path(config['pose_library']).read_text()),stand_policy=stand,
@@ -96,6 +103,8 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
     terminal_control=torch.zeros((n,54),device=env.device)
     terminal_causes=torch.zeros((n,6),device=env.device,dtype=torch.bool)
     terminal_valid=torch.zeros(n,dtype=torch.bool,device=env.device)
+    terminal_episode_result=torch.zeros((n,5),device=env.device,dtype=torch.bool)
+    has_episode_result=hasattr(env,'episode_result_snapshot')
     gate_rows=torch.zeros((steps,n,20),device=env.device) if diagnostic else None
     control_rows=torch.zeros((steps,n,54),device=env.device) if diagnostic else None
     posture_rows=torch.zeros((steps,n,10),device=env.device) if standing else None
@@ -117,6 +126,8 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
                 if progress_callback is not None and (index==0 or (index+1)%50==0):progress_callback(index+1)
                 new=capture_terminal(env.recovery_snapshot[:n],env.recovery_control_snapshot[:n],
                     env.recovery_cause_snapshot[:n],active,done[:n],terminal,terminal_control,terminal_causes)
+                if has_episode_result:
+                    terminal_episode_result[new]=env.episode_result_snapshot[:n][new]
                 terminal_valid |= new
                 active &= ~done[:n].bool()
                 if bool(env.terminal_causes['nonfinite'].any()) or bool(env.terminal_causes['closure'].any()):
@@ -126,6 +137,7 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
         values=rows.cpu();mask=valid.cpu();end=terminal.cpu();end_mask=terminal_valid.cpu()
         controls=terminal_control.cpu()
         causes=terminal_causes.cpu()
+        terminal_results=terminal_episode_result.cpu()
         gate_values=gate_rows.cpu() if diagnostic else None
         control_values=control_rows.cpu() if diagnostic else None
         posture_values=posture_rows.cpu() if standing else None
@@ -158,7 +170,9 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
                 'terminal_control_pre_reset':controls[i].tolist() if end_mask[i] else None}
             if full_trace:episode['compact_trace_100hz']=series.tolist()
             if diagnostic:
-                episode['gate_diagnostics_100hz']=gate_values[:,i][mask[:,i]].tolist()
+                gate_trace=gate_values[:,i][mask[:,i]]
+                episode['gate_diagnostics_100hz']=[[value if math.isfinite(value) else None
+                    for value in row] for row in gate_trace.tolist()]
                 episode['control_diagnostics_100hz']=control_values[:,i][mask[:,i]].tolist()
             else:
                 episode['gate_diagnostics_100hz']=None
@@ -205,6 +219,19 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
                     episode['standing_failed_checks'].append('retained_family')
                     if episode['outcome']!='runtime_fault':episode['outcome']='task_failure'
         passed=sum(row['success'] for row in episodes)
+        episode_mode=getattr(env,'episode_mode',None)
+        if episode_mode is None:
+            episode_mode=recovery_episode_mode({**env.recovery_config,'fsm':env.fsm.config})
+        for i,episode in enumerate(episodes):
+            ended=bool(end_mask[i])
+            flags=terminal_results[i]
+            terminated=bool(flags[0]) if has_episode_result and ended else ended
+            truncated=bool(flags[1]) if has_episode_result and ended else False
+            if not ended and len(values[:,i][mask[:,i]])==steps:
+                truncated=True  # External evaluation cutoff; the runtime did not reset.
+            episode['episode_result']=episode_result(terminated=terminated,truncated=truncated,
+                certificate_passed=bool(episode['success']),runtime_fault=episode['runtime_fault'],
+                task_mode=episode_mode,termination_reason=episode['termination_reason'])
         evaluation_stage=next((i for i,row in enumerate(env.recovery_config.get('curriculum',{}).get('levels',[]))
                                if row['pose_family']==evaluation_family),0)
         protocol=observed_protocol(protocol,[len(values[:,i][mask[:,i]])*env.step_dt for i in range(n)])
@@ -213,6 +240,10 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
             requested=diagnostics,enabled=diagnostic,scope='100Hz pre-reset first episode')
         validity.update(tensor_field_validity(control_values,mask,['control_'+str(i) for i in range(54)],requested=diagnostics,
             enabled=diagnostic,scope='100Hz pre-reset controls; latest held PD torque'))
+        if episode_mode=='continuous_holding':
+            for name in ('leg_target_jump','wheel_target_jump','leg_target_jump_rad','wheel_target_jump_rad_s'):
+                validity[name]=diagnostic_field(None,requested=diagnostics,enabled=False,
+                    scope='teacher handover only',missing_reason='not_applicable: continuous_holding skips teacher forward')
         return {'task':'recovery','seed':seed,'per_env':episodes,'accepted':passed==n,
             'effective_protocol':protocol,
             'diagnostic_field_validity':validity,
@@ -234,8 +265,11 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
             'passed_envs':passed,'family_results':summarize_episodes(episodes),
             'outcome_counts':{name:sum(row['outcome']==name for row in episodes)
                 for name in ('success','task_failure','runtime_fault','incomplete')},
-            'evidence_frequency_hz':1/env.step_dt,'stand_model_sha256':env.recovery_config['stand_sha256'],
+            'evidence_frequency_hz':1/env.step_dt,'stand_model_sha256':env.recovery_config.get('stand_sha256'),
             'success_protocol':{'mode':'autonomous_hold' if autonomous else 'handover',
+                'episode_mode':episode_mode,
+                'legacy_fsm_mode':env.fsm.config.get('success_mode','handover'),
+                'certificate_mode':'full_window' if standing else 'fsm_success',
                 'required_stable_s':env.fsm.config['verify_s'],'teacher_control':not autonomous,
                 **({'standing_protocol':protocol,'effective_protocol':protocol,'continuous_seconds':seconds} if standing else {})},
             'incomplete_is_failure':False,'initialization':env.initialization_summary(),

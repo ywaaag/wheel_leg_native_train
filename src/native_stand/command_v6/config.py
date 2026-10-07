@@ -14,6 +14,19 @@ def validate(spec):
     if errors:
         return errors
     try:
+        from .domain.resource_policy import resolve_resources
+        resolve_resources(spec)
+    except (ValueError,TypeError) as exc:errors.append(str(exc))
+    try:
+        from .domain.execution_plan import smoke_plan
+        smoke_plan(spec)
+    except (KeyError,ValueError,TypeError) as exc:errors.append('wiring smoke plan invalid: '+str(exc))
+    try:
+        from .domain.recipe import resolve
+        resolve(spec)
+    except (ValueError, KeyError, TypeError) as exc:
+        errors.append('effective recipe: ' + str(exc))
+    try:
         from .domain.selected_diagnostics import configuration
         configuration(spec)
     except (TypeError,ValueError) as exc:
@@ -133,7 +146,10 @@ def validate(spec):
     ppo, budget = spec["ppo"], spec["budget"]
     if ppo.get("envs",0)<=0 or ppo.get("steps_per_env",0)<=0 or ppo.get("learning_rate",0)<=0:
         errors.append("PPO sizing or learning rate invalid")
-    if (budget.get("formal_updates",0)<1 or budget.get("smoke_updates",0)<1 or
+    if spec.get('evaluation_only'):
+        if budget.get('formal_updates')!=0 or budget.get('smoke_updates')!=0:
+            errors.append('evaluation-only recipe cannot allocate PPO updates')
+    elif (budget.get("formal_updates",0)<1 or budget.get("smoke_updates",0)<1 or
             budget.get("source_eval_wall_s",0)<=30 or budget.get("smoke_wall_s",0)<=60 or
             (budget.get("formal_wall_s",0) is not None and budget.get("formal_wall_s",0)<=120)):
         errors.append("PPO update limits invalid")
@@ -150,10 +166,16 @@ def validate(spec):
 def schedule(update, phase, evaluation):
     if phase != "formal":
         return {"checkpoint":False,"light":False,"full":False}
-    return {"checkpoint":update % evaluation["checkpoint_every_updates"] == 0,
+    result={"checkpoint":update % evaluation["checkpoint_every_updates"] == 0,
             "light":bool(evaluation["light_every_updates"] and update % evaluation["light_every_updates"] == 0),
             "full":update % evaluation["full_every_updates"] == 0 or
                    update in evaluation.get('unlock_full_updates', [])}
+    if evaluation.get('protocol_identity')=='motion_absolute_v3':
+        frequency=evaluation.get('zero_every_updates',25)
+        if type(frequency) is not int or frequency<1:raise ValueError('zero_every_updates invalid')
+        result['zero_only']=update%frequency==0 and not result['full']
+        if result['zero_only']:result['full']=True
+    return result
 
 
 def evaluation_seconds(spec, *, full):

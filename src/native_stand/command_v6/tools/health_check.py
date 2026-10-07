@@ -92,7 +92,10 @@ def own_process_start(pid):
     except (OSError,ValueError,TypeError,IndexError,StopIteration,UnicodeError):return None
 
 
-def submission_health(report, *, current_session, target_session,phase='source_eval',physical_gpu=None):
+def submission_health(report, *, current_session, target_session,phase='source_eval',physical_gpu=None,resource_policy=None):
+    from ..domain.resource_policy import resolve_resources,occupied_gpu_allowed
+    policy=resource_policy or resolve_resources({})
+    resolve_resources({'resources':{key:policy[key] for key in ('mode','sharing_authorized','authorization_note') if key in policy}})
     blocking=[row for row in report.get('findings',[]) if row['reason_code']!='BEHAVIOR_GATE_FAILED' and
               not (row['reason_code']=='BUDGET_EXHAUSTED' and row.get('detail')!=phase)]
     if not current_session or target_session!=current_session:
@@ -105,9 +108,11 @@ def submission_health(report, *, current_session, target_session,phase='source_e
             devices=[row for row in gpu.get('devices',[]) if row['index']==physical_gpu]
             if len(devices)!=1:
                 blocking.append({'reason_code':'CONFIG_ERROR','detail':'requested physical GPU missing'})
-            elif any(row['gpu_uuid']==devices[0]['uuid'] for row in gpu.get('compute_processes',[])):
-                blocking.append({'reason_code':'PROCESS_IDENTITY_MISMATCH','detail':'requested physical GPU occupied; no preemption'})
+            elif any(row['gpu_uuid']==devices[0]['uuid'] for row in gpu.get('compute_processes',[])) and not occupied_gpu_allowed(policy):
+                blocking.append({'reason_code':'RESOURCE_OCCUPIED','detail':'exclusive GPU occupied; explicit authorized shared mode required; no preemption'})
     if blocking:raise ValueError({'reason':'submission health prerequisite failed','findings':blocking})
+    return {'resource_policy':policy,'physical_gpu':physical_gpu,'gpu_snapshot':report.get('gpu'),
+            'sharing_used':occupied_gpu_allowed(policy),'preemption':False}
 
 
 def gpu_snapshot():
@@ -200,7 +205,8 @@ def inspect_project(root, *, spec_path=None, run=None, include_processes=False, 
                 checkpoint_info=check_metadata(source,update=spec.get('source_update'),
                     spec_sha=spec.get('source_spec_sha256'),input_dim=spec.get('source_input_dim'),
                     asset_sha=spec.get('source_asset_sha256',spec.get('asset_sha256')))
-            configured_session=spec.get('authorization',{}).get('hapi_session')
+            authorization=spec.get('authorization',{})
+            configured_session=authorization.get('hapi_session') if isinstance(authorization,dict) else None
             if hapi_session is not None and configured_session not in (None,hapi_session):
                 issue('AUTHORIZATION_MISSING',spec_path,'configured HAPI target is not current session')
             book=read(spec_path.with_name('budget.json'))
@@ -325,7 +331,11 @@ def inspect_project(root, *, spec_path=None, run=None, include_processes=False, 
             if analysis.get('candidate_selection') is not None and analysis['candidate_selection']!=selection:
                 issue('IDENTITY_ERROR',report_path,'analysis/selection conflict')
             roles=[(role,selection.get(role)) for role in ('source_baseline','latest_checkpoint','accepted_candidate',
-                'best_new_evaluated_candidate','best_observed_candidate','fallback_checkpoint')]
+                'best_new_evaluated_candidate','best_observed_candidate','best_overall_candidate','fallback_checkpoint')]
+            from ..domain.candidate_roles import ROLE_FIELDS
+            for canonical,field in ROLE_FIELDS.items():
+                if canonical in selection.get('model_roles',{}) and selection['model_roles'][canonical]!=selection.get(field):
+                    issue('IDENTITY_ERROR',run,'canonical model role conflicts with '+field)
             progress_stages=(progress or {}).get('accepted_by_stage',{})
             selection_stages=selection.get('accepted_by_stage',{})
             for stage in set(progress_stages)&set(selection_stages):
@@ -341,7 +351,7 @@ def inspect_project(root, *, spec_path=None, run=None, include_processes=False, 
                         issue('IDENTITY_ERROR',path,'candidate checkpoint SHA mismatch')
                     is_source=(role=='source_baseline' or candidate.get('role')=='source' or
                         bool(spec and str(path)==str(local_path(spec.get('source_checkpoint','')))))
-                    if role in ('best_new_evaluated_candidate','best_observed_candidate') and is_source:
+                    if role=='best_new_evaluated_candidate' and is_source:
                         issue('IDENTITY_ERROR',path,'source registered as new candidate')
                     if path.is_file():
                         check_metadata(path,update=(spec or {}).get('source_update') if is_source else candidate.get('update'),

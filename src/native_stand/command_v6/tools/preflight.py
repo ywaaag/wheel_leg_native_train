@@ -57,14 +57,27 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
         return {"status":"FAIL","reason_code":"CONFIG_ERROR","action":"correct spec JSON",
                 "errors":[f"spec JSON: {exc}"],"simulation":0,"ppo":0,"files_written":0}
     errors.extend(validate(spec))
+    effective = execution = None
+    try:
+        from native_stand.command_v6.domain.recipe import resolve
+        from native_stand.command_v6.tools.execution_identity import identity
+        _, effective = resolve(spec)
+        execution = identity(spec)
+    except (ValueError, KeyError, TypeError) as exc:
+        errors.append(str(exc))
     if spec.get('task')=='recovery':
         config=spec['recovery']
-        for name,sha_name in (('stand_checkpoint','stand_sha256'),('stand_spec','stand_spec_sha256'),
-                              ('pose_library','pose_library_sha256')):
+        dependencies=[('pose_library','pose_library_sha256')]
+        from native_stand.command_v6.domain.episode_result import requires_stand
+        if requires_stand(config):
+            dependencies+=[('stand_checkpoint','stand_sha256'),('stand_spec','stand_spec_sha256')]
+        for name,sha_name in dependencies:
+            if name not in config or sha_name not in config:
+                errors.append('recovery '+name+' identity missing');continue
             path=Path(config[name])
             if not path.is_file() or digest(path)!=config[sha_name]:
                 errors.append(f'recovery {name} identity differs')
-        if Path(config['stand_checkpoint']).is_file():
+        if config.get('stand_checkpoint') and Path(config['stand_checkpoint']).is_file():
             import torch
             checkpoint=torch.load(config['stand_checkpoint'],map_location='cpu',weights_only=False)
             if checkpoint['actor']['mlp.0.weight'].shape!=(256,150) or checkpoint.get('update')!=500:
@@ -153,7 +166,7 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
         recovery_ready=bool(spec.get('recovery',{}).get('runtime_initialization_validated'))
         completed_for_prereq=set(completed)
         prerequisites={"smoke":set() if spec.get('initialization')=='random' or recovery_ready or spec.get('retention',{}).get('enabled') else {"source_eval"},"formal":{"smoke"},
-                       "evaluate":{"source_eval"},"play":{"source_eval"}}
+                       "evaluate":set(),"play":{"source_eval"}}
         if not prerequisites.get(phase,set()) <= completed_for_prereq:
             errors.append("preceding phase has not completed")
         if any(row["output_dir"]==str(output_dir.resolve()) and not (own and key==attempt_id)
@@ -197,6 +210,13 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
                 "light_every_updates","full_every_updates")) else {})
     authorization_errors=("new simulation/PPO budget has not been authorized",
                           "phase budget exhausted","source evaluation wall budget exhausted")
+    from native_stand.command_v6.domain.execution_plan import smoke_plan
+    try:wiring_plan=smoke_plan(spec)
+    except (KeyError,ValueError,TypeError) as exc:
+        errors.append('wiring smoke plan invalid: '+str(exc))
+        wiring_plan={'status':'INVALID','error':str(exc)}
+    if phase=='smoke' and wiring_plan.get('budget_sufficient') is False:
+        errors.append('declared smoke budget cannot reach required event')
     auth_only=bool(errors) and all(error in authorization_errors for error in errors)
     reason_code,action=classify_errors(errors)
     return {"status":"READY_NEEDS_AUTH" if auth_only else "PASS" if not errors else "FAIL",
@@ -204,7 +224,8 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
             "cpu_valid":not errors or auth_only,"errors":errors,
             "phase":phase,"output_dir":str(output_dir),"spec_sha256":digest(spec_path),
             "source_sha256":spec.get("source_sha256"),"asset_sha256":spec.get("asset_sha256"),
-            "evaluation_plan":plan,"simulation":0,"ppo":0,"files_written":0}
+            "evaluation_plan":plan,"wiring_smoke_plan":wiring_plan,"effective_recipe":effective,"execution_identity":execution,
+            "simulation":0,"ppo":0,"files_written":0}
 
 
 def main():

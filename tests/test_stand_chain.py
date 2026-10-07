@@ -7,9 +7,9 @@ from native_stand.command_v6 import stand_chain
 from native_stand.command_v6.completion import write
 
 
-def test_ordinary_baseline_failure_does_not_block_training(tmp_path,monkeypatch):
+def test_ordinary_baseline_failure_does_not_block_training(tmp_path,monkeypatch,complete_smoke_fixture):
     spec=tmp_path/'spec.json'
-    write(spec,{'experiment':'fixture','budget':{'smoke_updates':3}})
+    write(spec,{'experiment':'fixture','budget':{'smoke_updates':3},'ppo':{'envs':64,'steps_per_env':128}})
     write(tmp_path/'budget.json',{'limits':{'formal':3000},'used':{'source_eval':1,'smoke':3,'formal':2}})
     chain=tmp_path/'chain'
     chain.mkdir()
@@ -29,6 +29,7 @@ def test_ordinary_baseline_failure_does_not_block_training(tmp_path,monkeypatch)
             import hashlib
             write(output/'manifest.json',{'source_sha256':None,'spec_sha256':hashlib.sha256(spec_path.read_bytes()).hexdigest()})
             write(output/'evaluation_fixture.json',{'per_env':[{}],'outcome_counts':{}})
+            complete_smoke_fixture(output,spec_path,3)
         return {'phase':phase,'run':str(output),'exit_code':0,'status':'COMPLETED',
             'terminal':{'actual_updates':3,'source_pass':False},
             'progress':{'actor_parameters_changed':True},'analysis':'fixture'}
@@ -45,7 +46,7 @@ def test_ordinary_baseline_failure_does_not_block_training(tmp_path,monkeypatch)
 
 def test_runtime_fault_stops_following_phases_and_reports(tmp_path,monkeypatch):
     spec=tmp_path/'spec.json'
-    write(spec,{})
+    write(spec,{'ppo':{'envs':64,'steps_per_env':128}})
     write(tmp_path/'budget.json',{'limits':{'formal':3000},'used':{'source_eval':1,'smoke':0,'formal':0}})
     chain=tmp_path/'chain'
     chain.mkdir()

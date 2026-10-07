@@ -84,6 +84,12 @@ def _snapshot(output,spec_path):
            "task_curriculum.py":ROOT/'domain/task_curriculum.py',
            "domain_protocol.py":ROOT/"domain/protocol.py",
            "domain_evidence.py":ROOT/'domain/evidence.py',
+           "candidate_roles.py":ROOT/'domain/candidate_roles.py',
+           "resource_policy.py":ROOT/'domain/resource_policy.py',
+           "execution_plan.py":ROOT/'domain/execution_plan.py',
+           "episode_result.py":ROOT/'domain/episode_result.py',
+           "domain_recipe.py":ROOT/'domain/recipe.py',
+           "execution_identity.py":ROOT/'tools/execution_identity.py',
            "selected_diagnostics.py":ROOT/'domain/selected_diagnostics.py',
            "wiring.py":ROOT/'wiring.py',
            "submission.py":ROOT/'submission.py',
@@ -103,7 +109,8 @@ def _snapshot(output,spec_path):
         paths['domain_retention.py']=ROOT/'domain/retention.py'
     if spec.get('task')=='recovery':
         paths.update({f'recovery_{path.name}':path for path in (ROOT.parent/'recovery').glob('*.py')})
-        paths['frozen_stand_spec.json']=Path(spec['recovery']['stand_spec'])
+        if spec['recovery'].get('stand_spec'):
+            paths['frozen_stand_spec.json']=Path(spec['recovery']['stand_spec'])
         paths['recovery_poses.json']=Path(spec['recovery']['pose_library'])
     folder=output/"source_snapshot"
     folder.mkdir()
@@ -131,6 +138,10 @@ def main():
     if plan["status"]!="PASS":
         raise RuntimeError(f"preflight failed: {plan['errors']}")
     spec=json.loads(args.spec.read_text())
+    requested_spec=spec
+    if spec.get('effective_recipe_version') == 1:
+        from native_stand.command_v6.domain.recipe import resolve
+        spec,_=resolve(spec)
     attempt_id=args.attempt_id or uuid.uuid4().hex
     ledger=Ledger(args.spec.with_name("budget.json"))
     current=json.loads(args.spec.with_name('budget.json').read_text())['attempts'].get(attempt_id)
@@ -193,7 +204,9 @@ def main():
             "evaluator_sha256":evaluator_sha,"hapi_session":args.hapi_session,
             "source_baseline_run":source_baseline_run,
             "preparation_probe_runs":source_runs if spec.get('task')=='recovery' else [],
-            "run_plan":runtime_plan(spec,args.phase)})
+            "run_plan":runtime_plan(spec,args.phase),"requested":requested_spec,
+            "effective_recipe":plan.get('effective_recipe'),
+            "execution_identity":plan.get('execution_identity')})
         registry=[]
         baseline_registry=[]
         if source_baseline_run and spec.get('recovery',{}).get('standing_task'):
@@ -236,14 +249,15 @@ def main():
         rng_info=seed_training(spec["seed"])
         progress["rng_initialization"]=rng_info
         cfg=configure_env(CommandEnvCfg(),spec,envs=spec["ppo"]["envs"])
-        stage=0 if args.phase=="source_eval" else spec["curriculum"]["active_stage"]
+        stage=(0 if args.phase=="source_eval" and not spec.get('effective_recipe_version')
+               else spec["curriculum"]["active_stage"])
         progress["stage"]="environment_init"
         if spec.get('task')=='recovery':
             from native_stand.recovery.recipe import environment,evaluate_actor
             env=environment(cfg,spec)
         else:
             stage_reward=dict(spec['reward'])
-            if spec['evaluation'].get('protocol_identity')=='capability_v2':
+            if spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3'):
                 stage_reward['linear_error_denominator']=spec['reward']['stage_linear_denominators'][str(stage)]
                 stage_reward['yaw_error_denominator']=spec['reward']['stage_yaw_denominators'][str(stage)]
             env=CommandEnv(cfg,stage=spec["curriculum"]["stages"][stage],
@@ -274,7 +288,7 @@ def main():
                         'trainer_pid':os.getpid(),'actual_updates':0,
                         'stage':'source_evaluation','physics_steps':1,'output_dir':str(output.resolve())})
             result=evaluate_actor(actor,wrapped,env,target=(0.,0.),
-                seconds=evaluation_seconds(spec,full=True) if spec['evaluation'].get('protocol_identity')=='capability_v2' else 10.,
+                seconds=evaluation_seconds(spec,full=True) if spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3') else 10.,
                 full_trace=True,seed=spec["evaluation"]["seed"],
                 scored_envs=spec["evaluation"]["scored_envs"],
                 target_window=spec["evaluation"]["steady_window_s"],
@@ -457,6 +471,8 @@ def main():
                     ppo._reference_gradient=None
                 reward_total=torch.zeros((),device=env.device) if diagnostics_selected else None
                 diagnostic_durations=[]
+                diagnostic_targets=[]
+                diagnostic_ages=[]
                 diagnostic_counts=torch.zeros(3,device=env.device,dtype=torch.long) if diagnostics_selected else None
                 if standing_retention is not None:
                     standing_retention.begin_rollout(update,phase=args.phase)
@@ -477,6 +493,9 @@ def main():
                         action=ppo.act(obs)
                         inference_host_s+=time.monotonic()-t
                         episode_before=env.episode_length_buf.clone()
+                        if diagnostics_selected and spec.get('task')!='recovery':
+                            diagnostic_targets.append(env.target_xy.detach().clone())
+                            diagnostic_ages.append(episode_before.float()*env.step_dt)
                         obs,reward,dones,extras=wrapped.step(action.to(env.device).clone())
                         obs=obs.clone()
                         if diagnostics_selected:
@@ -485,8 +504,9 @@ def main():
                                 (episode_before+1)*env.step_dt,torch.nan))
                             done_mask=dones.bool().reshape(-1)
                             if spec.get('task')=='recovery':
+                                timeouts=extras.get('time_outs',torch.zeros_like(done_mask)).bool().reshape(-1)
                                 diagnostic_counts.add_(torch.stack((env.recovery_snapshot[:,2].bool().sum(),
-                                    env.recovery_snapshot[:,3].bool().sum(),torch.zeros((),device=env.device,dtype=torch.long))))
+                                    env.recovery_snapshot[:,3].bool().sum(),timeouts.sum())))
                             else:
                                 timeouts=extras.get('time_outs',torch.zeros_like(done_mask)).bool().reshape(-1)
                                 diagnostic_counts.add_(torch.stack((torch.zeros((),device=env.device,dtype=torch.long),
@@ -505,6 +525,10 @@ def main():
                     ppo.compute_returns(obs)
                 rollout_s=time.monotonic()-rollout_start
                 selected_summary=storage_summary(storage) if selected(spec,update) and spec.get('diagnostics',{}).get('record_ppo_summary') else None
+                if selected_summary is not None and diagnostic_targets:
+                    from native_stand.command_v6.domain.selected_diagnostics import command_phase_summary
+                    selected_summary['command_phase']=command_phase_summary(storage,diagnostic_targets,
+                        diagnostic_ages,env.schedule_s,'global_rollout' if not ppo.normalize_advantage_per_mini_batch else 'minibatch')
                 gradient_observer=GradientSummary(actor,critic,ppo.optimizer) if selected_summary is not None else None
                 policy_probe=PolicyUpdateSummary(actor,storage,ppo.clip_param) if selected_summary is not None else None
                 t=time.monotonic()
@@ -567,7 +591,9 @@ def main():
                         'rollout':summary if diagnostic_config.get('record_reward_components') else None,
                         'episode_duration':summarize_tensor(durations),'task_counts':task_summary.get('counts') if isinstance(task_summary,dict) else None,
                         'event_counts':dict(zip(('success','failure','timeout'),diagnostic_counts.cpu().tolist())),
-                        'event_semantics':'Recovery timeout is task failure; native timeout is reported independently',
+                        'event_semantics':('Holding normal10s time limit bootstraps; window failure is diagnostic, physical failures remain terminals'
+                            if spec.get('recovery',{}).get('standing_task',{}).get('training_episode') else
+                            'Recovery timeout is task failure; native timeout is reported independently'),
                         'policy_update':policy_probe.summary(actor) if policy_probe is not None else None,
                         'storage':selected_summary,'gradients':gradient_observer.summary() if gradient_observer is not None else None,
                         'retention':retention_summary,'losses':values})
@@ -641,7 +667,9 @@ def main():
                     serialization_before_eval=serialization_s
                     evaluations=[]
                     task_cases=[]
-                    for command in spec["curriculum"]["stages"][stage]["commands"]:
+                    evaluation_commands=([[0,0]] if plan.get('zero_only') else
+                        spec["curriculum"]["stages"][stage]["commands"])
+                    for command in evaluation_commands:
                         if spec.get('straight_high_speed_course'):
                             eval_identity={**eval_identity,'course_stage':stage,
                                 'capability_commands':spec['curriculum']['stages'][stage]['commands']}
@@ -674,20 +702,20 @@ def main():
                                 'scope':'retained_R0' if retained else 'current_family'}
                             if stop_regression:
                                 progress['early_stop_reason']='standing regressed in two consecutive full evaluations'
-                        if command!=[0,0] and plan['full'] and spec['evaluation'].get('protocol_identity')!='capability_v2':
+                        if command!=[0,0] and plan['full'] and spec['evaluation'].get('protocol_identity') not in ('capability_v2','motion_absolute_v3'):
                             movement_protocol={**spec['evaluation'],
                                 'vx_error_max_mps':max(spec['evaluation']['motion_vx_error_max_mps'],abs(command[0])*spec['evaluation'].get('relative_motion_error_fraction',0)),
                                 'yaw_error_max_rad_s':max(spec['evaluation']['motion_yaw_error_max_rad_s'],abs(command[1])*spec['evaluation'].get('relative_motion_error_fraction',0))}
                             result['motion_gate']=motion_gate(result,command,movement_protocol)
                         from native_stand.command_v6.domain.evidence import resolve_gate
                         gate_task=('recovery' if result.get('task')=='recovery' else
-                            'capability' if spec['evaluation'].get('protocol_identity')=='capability_v2' else
+                            'capability' if spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3') else
                             'standing' if command==[0,0] else 'motion')
                         gate_evidence=resolve_gate(result,gate_task,expected_envs=spec['evaluation']['scored_envs'],
                             expected_protocol=eval_identity.get('effective_protocols',{}).get('zero' if command==[0,0] else 'motion') if plan['full'] else None)
                         if plan['full'] and not gate_evidence['candidate_eligible']:
                             raise RuntimeError('evaluation evidence identity fault: '+str(gate_evidence))
-                        gate=(result.get('recovery_gate') if result.get('task')=='recovery' else result.get('capability_gate') if spec['evaluation'].get('protocol_identity')=='capability_v2'
+                        gate=(result.get('recovery_gate') if result.get('task')=='recovery' else result.get('capability_gate') if spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3')
                               else result.get('standing_gate') if command==[0,0] else result.get('motion_gate'))
                         if gate is not None:
                             task_cases.append({'command':command,'gate':gate})
@@ -697,7 +725,7 @@ def main():
                             spec_sha256=digest(args.spec))
                         write_start=time.monotonic()
                         _write(output/label,result)
-                        registry.append({'role':'candidate','kind':('full' if plan['full'] else 'light') if command==[0,0] or spec['evaluation'].get('protocol_identity')=='capability_v2' else 'motion',
+                        registry.append({'role':'candidate','kind':('full' if plan['full'] else 'light') if command==[0,0] or spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3') else 'motion',
                             'checkpoint':str(path),'checkpoint_sha256':digest(path),'update':update,
                             'identity':eval_identity,'evaluation':label,'result':{**result,'per_env':[
                                 {key:value for key,value in row.items() if key not in (
@@ -716,8 +744,16 @@ def main():
                             ('checkpoint','checkpoint_sha256','update','accepted','passed_envs')} if best else None)
                     progress["evaluations"].append({"update":update,
                         "kind":"full" if plan["full"] else "light","cases":evaluations})
-                    if task_manager is not None and plan['full']:
+                    if task_manager is not None and plan.get('zero_only'):
+                        zero=next((case for case in task_cases if case['command']==[0,0]),None)
+                        task_manager.observe_zero(bool(zero and zero['gate'].get('accepted') is True))
+                        progress['task_curriculum']=task_manager.state()
+                        if task_manager.zero_failures>=task_config['standing_regression_confirmations']:
+                            progress['early_stop_reason']='zero-command regression in consecutive real evaluations'
+                    if task_manager is not None and plan['full'] and not plan.get('zero_only'):
                         last_confirmation=update
+                        if spec.get('effective_recipe_version'):
+                            task_manager.config['required_commands']=spec['curriculum']['stages'][stage]['commands']
                         event=task_manager.confirm(update,task_cases,
                             new_commands=spec['curriculum']['stages'][stage]['boundary'],
                             episode_length_s=env.episode_windows.config['lengths_s'][env.episode_windows.level]

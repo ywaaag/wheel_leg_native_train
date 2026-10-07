@@ -41,6 +41,31 @@ def storage_summary(storage):
     return result
 
 
+def command_phase_summary(storage, targets, ages, schedule, normalization):
+    """Recorded transition counts, not reset command assignment counts."""
+    targets=torch.stack(targets).detach()
+    ages=torch.stack(ages).detach()
+    entry,ramp,hold,exit=schedule
+    phase=torch.bucketize(ages,ages.new_tensor([entry,entry+ramp,entry+ramp+hold,entry+ramp+hold+exit]),right=True)
+    names=('prepare','ramp_up','hold','ramp_down','parking')
+    groups=[]
+    for command in torch.unique(targets.reshape(-1,2),dim=0):
+        matched=(targets==command).all(-1)
+        for i,name in enumerate(names):
+            mask=matched & (phase==i)
+            count=int(mask.sum().cpu())
+            if not count:continue
+            group={'command':command.cpu().tolist(),'phase':name,'transition_count':count,
+                   'episode_age_s':summarize_tensor(ages[mask])}
+            for key,value in (('value',storage.values),('return',storage.returns),
+                    ('raw_advantage',storage.returns-storage.values),('normalized_advantage',storage.advantages)):
+                group[key]=summarize_tensor(value[mask])
+            groups.append(group)
+    return {'normalization':normalization,'sample_count':targets.shape[0]*targets.shape[1],
+            'scope':'online pre-update storage grouped by sampled endpoint and actual pre-action episode age',
+            'groups':groups}
+
+
 class PolicyUpdateSummary:
     """Deterministic full-rollout before/after probe, not a historical minibatch replay."""
     def __init__(self,actor,storage,clip_param):

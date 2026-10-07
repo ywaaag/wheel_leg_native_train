@@ -121,6 +121,10 @@ class CommandEnv(NativeStandEnv):
             entry=self.schedule_s[0],ramp=self.schedule_s[1],
             hold=self.schedule_s[2],exit=self.schedule_s[3])
         self.history_needs_init[ids]=True
+        if self.stage_spec.get('enforce_whitelist',False) and self.forced_target is None:
+            allowed=self.target_xy.new_tensor(self.stage_spec['commands'])
+            if not (self.target_xy[ids,None,:]==allowed[None,:,:]).all(-1).any(-1).all():
+                raise RuntimeError('training command outside unlocked stage whitelist')
         if getattr(self,'episode_tracker',None) is not None:
             self.episode_tracker.reset(ids,self.robot.data.root_pos_w.torch[:,:2],self.episode_windows.level)
 

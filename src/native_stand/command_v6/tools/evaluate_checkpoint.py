@@ -73,7 +73,7 @@ def evaluate_actor(actor,wrapped,env,*,target,seconds,full_trace,seed=104,scored
     target_window=protocol['steady_window_s']
     old_length=env.cfg.episode_length_s
     old_schedule=env.schedule_s
-    if protocol.get('protocol_identity')=='capability_v2':
+    if protocol.get('protocol_identity') in ('capability_v2', 'motion_absolute_v3'):
         env.schedule_s=protocol['evaluation_schedule_s']
     cpu_rng=torch.get_rng_state()
     cuda_rng=torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
@@ -98,10 +98,10 @@ def evaluate_actor(actor,wrapped,env,*,target,seconds,full_trace,seed=104,scored
                         protocol,buffer.valid,env.step_dt,
                         buffer.rows[buffer.index-1] if buffer.index else None)
                 actions=actor(obs,stochastic_output=False)
-                applied_command=effective(env.target_xy[:n],
+                applied_command=(env.command[:n].clone() if hasattr(env,'command') else effective(env.target_xy[:n],
                     env.episode_length_buf[:n].float()*env.step_dt,
                     height=env.command_height,entry=env.schedule_s[0],
-                    ramp=env.schedule_s[1],hold=env.schedule_s[2],exit=env.schedule_s[3])
+                    ramp=env.schedule_s[1],hold=env.schedule_s[2],exit=env.schedule_s[3]))
                 obs,reward,dones,_=wrapped.step(actions.to(env.device).clone())
                 obs=obs.clone()
                 data=env.robot.data
@@ -150,14 +150,14 @@ def evaluate_actor(actor,wrapped,env,*,target,seconds,full_trace,seed=104,scored
         report['diagnostic_field_validity']=tensor_field_validity(diagnostic_rows,diagnostic_valid,['control_'+str(i) for i in range(54)],
             requested=diagnostics,enabled=diagnostics,
             scope='100Hz policy end; pre-reset controls unavailable for terminal rows')
-        if standing_protocol is not None and standing_protocol.get('protocol_identity')=='capability_v2':
+        if standing_protocol is not None and standing_protocol.get('protocol_identity') in ('capability_v2', 'motion_absolute_v3'):
             report['capability_gate']=capability_gate(report,target,protocol)
         elif (standing_protocol is not None and tuple(target)!=(0.,0.)):
             movement_protocol={**protocol,
                 'vx_error_max_mps':max(standing_protocol.get('motion_vx_error_max_mps',.03),abs(target[0])*standing_protocol.get('relative_motion_error_fraction',0.)),
                 'yaw_error_max_rad_s':max(standing_protocol.get('motion_yaw_error_max_rad_s',.03),abs(target[1])*standing_protocol.get('relative_motion_error_fraction',0.))}
             report['motion_gate']=motion_gate(report,target,movement_protocol)
-        if (standing_protocol is not None and standing_protocol.get('protocol_identity')!='capability_v2' and tuple(target)==(0.,0.) and
+        if (standing_protocol is not None and standing_protocol.get('protocol_identity') not in ('capability_v2', 'motion_absolute_v3') and tuple(target)==(0.,0.) and
                 seconds>=standing_protocol["seconds"]):
             report["standing_gate"]=standing_gate(report,protocol)
         return report
@@ -168,7 +168,7 @@ def evaluate_actor(actor,wrapped,env,*,target,seconds,full_trace,seed=104,scored
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--spec",type=Path,default=ROOT.parents[2]/"configs/experiments/stand_plane.json")
-    parser.add_argument("--checkpoint",type=Path,required=True)
+    parser.add_argument("--checkpoint",type=Path)
     parser.add_argument("--output",type=Path,required=True)
     parser.add_argument("--vx",type=float,default=0.)
     parser.add_argument("--yaw",type=float,default=0.)
@@ -179,12 +179,19 @@ def main():
     parser.add_argument("--diagnostics",action="store_true",
                         help="retain compact action/target/PD diagnostics")
     parser.add_argument("--run",action="store_true")
+    parser.add_argument('--batch', action='store_true', help='one app, explicit frozen evaluation_requests in spec')
+    parser.add_argument('--attempt-id')
+    parser.add_argument('--wall-limit-s', type=float)
     parser.add_argument("--diagnostic",action="store_true",
                         help="read-only diagnostic: skip PPO/evaluation ledger reservation")
     args=parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
     spec=json.loads(args.spec.read_text())
+    if args.batch:
+        return evaluate_batch(args, spec)
+    if args.checkpoint is None:
+        parser.error('--checkpoint is required unless --batch')
     if spec["curriculum"]["active_stage"]==0 and (args.vx!=0. or args.yaw!=0.):
         raise ValueError("current standing experiment evaluates zero command only")
     if not args.checkpoint.is_file() or args.seconds<=0 or args.seconds>100:
@@ -233,9 +240,11 @@ def main():
             from native_stand.recovery.recipe import environment
             env=environment(cfg,spec)
         else:
-            env=CommandEnv(cfg,stage=spec["curriculum"]["stages"][0],
+            from native_stand.command_v6.domain.recipe import resolve
+            effective_spec,_=resolve(spec)
+            env=CommandEnv(cfg,stage=spec["curriculum"]["stages"][spec['curriculum']['active_stage']],
                            command_height=height,
-                           reward_config=spec["reward"],
+                           reward_config=effective_spec["reward"],
                            schedule_s=spec["curriculum"]["schedule_s"])
         ground=verify_ground(env,spec)
         control=verify(env)
@@ -299,5 +308,137 @@ def main():
             app.close()
 
 
+def batch_plan(args, spec):
+    from native_stand.command_v6.tools.preflight import check
+    from native_stand.command_v6.domain.recipe import resolve
+    from native_stand.command_v6.tools.checkpoint_input import inspect
+    preflight=check(args.spec,args.output,'evaluate',attempt_id=args.attempt_id)
+    effective_spec,recipe=resolve(spec)
+    requests=spec['evaluation_requests']
+    if not requests or spec.get('effective_recipe_version') != 1:
+        raise ValueError('batch evaluation requires explicit effective recipe and requests')
+    planned=[]
+    for row in requests:
+        path=Path(row['checkpoint'])
+        info=inspect(path,spec,args.spec)
+        if info['checkpoint_sha256'] != row['sha256']:
+            raise ValueError('batch checkpoint SHA differs: '+str(path))
+        target=row['target']
+        if len(target)!=2 or not all(__import__('math').isfinite(v) for v in target):
+            raise ValueError('invalid batch target')
+        planned.append({**row,**info,'effective_protocol':protocol_for_spec(effective_spec,30.,True)})
+    return {'preflight':preflight,'requested':spec,'effective_recipe':recipe,
+            'execution_identity':preflight['execution_identity'],'requests':planned,
+            'simulation':0,'online_PPO':0,'offline_optimizer_updates':0,'files_written':0}
+
+
+def evaluate_batch(args, spec):
+    """PPO0 batch adapter under the existing monitor and exact ledger."""
+    import os
+    from native_stand.command_v6.completion import write
+    from native_stand.command_v6.ledger import Ledger
+    from native_stand.command_v6.domain.recipe import resolve
+    plan=batch_plan(args,spec)
+    if not args.run:
+        print(json.dumps(plan,indent=2));return
+    if plan['preflight']['status']!='PASS':
+        raise ValueError(plan['preflight'])
+    if not args.attempt_id or not args.wall_limit_s:
+        raise ValueError('batch requires supervisor reservation and finite wall bound')
+    ledger=Ledger(args.spec.with_name('budget.json'))
+    book=json.loads(ledger.path.read_text())
+    attempt=book['attempts'].get(args.attempt_id)
+    if not attempt or attempt['status']!='RUNNING' or attempt['output_dir']!=str(args.output.resolve()):
+        raise ValueError('batch exact reservation differs')
+    started=time.monotonic()
+    # Reservation time includes supervisor startup; wall never restarts in the child.
+    deadline=time.monotonic()+max(0.,args.wall_limit_s-(time.time()-attempt['started_unix_s']))
+    app=env=None
+    status='FAILED';failure=None;completed=[]
+    progress={'status':'STARTING','attempt_id':args.attempt_id,'pid':os.getpid(),
+              'actual_updates':0,'samples':0,'completed':completed}
+    args.output.mkdir(parents=True,exist_ok=False)
+    from native_stand.command_v6.train import _snapshot
+    snapshot=_snapshot(args.output,args.spec)
+    write(args.output/'manifest.json',{'attempt_id':args.attempt_id,'phase':'evaluate',
+        'pid':os.getpid(),'spec_sha256':_sha(args.spec),'source_sha256':spec['source_sha256'],
+        'asset_sha256':spec['asset_sha256'],'source_snapshot_sha256':snapshot,
+        'requested':spec,'effective_recipe':plan['effective_recipe'],
+        'execution_identity':plan['execution_identity'],'requests':plan['requests'],
+        'CUDA_VISIBLE_DEVICES':os.environ.get('CUDA_VISIBLE_DEVICES'),
+        'wall_limit_s':args.wall_limit_s,'online_PPO':0,'offline_optimizer_updates':0})
+    write(args.output/'progress.json',progress)
+    signal.signal(signal.SIGTERM,stop_on_term)
+    try:
+        sys.path.insert(0,spec['asset_module_root'])
+        from isaaclab.app import AppLauncher
+        app=AppLauncher({'headless':True,'device':'cuda:0','multi_gpu':False}).app
+        signal.signal(signal.SIGTERM,stop_on_term)
+        import torch
+        from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper
+        from native_stand.command_v6.runtime.env import CommandEnv,CommandEnvCfg
+        from native_stand.command_v6.runtime.configure import apply,verify_asset_import
+        from native_stand.command_v6.runtime.control_readback import verify,verify_ground
+        from native_stand.command_v6.learning import model
+        effective_spec,_=resolve(spec)
+        cfg=apply(CommandEnvCfg(),effective_spec,envs=spec['evaluation']['envs'])
+        cfg.sim.device='cuda:0'
+        env=CommandEnv(cfg,stage=spec['curriculum']['stages'][spec['curriculum']['active_stage']],
+            command_height=spec['control']['height_command_m'],reward_config=effective_spec['reward'],
+            schedule_s=spec['curriculum']['schedule_s'])
+        readback={'asset':verify_asset_import(spec),'control':verify(env),'ground':verify_ground(env,spec),
+                  'reward':env.reward_config,'schedule_s':env.schedule_s,'device':str(env.device)}
+        write(args.output/'runtime_readback.json',readback)
+        wrapped=RslRlVecEnvWrapper(env,clip_actions=1.)
+        actor=model(wrapped.get_observations(),actor=True,spec=spec).to(env.device)
+        progress['status']='RUNNING';write(args.output/'progress.json',progress)
+        elapsed_items=[]
+        for index,row in enumerate(plan['requests']):
+            estimate=max(elapsed_items,default=180.)*1.15
+            if time.monotonic()+estimate+90.>=deadline:
+                status='STOPPED_BOUNDED';failure={'reason':'insufficient time for full next item and cleanup'};break
+            if _sha(row['checkpoint'])!=row['sha256']:
+                raise ValueError('checkpoint changed after plan')
+            saved=torch.load(row['checkpoint'],map_location='cpu',weights_only=False)
+            actor.load_state_dict(saved['actor'],strict=True)
+            item_start=time.monotonic()
+            result=evaluate_actor(actor,wrapped,env,target=tuple(row['target']),seconds=30.,
+                full_trace=True,seed=spec['evaluation']['seed'],scored_envs=8,
+                standing_protocol=spec['evaluation'],diagnostics=True,
+                effective_protocol=row['effective_protocol'],
+                stop_requested=lambda:time.monotonic()>=deadline-90.)
+            result.update(checkpoint=row['checkpoint'],checkpoint_sha256=row['sha256'],
+                spec_sha256=_sha(args.spec),asset_sha256=spec['asset_sha256'],
+                execution_identity=plan['execution_identity'],runtime_readback=readback)
+            name=f'evaluation_{index:02d}.json'
+            write(args.output/name,result)
+            elapsed_items.append(time.monotonic()-item_start)
+            completed.append({'path':name,'checkpoint_sha256':row['sha256'],'target':row['target'],
+                'wall_s':elapsed_items[-1],'accepted':result['capability_gate']['accepted']})
+            progress.update(completed=completed,last_activity_unix_s=time.time())
+            write(args.output/'progress.json',progress)
+            if index==2 and any(not item['accepted'] for item in completed):
+                status='STOPPED_BOUNDED';failure={'reason':'source 0/+-1 regression failed; boundary probing blocked'};break
+        else:status='COMPLETED'
+    except (KeyboardInterrupt,TimeoutError) as exc:
+        status='STOPPED_BOUNDED';failure={'reason':str(exc),'evaluation_evidence':getattr(exc,'evaluation_evidence',None)}
+    except BaseException as exc:
+        failure={'reason':repr(exc),'traceback':traceback.format_exc(),
+                 'evaluation_evidence':getattr(exc,'evaluation_evidence',None)}
+    finally:
+        terminal={'status':status,'attempt_id':args.attempt_id,'actual_updates':0,'samples':0,
+            'online_PPO':0,'offline_optimizer_updates':0,'completed':completed,
+            'missing_requests':plan['requests'][len(completed):], 'failure':failure,
+            'reason':failure.get('reason') if failure else 'all requested deterministic evaluations completed',
+            'wall_s':time.time()-attempt['started_unix_s'],'cleanup':'pending; monitor confirms child exit'}
+        progress['status']=status
+        write(args.output/'progress.json',progress)
+        write(args.output/'terminal_report.json',terminal)
+        # Monitor finalizes only after child exits, so cleanup is included in accounting.
+        if env is not None:env.close()
+        if app is not None:app.close(exit_code=1 if status=='FAILED' else 0)
+    return 1 if status=='FAILED' else 0
+
+
 if __name__=="__main__":
-    main()
+    raise SystemExit(main())

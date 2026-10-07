@@ -83,8 +83,10 @@ def evaluation_identity(spec, evaluator_sha):
             motion_window_s=base.get('motion_window_s'),parking_window_s=base.get('parking_window_s'),
             sample_rate_hz=base['sample_rate_hz'],scored_envs=base['scored_envs'],
             termination_semantics=base['termination_semantics'])
-    if spec['evaluation'].get('protocol_identity')=='capability_v2':
+    if spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3'):
         result['capability_commands']=spec['curriculum']['stages'][spec['curriculum']['active_stage']]['commands']
+        result['source_baseline_commands']=[[0,0],*spec.get('source_required_commands',
+            [command for command in result['capability_commands'] if command!=[0,0]])]
         if spec.get('straight_high_speed_course'):
             result['straight_high_speed_course']=True
             result['course_stage']=spec['curriculum']['active_stage']
@@ -145,18 +147,23 @@ def choose(entries, latest, expected, checkpoints=None):
         source=next((selection['source_baseline'] for selection in selections.values() if selection['source_baseline']),None)
         baseline_entries=[row for rows in stages.values() for row in rows if row.get('role')=='source']
         if baseline_entries:
-            baseline_expected={**expected,'capability_commands':[[0,0],[.5,0],[-.5,0],[1,0],[-1,0]]}
+            baseline_expected={**expected,'capability_commands':expected.get('source_baseline_commands',
+                baseline_entries[0]['identity'].get('capability_commands',[]))}
             baseline=choose_capability([classify(row,row['identity']) for row in baseline_entries],
                 None,baseline_expected)
             source=baseline['source_baseline']
         candidates=[candidate for selection in selections.values() for candidate in selection['candidates']]
         reviewed={candidate['checkpoint_sha256'] for candidate in candidates if candidate['eligible']}
-        return {**current,'accepted_by_stage':accepted,'source_baseline':source,
+        result={**current,'accepted_by_stage':accepted,'source_baseline':source,
             'fallback_checkpoint':accepted[str(max(map(int,accepted)))] if accepted else source,
             'candidates':candidates,'full_eligible_count':sum(candidate['eligible'] for candidate in candidates),
             'unreviewed_checkpoints':[checkpoint for checkpoint in (checkpoints or ([latest] if latest else []))
                                      if checkpoint['sha256'] not in reviewed],
             'stage_selections':selections}
+        from .domain.candidate_roles import register_roles
+        return register_roles(result,source=source,latest=latest,
+            best_new=result['best_new_evaluated_candidate'],best_overall=result.get('best_overall_candidate'),
+            accepted=result['accepted_candidate'])
     classified = [classify(entry, expected) for entry in entries]
     if expected.get('capability_commands'):
         return choose_capability(classified,latest,expected,checkpoints)
@@ -183,8 +190,10 @@ def choose(entries, latest, expected, checkpoints=None):
     eligible.sort(key=rank)
     accepted = next((entry for entry in eligible if entry['accepted']), None)
     reviewed = {entry['checkpoint_sha256'] for entry in eligible}
-    best_new=eligible[0] if eligible else None
-    return {'latest_checkpoint': latest, 'best_observed_candidate': best_new,
+    best_overall=eligible[0] if eligible else None
+    from .domain.candidate_roles import is_source
+    best_new=next((entry for entry in eligible if not is_source(entry,expected.get('source_sha256'))),None)
+    result={'latest_checkpoint': latest, 'best_observed_candidate': best_overall,
         'best_new_evaluated_candidate':best_new,'accepted_candidate': accepted,
         'source_baseline': next((entry for entry in classified if entry.get('role') == 'source'), None),
         'unreviewed_checkpoints': [checkpoint for checkpoint in (checkpoints or ([latest] if latest else []))
@@ -195,6 +204,9 @@ def choose(entries, latest, expected, checkpoints=None):
             'Recovery: accepted, successful envs, recovery time for accepted / survival for failed, closure, SHA; reward unused'
             if any(row.get('task')=='recovery' for row in classified) else
             'accepted, mean continuous survival, passed envs, mean drift, contact, SHA tie-break; reward unused')}
+    from .domain.candidate_roles import register_roles
+    return register_roles(result,source=result['source_baseline'],latest=latest,best_new=best_new,
+                          best_overall=best_overall,accepted=accepted)
 
 
 def choose_capability(classified,latest,expected,checkpoints=None):
@@ -230,19 +242,23 @@ def choose_capability(classified,latest,expected,checkpoints=None):
                      if abs(case['command'][0])<endpoint or case['command']==[0,0])
         current=all(case['accepted'] for case in row['command_results'] if abs(case['command'][0])==endpoint)
         worst=max((env.get('mean_abs_vx_error_mps',float('inf')) for env in motion),default=float('inf'))
-        return (-int(retained),-int(current),-int(row['accepted']),-row['passed_envs'],worst,
+        return (-int(row['accepted']),-int(retained),-int(current),-row['passed_envs'],worst,
                 max((env['peak_tilt_rad'] for env in row['per_env']),default=float('inf')),
                 -min((env['dual_contact_fraction'] for env in row['per_env']),default=0.))
     eligible.sort(key=rank)
     accepted=next((row for row in eligible if row['accepted'] and row.get('role')!='source'),None)
-    best_new=next((row for row in eligible if row.get('role')!='source'),None)
+    from .domain.candidate_roles import is_source
+    best_new=next((row for row in eligible if not is_source(row,expected.get('source_sha256'))),None)
     reviewed={row['checkpoint_sha256'] for row in eligible}
-    return {'latest_checkpoint':latest,'best_observed_candidate':best_new,
+    result={'latest_checkpoint':latest,'best_observed_candidate':best_new,
         'best_new_evaluated_candidate':best_new,'accepted_candidate':accepted,
         'source_baseline':next((row for row in candidates if row['role']=='source'),None),
         'candidates':candidates,'full_eligible_count':len(eligible),
         'unreviewed_checkpoints':[row for row in (checkpoints or ([latest] if latest else [])) if row['sha256'] not in reviewed],
         'ranking':'complete same-checkpoint stage set; zero/old retention, current bilateral pass, passed environments, worst velocity error, tilt/contact; motion displacement and reward unused'}
+    from .domain.candidate_roles import register_roles
+    return register_roles(result,source=result['source_baseline'],latest=latest,best_new=best_new,
+        best_overall=eligible[0] if eligible else None,accepted=accepted)
 
 
 def finalize_report(run, exit_code=None):

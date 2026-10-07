@@ -3,11 +3,16 @@
 
 def validate_recovery(spec):
     config=spec.get('recovery',{})
-    required=('stand_checkpoint','stand_sha256','stand_spec','stand_frozen','pose_library',
-        'pose_library_sha256','stand_spec_sha256','fsm','gate','initialization','contacts')
+    from native_stand.command_v6.domain.episode_result import requires_stand,STAND_DEPENDENCY_FIELDS
+    try:
+        needs_stand=requires_stand(config)
+    except (KeyError,ValueError) as error:
+        return ['Invalid Recovery episode declaration: '+str(error)]
+    required=('pose_library','pose_library_sha256','fsm','gate','initialization','contacts')
+    if needs_stand:required=(*required,*STAND_DEPENDENCY_FIELDS)
     errors=[f'recovery missing {key}' for key in required if key not in config]
     if errors:return errors
-    if not config['stand_frozen'] or spec.get('initialization') not in ('random','warmstart'):
+    if (needs_stand and config['stand_frozen'] is not True) or spec.get('initialization') not in ('random','warmstart'):
         errors.append('Recovery learns a new policy; STAND must remain immutable')
     fsm=config['fsm']
     if fsm.get('success_mode','handover') not in ('handover','autonomous_hold'):
@@ -73,6 +78,15 @@ def validate_recovery(spec):
         import math
         from native_stand.recovery.standing import REWARD_FIELDS
         standing=config['standing_task']
+        holding=standing.get('training_episode')
+        if holding is not None:
+            if (holding!={'mode':'fixed_horizon','seconds':10.,'success_ends_episode':False,
+                         'timeout_bootstrap':True} or not autonomous or not level_only or
+                    spec['reward'].get('success_once')!=0. or
+                    spec['curriculum'].get('episode_length_s')!=10. or
+                    fsm.get('timeout_s',0.)<=10. or
+                    config.get('curriculum',{}).get('max_enabled_stage')!=0):
+                errors.append('Holding episode requires explicit10s R0, no success reward/reset and timeout bootstrap')
         reward=standing.get('reward',{})
         if reward.get('gate_mode','height') not in ('height','unconditional'):
             errors.append('Unknown standing reward gate mode')

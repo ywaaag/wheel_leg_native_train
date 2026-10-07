@@ -17,9 +17,59 @@ from native_stand.command_v6.completion import write,read,sha,identity,notify
 from native_stand.command_v6.ledger import Ledger
 from native_stand.command_v6.tools.preflight import check
 from native_stand.command_v6.domain.evidence import resolve_gate
+from native_stand.command_v6.domain.execution_plan import samples_for_updates,smoke_plan
+
+
+def chain_event(fd, event):
+    """Best-effort startup events; a closed client pipe never stops a child."""
+    if fd is None:return
+    try:os.write(fd,(json.dumps(event)+'\n').encode())
+    except OSError:pass
+
+
+def read_startup_events(fd, *, wait_s, wait_for_formal=False):
+    """Wait only on owned child events; never read or poll training logs."""
+    if not isinstance(wait_s,(int,float)) or not 0<=wait_s<=600:
+        raise ValueError('handshake wait must be within0..600seconds')
+    deadline=time.monotonic()+wait_s
+    message={'status':'SUBMITTED','current_stage':'submission','formal_first_update_verified':False,
+             'started':False,'identity_verified':False,
+             'reason':'owned worker submitted; formal first update not yet verified'}
+    pending=b''
+    while True:
+        ready,_,_=select.select([fd],[],[],max(0.,deadline-time.monotonic()))
+        if not ready:return message
+        chunk=os.read(fd,65536)
+        if not chunk:return message
+        pending+=chunk
+        while b'\n' in pending:
+            encoded,pending=pending.split(b'\n',1)
+            try:event=json.loads(encoded)
+            except (ValueError,UnicodeError):
+                return {'status':'UNKNOWN','started':False,'formal_first_update_verified':False,
+                        'current_stage':message['current_stage'],'reason':'malformed child startup event'}
+            if not isinstance(event,dict):
+                return {'status':'UNKNOWN','started':False,'formal_first_update_verified':False,
+                        'current_stage':message['current_stage'],'reason':'malformed child startup event'}
+            if event.get('event_type') in ('stage_started','stage_finished'):
+                message.update(current_stage=event['phase'],stage_event=event)
+                if event.get('event_type')=='stage_finished' and event.get('exit_code')!=0:
+                    return {**message,'status':'FAILED','reason':'owned phase exited unsuccessfully'}
+                if not wait_for_formal:return message
+            elif event.get('event_type')=='chain_finished':
+                return {**message,'status':event.get('status','UNKNOWN'),'current_stage':'finished',
+                        'reason':'chain ended before formal first-update verification','chain_event':event}
+            else:
+                # Formal trainer's first-update message has no chain event_type.
+                return {**event,'current_stage':'formal','formal_first_update_verified':False,
+                        'started':False,'identity_verified':False}
+        if time.monotonic()>=deadline:return message
 
 
 def run_phase(spec_path,phase,output,handshake_fd=None):
+    spec=read(spec_path)
+    if phase=='smoke' and smoke_plan(spec)['budget_sufficient'] is False:
+        raise ValueError('smoke sampling budget cannot cover the required event')
     result=check(spec_path,output,phase)
     if result['status']!='PASS':
         raise ValueError(f'{phase} preflight: {result}')
@@ -45,7 +95,11 @@ def run_phase(spec_path,phase,output,handshake_fd=None):
     progress=read(output/'progress.json',{})
     if phase=='smoke' and code==0 and terminal.get('status') in ('COMPLETED','STOPPED_BOUNDED'):
         from native_stand.command_v6.wiring import smoke_certificate
-        write(output/'wiring_certificate.json',smoke_certificate(output,read(spec_path)))
+        certificate=smoke_certificate(output,spec)
+        # run_phase is the only generation owner; other entry points validate.
+        with (output/'wiring_certificate.json').open('x') as stream:
+            json.dump(certificate,stream,indent=2,allow_nan=False)
+            stream.write('\n')
     return {'phase':phase,'run':str(output),'exit_code':code,'terminal':terminal,'progress':progress,
         'analysis':str(output/'analysis.json'),'status':terminal.get('status','UNKNOWN')}
 
@@ -77,11 +131,13 @@ def chain_report(chain,spec_path,phase_results,status,failure,durability):
     source=next((row for row in phase_results if row['phase']=='source_eval'),None)
     selected=read(Path((formal or source)['run'])/'candidate_selection.json',{}) if formal or source else {}
     book=read(spec_path.with_name('budget.json'))
+    spec=read(spec_path)
     event=identity({'chain':str(chain),'attempt':read(chain/'manifest.json')['attempt_id']})[:24]
     analysis={'event_id':event,'status':status,'failure':failure,'phase_results':[
         {key:value for key,value in row.items() if key!='progress'} for row in phase_results],
         'budget':book,'formal_updates':book['used']['formal'],'smoke_updates':book['used']['smoke'],
-        'formal_samples':book['used']['formal']*8192,'smoke_samples':book['used']['smoke']*8192,
+        'formal_samples':samples_for_updates(spec,book['used']['formal']),
+        'smoke_samples':samples_for_updates(spec,book['used']['smoke']),
         'remaining_formal_updates':book['limits']['formal']-book['used']['formal'],
         'candidate_selection':selected,'durability':durability,
         'training_acceptance_is_not_durability_acceptance':True}
@@ -124,8 +180,12 @@ def worker(args):
         for phase in ('source_eval','smoke','formal'):
             write(chain/'chain_progress.json',{'status':'RUNNING','stage':phase,'worker_pid':os.getpid(),
                 'active_run':str(chain/phase),'finished_phases':[row['phase'] for row in phases]})
+            chain_event(args.handshake_fd,{'event_type':'stage_started','phase':phase,
+                'worker_pid':os.getpid(),'active_run':str(chain/phase)})
             row=run_phase(spec,phase,chain/phase,args.handshake_fd if phase=='formal' else None)
             phases.append(row)
+            chain_event(args.handshake_fd,{'event_type':'stage_finished','phase':phase,
+                'worker_pid':os.getpid(),'exit_code':row['exit_code'],'status':row['status']})
             if row['terminal'].get('stop_kind')=='user_signal':
                 if row['exit_code']!=0 or row['status']!='STOPPED_BOUNDED':
                     raise RuntimeError(f'{phase} user-stop terminal/exit conflict')
@@ -147,9 +207,8 @@ def worker(args):
                     not row['progress'].get('actor_parameters_changed')):
                 raise RuntimeError('smoke did not verify a finite actual actor update')
             if phase=='smoke':
-                from native_stand.command_v6.wiring import smoke_certificate
-                certificate=smoke_certificate(chain/'smoke',read(spec))
-                write(chain/'smoke/wiring_certificate.json',certificate)
+                from native_stand.command_v6.wiring import validate_persisted_certificate
+                certificate=validate_persisted_certificate(chain/'smoke',read(spec))
                 if certificate['status']!='PASSED':raise RuntimeError(certificate['errors'])
         selected=read(chain/'formal/candidate_selection.json',{})
         best=selected.get('accepted_candidate')
@@ -173,6 +232,8 @@ def worker(args):
     finally:
         write(chain/'chain_progress.json',{'status':status,'stage':'finished','worker_pid':os.getpid(),
             'failure':failure})
+        chain_event(args.handshake_fd,{'event_type':'chain_finished','status':status,
+            'worker_pid':os.getpid(),'failure':failure})
         try:
             chain_report(chain,spec,phases,status,failure,durability)
         except Exception as exc:
@@ -195,6 +256,10 @@ def launch(args):
     configured=read(spec).get('authorization',{}).get('hapi_session')
     if configured and args.hapi_session!=configured:
         raise ValueError('HAPI target differs from the authorized spec')
+    explicit_wait=getattr(args,'handshake_wait_s',None)
+    wait_s=explicit_wait if explicit_wait is not None else read(spec).get('submission',{}).get('handshake_timeout_s',5.)
+    if not isinstance(wait_s,(int,float)) or not 0<=wait_s<=600:
+        raise ValueError('handshake wait must be within0..600seconds')
     submission=spec.with_name('chain_submission.json')
     with spec.with_name('chain_submission.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
@@ -205,33 +270,46 @@ def launch(args):
         shutil.copy2(spec,chain/'source_snapshot/spec.json')
         shutil.copytree(ROOT.parent,chain/'source_snapshot/native_stand',ignore=shutil.ignore_patterns('__pycache__'))
         attempt=uuid.uuid4().hex
+        resource={'resource_policy':getattr(args,'resource_policy',None),
+                  'resource_review':getattr(args,'resource_review',None)}
         write(chain/'manifest.json',{'attempt_id':attempt,'hapi_session':args.hapi_session,
-            'spec_path':str(spec),'spec_sha256':sha(spec),'kind':'standing_chain','submitted_unix_s':time.time()})
+            'spec_path':str(spec),'spec_sha256':sha(spec),'kind':'standing_chain',
+            'submitted_unix_s':time.time(),**resource})
         reader,writer=os.pipe()
         command=[sys.executable,str(chain/'source_snapshot/native_stand/command_v6/stand_chain.py'),'--spec',str(spec),'--output-dir',str(chain),
-            '--hapi-session',args.hapi_session,'--worker','--handshake-fd',str(writer)]
+            '--hapi-session',args.hapi_session,'--worker','--handshake-fd',str(writer),
+            '--attempt-id',attempt]
         with (chain/'chain.log').open('x') as stream:
             child=subprocess.Popen(command,env={**os.environ,'CUDA_VISIBLE_DEVICES':str(getattr(args,'physical_gpu',0))},start_new_session=True,
                 pass_fds=(writer,),stdin=subprocess.DEVNULL,stdout=stream,stderr=subprocess.STDOUT)
         os.close(writer)
         write(submission,{'chain':str(chain),'worker_pid':child.pid,'command':command,
-            'hapi_session':args.hapi_session,'attempt_id':attempt})
-    ready,_,_=select.select([reader],[],[],240)
-    handshake={'status':'UNKNOWN','reason':'single formal-start handshake not ready; background report authoritative'}
-    if ready:
-        message=os.read(reader,65536).split(b'\n',1)[0]
-        if message:
-            handshake=json.loads(message)
-    os.close(reader)
+            'hapi_session':args.hapi_session,'attempt_id':attempt,
+            'process_started_unix_s':__import__('native_stand.command_v6.tools.health_check',fromlist=['own_process_start']).own_process_start(child.pid),
+            **resource})
+    try:
+        handshake=read_startup_events(reader,wait_s=wait_s,wait_for_formal=explicit_wait is not None)
+    finally:os.close(reader)
     if handshake.get('status')=='RUNNING':
         from native_stand.command_v6.submission import validate_handshake
         monitor=read(chain/'formal.monitor.json',{})
         handshake=validate_handshake(handshake,spec_path=spec,output=chain/'formal',
             attempt_id=monitor.get('attempt_id'),monitor_pid=monitor.get('monitor_pid'),
             monitor_started_unix_s=monitor.get('process_started_unix_s'))
-    result={'chain':str(chain),'worker_pid':child.pid,'hapi_session':args.hapi_session,**handshake}
+        handshake['formal_first_update_verified']=handshake.get('started',False)
+    from native_stand.command_v6.tools.health_check import process_identity
+    submission_record=read(submission,{})
+    worker_evidence=process_identity(child.pid,output_dir=chain,attempt_id=attempt,
+        command_token='stand_chain.py',started_unix_s=submission_record.get('process_started_unix_s'),
+        spec_path=spec,physical_gpu=getattr(args,'physical_gpu',0),hapi_session=args.hapi_session)
+    if handshake.get('status')=='SUBMITTED' and worker_evidence['status']!='OK':
+        handshake.update(status='UNKNOWN',reason='submission receipt present but worker identity unverified')
+    result={'chain':str(chain),'worker_pid':child.pid,'hapi_session':args.hapi_session,
+        'submitted':True,'submission_verified':worker_evidence['status']=='OK',
+        'worker_evidence':worker_evidence,'handshake_wait_s':wait_s,**resource,**handshake}
     write(chain/'startup_handshake.json',result)
     print(json.dumps(result,indent=2))
+    return result
 
 
 def main():
@@ -240,8 +318,11 @@ def main():
     parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--hapi-session',default=os.environ.get('HAPI_SESSION_ID'))
     parser.add_argument('--launch',action='store_true')
+    parser.add_argument('--handshake-wait-s',type=float,default=None,
+        help='optional bounded wait for formal first update; default reports the first owned phase event')
     parser.add_argument('--worker',action='store_true',help=argparse.SUPPRESS)
     parser.add_argument('--handshake-fd',type=int,help=argparse.SUPPRESS)
+    parser.add_argument('--attempt-id',help=argparse.SUPPRESS)
     args=parser.parse_args()
     if args.worker:
         return worker(args)

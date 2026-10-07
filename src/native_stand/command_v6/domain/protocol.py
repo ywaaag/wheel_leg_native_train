@@ -195,6 +195,8 @@ def motion_gate(result, target, protocol):
 
 def capability_gate(result, target, protocol):
     """Versioned sustained-motion gate using only the scored episode trace."""
+    if protocol.get('protocol_identity') == 'motion_absolute_v3':
+        return absolute_motion_gate(result, target, protocol)
     axis = 3 if target[0] else 5
     value = target[0] if target[0] else target[1]
     checks = []
@@ -267,6 +269,71 @@ def capability_gate(result, target, protocol):
     passed = sum(check['accepted'] for check in checks)
     return {'accepted':len(checks)==protocol['scored_envs'] and passed==protocol['scored_envs'],
             'passed_envs':passed,'scored_envs':protocol['scored_envs'],'per_env':checks}
+
+
+def absolute_motion_gate(result, target, protocol):
+    """User absolute-error protocol; no hidden relative/minimum-speed rule."""
+    checks = []
+    for row in result['per_env']:
+        failed, missing = [], []
+        def check(field, bound, lower=False):
+            value = row.get(field)
+            if value is None or not math.isfinite(float(value)):
+                missing.append(field)
+                failed.append('MISSING_EVIDENCE:' + field)
+            elif (value < bound if lower else value > bound):
+                failed.append(field)
+        if row.get('outcome') != 'completed':
+            failed.append('continuous')
+        check('continuous_s', protocol['requested_seconds'] - .01, True)
+        for field, bound in (('closure_max_m', protocol['closure_max_m']),
+                ('peak_tilt_rad', protocol['peak_tilt_max_rad']),
+                ('saturation_fraction', protocol['saturation_fraction_max'])):
+            check(field, bound)
+        check('dual_contact_fraction', protocol['dual_contact_min'], True)
+        low, high = protocol['standing_height_m']
+        check('height_steady_mean_m', low, True)
+        check('height_steady_mean_m', high)
+        check('mean_abs_vy_mps', protocol['vy_abs_max_mps'])
+        trace = row.get('trace')
+        if not trace:
+            missing.append('trace'); failed.append('MISSING_EVIDENCE:trace')
+        else:
+            sample = torch.as_tensor(trace, dtype=torch.float64)
+            times = torch.arange(1, len(sample)+1, dtype=sample.dtype) * result['dt']
+            start, end = protocol['motion_window_s'] if any(target) else protocol['steady_window_s']
+            window = sample[(times >= start-1e-8) & (times <= end+1e-8)]
+            expected = round((end-start)/result['dt'])
+            if len(window) < expected:
+                missing.append('full_hold_window'); failed.append('MISSING_EVIDENCE:full_hold_window')
+            else:
+                axis = 3 if target[0] else 5
+                value = target[0] if target[0] else target[1]
+                row['hold_mean_abs_error'] = float((window[:,axis]-value).abs().mean())
+                if any(target):
+                    row['hold_direction_fraction'] = float((window[:,axis]*value > 0).double().mean())
+                    row['hold_signed_mean'] = float(window[:,axis].mean()) * (1 if value > 0 else -1)
+                    if row['hold_mean_abs_error'] > (protocol['motion_vx_error_max_mps'] if target[0] else protocol['motion_yaw_error_max_rad_s']) + 1e-9:
+                        failed.append('hold_absolute_error')
+                    if row['hold_direction_fraction'] < protocol['direction_fraction_min']:
+                        failed.append('direction')
+                    if target[0]:
+                        check('mean_abs_yaw_error_rad_s', protocol['straight_yaw_max_rad_s'])
+                    else:
+                        check('mean_abs_vx_mps', protocol['yaw_translation_max_mps'])
+                        check('net_drift_m', protocol['yaw_drift_max_m'])
+                        check('max_excursion_m', protocol['yaw_excursion_max_m'])
+                else:
+                    check('mean_abs_vx_mps', protocol['zero_mean_abs_vx_max_mps'])
+                    check('mean_abs_yaw_error_rad_s', protocol['yaw_error_max_rad_s'])
+            # Local excursion is a field boundary guard, not a standing-position target.
+            check('max_excursion_m', protocol['field_boundary_max_m'])
+        checks.append({'env_id': row['env_id'], 'accepted': not failed,
+                       'failed_checks': failed, 'missing_fields': missing})
+    passed = sum(check['accepted'] for check in checks)
+    return {'accepted': len(checks)==protocol['scored_envs'] and passed==protocol['scored_envs'],
+            'passed_envs': passed, 'scored_envs': protocol['scored_envs'], 'per_env': checks,
+            'scope': '100Hz policy-end effort evidence; not every 5ms PD substep audit'}
 
 
 def select_best_standing(current,candidate):

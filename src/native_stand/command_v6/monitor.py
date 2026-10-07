@@ -39,7 +39,11 @@ def reconcile(ledger_path,attempt_id,output,exit_code):
             terminal=output.with_name(output.name+".terminal_report.json")
             with terminal.open("x") as handle:
                 handle.write(json.dumps(result,indent=2)+"\n")
-    wall_s=max(0.,time.time()-row["started_unix_s"]) if row["phase"]=="source_eval" else None
+    if row['phase']=='evaluate' and exit_code not in (0,):
+        status='TERMINATED' if exit_code in (124,137,143,-15,-9) else 'FAILED'
+        result={**result,'status':status,'cleanup_exit_code':exit_code}
+        write(output/'supervisor_terminal.json',result)
+    wall_s=max(0.,time.time()-row["started_unix_s"]) if row["phase"] in ('source_eval','evaluate') else None
     Ledger(ledger_path).finalize(attempt_id,output,status,exit_code=exit_code,
                                 reason=result.get("reason"),wall_s=wall_s)
     return {"status":status,"reconciled":True,"terminal_report":str(terminal)}
@@ -51,11 +55,13 @@ def main():
     parser.add_argument("--phase",required=True)
     parser.add_argument("--output-dir",type=Path,required=True)
     parser.add_argument("--attempt-id",required=True)
-    parser.add_argument("--handshake-fd",type=int,required=True)
+    parser.add_argument("--handshake-fd",type=int,default=None)
     parser.add_argument('--hapi-session',default=None)
     parser.add_argument('--wall-limit-s',type=float,default=None)
     args=parser.parse_args()
     spec=json.loads(args.spec.read_text())
+    if args.phase=='evaluate':
+        return evaluation_main(args,spec)
     bound=spec["budget"]["source_eval_wall_s"] if args.phase=="source_eval" else (
         spec["budget"]["smoke_wall_s"] if args.phase=="smoke" else spec["budget"]["formal_wall_s"])
     if spec['evaluation'].get('protocol_identity')=='capability_v2':
@@ -109,6 +115,32 @@ def main():
                 'error':repr(exc),'training_accounting_unchanged':True})
     print(json.dumps({"child_exit_code":exit_code,**result}),flush=True)
     return exit_code
+
+
+def evaluation_main(args,spec):
+    """Existing monitor ownership for a PPO0 evaluator batch; no notification."""
+    book=json.loads(args.spec.with_name('budget.json').read_text())
+    row=book['attempts'][args.attempt_id]
+    spent=sum(float(item.get('wall_s') or 0.) for key,item in book['attempts'].items() if key!=args.attempt_id)
+    bound=min(spec['budget']['evaluation_wall_s']-spent,args.wall_limit_s or float('inf'))
+    remaining=bound-(time.time()-row['started_unix_s'])
+    command=['timeout','--signal=TERM','--kill-after=20s',f'{max(1.,remaining-35.)}s',
+        sys.executable,str(ROOT/'tools/evaluate_checkpoint.py'),'--spec',str(args.spec),
+        '--output',str(args.output_dir),'--batch','--attempt-id',args.attempt_id,
+        '--wall-limit-s',str(bound),'--run']
+    failure=None
+    try:
+        child=subprocess.Popen(command,cwd=str(ROOT.parents[2]))
+        exit_code=child.wait()
+    except OSError as exc:
+        exit_code=127;failure=repr(exc)
+    args.output_dir.mkdir(parents=True,exist_ok=True)
+    result=reconcile(args.spec.with_name('budget.json'),args.attempt_id,args.output_dir,exit_code)
+    book=json.loads(args.spec.with_name('budget.json').read_text())
+    write(args.output_dir/'monitor_exit.json',{'exit_code':exit_code,**result,'launch_failure':failure,
+        'ledger':book['attempts'][args.attempt_id],
+        'attempt_wall_including_cleanup_s':time.time()-row['started_unix_s']})
+    return 0 if result['status'] in ('COMPLETED','STOPPED_BOUNDED') and exit_code==0 else 1
 
 
 if __name__=="__main__":

@@ -11,14 +11,17 @@ class TaskProgression:
         self.history=[]
 
     def confirm(self, update, cases, *, episode_length_s=10, new_commands=()):
-        zero=next(x for x in cases if x['command']==[0,0])
-        zero_pass=zero['gate']['accepted']
-        self.zero_failures=0 if zero_pass else self.zero_failures+1
+        zero=next((x for x in cases if x['command']==[0,0]),None)
+        zero_pass=bool(zero and zero.get('gate',{}).get('accepted') is True)
+        self.observe_zero(zero_pass)
         new={tuple(command) for command in new_commands}
         learned_failed=any(not case['gate']['accepted'] for case in cases
                            if tuple(case['command']) not in new and case['command']!=[0,0])
         self.learned_failures=self.learned_failures+1 if learned_failed else 0
-        passed=all(x['gate']['accepted'] for x in cases)
+        expected={tuple(c) for c in self.config.get('required_commands',[])}
+        complete=not expected or expected=={tuple(case['command']) for case in cases}
+        fresh=not self.history or update>self.history[-1]['update']
+        passed=bool(cases) and complete and fresh and all(x.get('gate',{}).get('accepted') is True for x in cases)
         self.streak=self.streak+1 if passed else 0
         event={'update':update,'stage':self.stage,'passed':passed,
                'zero_pass':zero_pass,'streak':self.streak,'next_stage':self.stage,
@@ -31,7 +34,7 @@ class TaskProgression:
                                       2 if self.config['max_enabled_stage']>1 else 0)
         if learned_limit and self.learned_failures>=learned_limit:
             event['stop']=True
-        if (self.streak>=self.config['consecutive_confirmations'] and self.stage<self.config['max_enabled_stage']
+        if (complete and fresh and zero_pass and self.streak>=self.config['consecutive_confirmations'] and self.stage<self.config['max_enabled_stage']
                 and episode_length_s>=10):
             self.stage+=1
             self.streak=0
@@ -39,6 +42,11 @@ class TaskProgression:
             event['promoted']=True
         self.history.append(event)
         return event
+
+    def observe_zero(self, passed):
+        """Every real zero evaluation owns the same failure counter, including pass resets."""
+        self.zero_failures=0 if passed is True else self.zero_failures+1
+        return self.zero_failures
 
     def state(self):
         return {'stage':self.stage,'streak':self.streak,'zero_failures':self.zero_failures,

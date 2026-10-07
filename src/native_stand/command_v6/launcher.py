@@ -17,7 +17,7 @@ from native_stand.command_v6.completion import plan as runtime_plan
 from native_stand.command_v6.ledger import Ledger
 
 
-def launch(spec,phase,output,hapi_session=None):
+def launch(spec,phase,output,hapi_session=None,*,resource_review=None):
     spec=Path(spec).resolve()
     output=Path(output).resolve()
     plan=check(spec,output,phase)
@@ -38,6 +38,7 @@ def launch(spec,phase,output,hapi_session=None):
     log=output.with_name(output.name+".launcher.log")
     Ledger(spec.with_name('budget.json')).reserve(attempt_id,phase,output)
     submission={'attempt_id':attempt_id,'output_dir':str(output),'phase':phase,
+        'resource_review':resource_review,
         'hapi_session':hapi_session,'spec_path':str(spec),'spec_sha256':plan['spec_sha256'],
         'run_plan':runtime_plan(json.loads(spec.read_text()),phase),'submitted_unix_s':time.time()}
     try:
