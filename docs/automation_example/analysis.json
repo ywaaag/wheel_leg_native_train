@@ -1,0 +1,1110 @@
+{
+  "event_id": "cca3507ad86e02193f3fd145",
+  "run": "/tmp/native_cpu_fixture_e7hop7wi",
+  "status": "COMPLETED",
+  "exit_code": 0,
+  "terminal_exit_conflict": false,
+  "accounting_conflict": false,
+  "wall_including_cleanup_s": null,
+  "actual_updates": 200,
+  "samples": 1638400,
+  "accounted_updates_without_metrics": 0,
+  "reason": "SYNTHETIC CPU fixture, not trained",
+  "wall_s": 2100,
+  "timing_s": {
+    "rollout_s": 1600.0,
+    "ppo_s": 100.0,
+    "evaluation_s": 50.0,
+    "serialization_s": 2.0
+  },
+  "metrics_issues": [],
+  "initialization_s": 20,
+  "unattributed_wall_s": 328.0,
+  "rollout_samples_per_s": 1024.0,
+  "end_to_end_samples_per_s": 780.1904761904761,
+  "evaluation_fraction": 0.023809523809523808,
+  "evaluation_planning_target_exceeded": false,
+  "comparison_best_minus_source": {
+    "continuous_s": 0.0,
+    "net_drift_m": -0.04,
+    "max_excursion_m": -0.04,
+    "dual_contact_fraction": 0.0,
+    "mean_abs_vx_error_mps": 0.0,
+    "mean_abs_yaw_error_rad_s": 0.0,
+    "height_steady_mean_m": 0.0,
+    "peak_tilt_rad": 0.0,
+    "closure_max_m": 0.0,
+    "saturation_fraction": 0.0
+  },
+  "candidate_selection": {
+    "latest_checkpoint": {
+      "path": "/tmp/native_cpu_fixture_e7hop7wi/latest_unreviewed.pt",
+      "sha256": "1f0ced4e089ff6508e372c139b4a4400d1bb16b44e5a8fefedd0091fa4c329f2",
+      "update": 200
+    },
+    "best_observed_candidate": {
+      "checkpoint": "/tmp/native_cpu_fixture_e7hop7wi/candidate_200.pt",
+      "checkpoint_sha256": "9ba2c12e8c4f3905e7b1b46dc0f69fd2f30df42c7b381935d2875677e8c49d58",
+      "update": 200,
+      "identity": {
+        "source_sha256": "f440ef1999fd10886b74bf64bdff03bbdbe6c7e85c4a226e9d9428e5d4b05698",
+        "physical_sha256": "5f0d1ceeaeb3681fd9b13cdda6f07b67ae67877272d706a48b8436d3a580c003",
+        "protocol_sha256": "1e94979f31a823f38a979b791e5a5336a3fba7d08019c62d2455f1a3ca3bf627",
+        "evaluator_sha256": "fixture_evaluator",
+        "seed": 104,
+        "layout_envs": 64,
+        "scored_envs": 8
+      },
+      "kind": "full",
+      "role": "candidate",
+      "eligible": true,
+      "exclusion_reasons": [],
+      "accepted": true,
+      "passed_envs": 8,
+      "per_env": [
+        {
+          "env_id": 0,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 1,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 2,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 3,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 4,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 5,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 6,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 7,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        }
+      ],
+      "gate": {
+        "accepted": true,
+        "passed_envs": 8,
+        "scored_envs": 8,
+        "per_env": [
+          {
+            "env_id": 0,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 1,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 2,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 3,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 4,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 5,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 6,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 7,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          }
+        ]
+      },
+      "means": {
+        "continuous_s": 10.0,
+        "net_drift_m": 0.04,
+        "max_excursion_m": 0.04,
+        "dual_contact_fraction": 0.95,
+        "mean_abs_vx_error_mps": 0.01,
+        "mean_abs_yaw_error_rad_s": 0.01,
+        "height_steady_mean_m": 0.363,
+        "peak_tilt_rad": 0.01,
+        "closure_max_m": 0.001,
+        "saturation_fraction": 0.0
+      }
+    },
+    "accepted_candidate": {
+      "checkpoint": "/tmp/native_cpu_fixture_e7hop7wi/candidate_200.pt",
+      "checkpoint_sha256": "9ba2c12e8c4f3905e7b1b46dc0f69fd2f30df42c7b381935d2875677e8c49d58",
+      "update": 200,
+      "identity": {
+        "source_sha256": "f440ef1999fd10886b74bf64bdff03bbdbe6c7e85c4a226e9d9428e5d4b05698",
+        "physical_sha256": "5f0d1ceeaeb3681fd9b13cdda6f07b67ae67877272d706a48b8436d3a580c003",
+        "protocol_sha256": "1e94979f31a823f38a979b791e5a5336a3fba7d08019c62d2455f1a3ca3bf627",
+        "evaluator_sha256": "fixture_evaluator",
+        "seed": 104,
+        "layout_envs": 64,
+        "scored_envs": 8
+      },
+      "kind": "full",
+      "role": "candidate",
+      "eligible": true,
+      "exclusion_reasons": [],
+      "accepted": true,
+      "passed_envs": 8,
+      "per_env": [
+        {
+          "env_id": 0,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 1,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 2,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 3,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 4,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 5,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 6,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 7,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        }
+      ],
+      "gate": {
+        "accepted": true,
+        "passed_envs": 8,
+        "scored_envs": 8,
+        "per_env": [
+          {
+            "env_id": 0,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 1,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 2,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 3,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 4,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 5,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 6,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 7,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          }
+        ]
+      },
+      "means": {
+        "continuous_s": 10.0,
+        "net_drift_m": 0.04,
+        "max_excursion_m": 0.04,
+        "dual_contact_fraction": 0.95,
+        "mean_abs_vx_error_mps": 0.01,
+        "mean_abs_yaw_error_rad_s": 0.01,
+        "height_steady_mean_m": 0.363,
+        "peak_tilt_rad": 0.01,
+        "closure_max_m": 0.001,
+        "saturation_fraction": 0.0
+      }
+    },
+    "source_baseline": {
+      "checkpoint": "/tmp/native_cpu_fixture_e7hop7wi/source.pt",
+      "checkpoint_sha256": "583b8ce4705dedd5fda467e617d8a5f7adfeb0ff8d0ff78abed48ecb01f9c5a9",
+      "update": 0,
+      "identity": {
+        "source_sha256": "f440ef1999fd10886b74bf64bdff03bbdbe6c7e85c4a226e9d9428e5d4b05698",
+        "physical_sha256": "5f0d1ceeaeb3681fd9b13cdda6f07b67ae67877272d706a48b8436d3a580c003",
+        "protocol_sha256": "1e94979f31a823f38a979b791e5a5336a3fba7d08019c62d2455f1a3ca3bf627",
+        "evaluator_sha256": "fixture_evaluator",
+        "seed": 104,
+        "layout_envs": 64,
+        "scored_envs": 8
+      },
+      "kind": "full",
+      "role": "source",
+      "eligible": true,
+      "exclusion_reasons": [],
+      "accepted": true,
+      "passed_envs": 8,
+      "per_env": [
+        {
+          "env_id": 0,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.08,
+          "max_excursion_m": 0.08,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 1,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.08,
+          "max_excursion_m": 0.08,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 2,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.08,
+          "max_excursion_m": 0.08,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 3,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.08,
+          "max_excursion_m": 0.08,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 4,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.08,
+          "max_excursion_m": 0.08,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 5,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.08,
+          "max_excursion_m": 0.08,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 6,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.08,
+          "max_excursion_m": 0.08,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        },
+        {
+          "env_id": 7,
+          "outcome": "completed",
+          "termination_reason": "timeout",
+          "continuous_s": 10,
+          "net_drift_m": 0.08,
+          "max_excursion_m": 0.08,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        }
+      ],
+      "gate": {
+        "accepted": true,
+        "passed_envs": 8,
+        "scored_envs": 8,
+        "per_env": [
+          {
+            "env_id": 0,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 1,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 2,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 3,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 4,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 5,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 6,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          },
+          {
+            "env_id": 7,
+            "outcome": "completed",
+            "accepted": true,
+            "failed_checks": []
+          }
+        ]
+      },
+      "means": {
+        "continuous_s": 10.0,
+        "net_drift_m": 0.08,
+        "max_excursion_m": 0.08,
+        "dual_contact_fraction": 0.95,
+        "mean_abs_vx_error_mps": 0.01,
+        "mean_abs_yaw_error_rad_s": 0.01,
+        "height_steady_mean_m": 0.363,
+        "peak_tilt_rad": 0.01,
+        "closure_max_m": 0.001,
+        "saturation_fraction": 0.0
+      }
+    },
+    "unreviewed_checkpoints": [
+      {
+        "path": "/tmp/native_cpu_fixture_e7hop7wi/latest_unreviewed.pt",
+        "sha256": "1f0ced4e089ff6508e372c139b4a4400d1bb16b44e5a8fefedd0091fa4c329f2",
+        "update": 200
+      }
+    ],
+    "candidates": [
+      {
+        "checkpoint": "/tmp/native_cpu_fixture_e7hop7wi/source.pt",
+        "checkpoint_sha256": "583b8ce4705dedd5fda467e617d8a5f7adfeb0ff8d0ff78abed48ecb01f9c5a9",
+        "update": 0,
+        "identity": {
+          "source_sha256": "f440ef1999fd10886b74bf64bdff03bbdbe6c7e85c4a226e9d9428e5d4b05698",
+          "physical_sha256": "5f0d1ceeaeb3681fd9b13cdda6f07b67ae67877272d706a48b8436d3a580c003",
+          "protocol_sha256": "1e94979f31a823f38a979b791e5a5336a3fba7d08019c62d2455f1a3ca3bf627",
+          "evaluator_sha256": "fixture_evaluator",
+          "seed": 104,
+          "layout_envs": 64,
+          "scored_envs": 8
+        },
+        "kind": "full",
+        "role": "source",
+        "eligible": true,
+        "exclusion_reasons": [],
+        "accepted": true,
+        "passed_envs": 8,
+        "per_env": [
+          {
+            "env_id": 0,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.08,
+            "max_excursion_m": 0.08,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 1,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.08,
+            "max_excursion_m": 0.08,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 2,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.08,
+            "max_excursion_m": 0.08,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 3,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.08,
+            "max_excursion_m": 0.08,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 4,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.08,
+            "max_excursion_m": 0.08,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 5,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.08,
+            "max_excursion_m": 0.08,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 6,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.08,
+            "max_excursion_m": 0.08,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 7,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.08,
+            "max_excursion_m": 0.08,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          }
+        ],
+        "gate": {
+          "accepted": true,
+          "passed_envs": 8,
+          "scored_envs": 8,
+          "per_env": [
+            {
+              "env_id": 0,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 1,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 2,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 3,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 4,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 5,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 6,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 7,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            }
+          ]
+        },
+        "means": {
+          "continuous_s": 10.0,
+          "net_drift_m": 0.08,
+          "max_excursion_m": 0.08,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        }
+      },
+      {
+        "checkpoint": "/tmp/native_cpu_fixture_e7hop7wi/candidate_200.pt",
+        "checkpoint_sha256": "9ba2c12e8c4f3905e7b1b46dc0f69fd2f30df42c7b381935d2875677e8c49d58",
+        "update": 200,
+        "identity": {
+          "source_sha256": "f440ef1999fd10886b74bf64bdff03bbdbe6c7e85c4a226e9d9428e5d4b05698",
+          "physical_sha256": "5f0d1ceeaeb3681fd9b13cdda6f07b67ae67877272d706a48b8436d3a580c003",
+          "protocol_sha256": "1e94979f31a823f38a979b791e5a5336a3fba7d08019c62d2455f1a3ca3bf627",
+          "evaluator_sha256": "fixture_evaluator",
+          "seed": 104,
+          "layout_envs": 64,
+          "scored_envs": 8
+        },
+        "kind": "full",
+        "role": "candidate",
+        "eligible": true,
+        "exclusion_reasons": [],
+        "accepted": true,
+        "passed_envs": 8,
+        "per_env": [
+          {
+            "env_id": 0,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.04,
+            "max_excursion_m": 0.04,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 1,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.04,
+            "max_excursion_m": 0.04,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 2,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.04,
+            "max_excursion_m": 0.04,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 3,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.04,
+            "max_excursion_m": 0.04,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 4,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.04,
+            "max_excursion_m": 0.04,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 5,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.04,
+            "max_excursion_m": 0.04,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 6,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.04,
+            "max_excursion_m": 0.04,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          },
+          {
+            "env_id": 7,
+            "outcome": "completed",
+            "termination_reason": "timeout",
+            "continuous_s": 10,
+            "net_drift_m": 0.04,
+            "max_excursion_m": 0.04,
+            "dual_contact_fraction": 0.95,
+            "mean_abs_vx_error_mps": 0.01,
+            "mean_abs_yaw_error_rad_s": 0.01,
+            "height_steady_mean_m": 0.363,
+            "peak_tilt_rad": 0.01,
+            "closure_max_m": 0.001,
+            "saturation_fraction": 0.0
+          }
+        ],
+        "gate": {
+          "accepted": true,
+          "passed_envs": 8,
+          "scored_envs": 8,
+          "per_env": [
+            {
+              "env_id": 0,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 1,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 2,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 3,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 4,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 5,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 6,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            },
+            {
+              "env_id": 7,
+              "outcome": "completed",
+              "accepted": true,
+              "failed_checks": []
+            }
+          ]
+        },
+        "means": {
+          "continuous_s": 10.0,
+          "net_drift_m": 0.04,
+          "max_excursion_m": 0.04,
+          "dual_contact_fraction": 0.95,
+          "mean_abs_vx_error_mps": 0.01,
+          "mean_abs_yaw_error_rad_s": 0.01,
+          "height_steady_mean_m": 0.363,
+          "peak_tilt_rad": 0.01,
+          "closure_max_m": 0.001,
+          "saturation_fraction": 0.0
+        }
+      }
+    ],
+    "full_eligible_count": 2,
+    "ranking": "accepted, mean continuous survival, passed envs, mean drift, contact, SHA tie-break; reward unused",
+    "latest_evaluation_status": "UNREVIEWED"
+  },
+  "confirmed": [
+    "only identity-matched complete evaluations are ranked"
+  ],
+  "unknown": [
+    "reward/actuator/dynamics causal explanations require separate evidence"
+  ],
+  "timing_caveat": "host elapsed timing; GPU asynchronous work not independently synchronized"
+}
