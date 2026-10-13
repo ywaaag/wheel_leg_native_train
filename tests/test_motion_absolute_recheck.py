@@ -17,6 +17,18 @@ def spec():
     return json.loads((ROOT/'configs/experiments/motion_recheck_20261007/spec.json').read_text())
 
 
+def retained_batch_fixture(spec, tmp_path):
+    """Exercise the real planner without depending on retired candidate runs."""
+    candidate=copy.deepcopy(spec)
+    for request in candidate['evaluation_requests']:
+        request['checkpoint']=candidate['source_checkpoint']
+        request['sha256']=candidate['source_sha256']
+    path=tmp_path/'spec.json'
+    path.write_text(json.dumps(candidate))
+    (tmp_path/'budget.json').write_bytes((ROOT/'configs/experiments/motion_recheck_20261007/budget.json').read_bytes())
+    return candidate,path
+
+
 def trace(spec,target,error):
     protocol=protocol_for_spec(spec,30.,True)
     rows=torch.zeros(3000,8,18,dtype=torch.float64)
@@ -85,7 +97,8 @@ def test_plan_actual_entry_no_writes(spec,tmp_path):
     from types import SimpleNamespace
     from native_stand.command_v6.tools.evaluate_checkpoint import batch_plan
     output=tmp_path/'absent'
-    plan=batch_plan(SimpleNamespace(spec=ROOT/'configs/experiments/motion_recheck_20261007/spec.json',
+    spec,path=retained_batch_fixture(spec,tmp_path)
+    plan=batch_plan(SimpleNamespace(spec=path,
         output=output,attempt_id=None),spec)
     assert plan['preflight']['status']=='PASS'
     assert plan['effective_recipe']['reward']['tracking_mode']=='combined'
@@ -189,7 +202,8 @@ def test_no_isaac_loaded_by_plan(spec,tmp_path):
     from types import SimpleNamespace
     from native_stand.command_v6.tools.evaluate_checkpoint import batch_plan
     before={name for name in sys.modules if name.startswith(('isaaclab','isaacsim','agent_world'))}
-    batch_plan(SimpleNamespace(spec=ROOT/'configs/experiments/motion_recheck_20261007/spec.json',
+    spec,path=retained_batch_fixture(spec,tmp_path)
+    batch_plan(SimpleNamespace(spec=path,
         output=tmp_path/'absent',attempt_id=None),spec)
     assert {name for name in sys.modules if name.startswith(('isaaclab','isaacsim','agent_world'))}==before
 

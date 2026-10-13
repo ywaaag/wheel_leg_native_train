@@ -82,3 +82,9 @@ def test_deprecated_wrapper_only_prints_and_never_forwards(name, monkeypatch, ca
     monkeypatch.setattr(supervisor,'main',lambda:pytest.fail('deprecated wrapper forwarded submission'))
     assert module.main()==2
     assert 'DEPRECATED' in capsys.readouterr().err
+
+
+def test_public_catalog_matches_tool_index():
+    from native_stand.command_v6.tools.audit_entrypoints import documentation_coverage
+    report=documentation_coverage(ROOT)
+    assert report['status']=='PASS',report['missing']

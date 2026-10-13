@@ -5,7 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "wheel-leg-native-train"
 version = "0.1.0"
-description = "Native closed-chain wheel-leg standing training"
+description = "Native closed-chain wheel-leg motion, recovery and student policy training"
+readme = "README.md"
 requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]

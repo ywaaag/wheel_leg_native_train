@@ -81,7 +81,7 @@ def test_specs_have_only_authorized_variable():
     module_spec=importlib.util.spec_from_file_location('prepare_ab',ROOT/'scripts/prepare_motion_cohort_width_ab.py')
     module=importlib.util.module_from_spec(module_spec)
     module_spec.loader.exec_module(module)
-    base=json.loads((ROOT/'runs/motion_capability_course_20261006/formal/source_snapshot/spec.json').read_text())
+    base=json.loads((ROOT/'configs/experiments/motion_capability_course_20261006/spec.json').read_text())
     before=copy.deepcopy(base)
     a,b=module.arm_specs(base)
     assert base==before

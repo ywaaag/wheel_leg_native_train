@@ -1,0 +1,10 @@
+# CPU domain/fixture checks; Isaac Sim and robot assets are installed separately.
+# Torch builds must be selected for the desired CPU/CUDA runtime before this file.
+numpy==2.5.2
+tensordict==0.14.0
+rsl-rl-lib==5.0.1
+gymnasium==1.2.1
+pytest==9.1.1
+
+# Portable export contract tests use ONNX serialization only.
+onnx==1.21.0

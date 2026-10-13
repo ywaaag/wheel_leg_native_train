@@ -27,6 +27,8 @@ def test_delayed_rise_scores_own_full_hold():
     s,p=trajectory();r=score(s,p)
     assert r['accepted'] and r['post_rise_window_s']==[3.,13.]
     assert r['metrics']['height_min_m']>.34
+    assert r['post_rise_evidence_status']=='COMPLETE'
+    assert r['post_rise_metrics']==r['metrics']
 
 
 def test_late_entry_does_not_shorten_hold():
@@ -49,8 +51,22 @@ def test_early_termination_missing_initialization_and_fault_fail():
 def test_no_standing_entry_and_nonfinite_cannot_pass():
     s,p=trajectory();s[:,6]=.2
     assert not score(s,p)['accepted']
+    assert score(s,p)['post_rise_metrics'] is None
+    assert score(s,p)['standing_metrics_scope']=='pre_entry_diagnostic_only'
     s[1,6]=float('nan')
     assert not score(s,p)['accepted']
+
+
+def test_rise_rank_does_not_reward_long_failed_preentry_or_extra_height():
+    from native_stand.recovery.selection import rise_rank
+    def item(terminated,entry,duration,height):
+        return {'accepted':False,'passed_envs':0,'retained_evaluations':[],
+            'checkpoint_sha256':'a','per_env':[{'recovery_s':entry,'continuous_s':duration,
+            'height_peak_m':height,'post_rise_evidence_status':'INCOMPLETE',
+            'standing_failed_checks':['continuous'],'episode_result':{'terminated':terminated}}]}
+    base=item(False,None,23,.44)
+    assert rise_rank(base)==rise_rank(item(False,None,50,.9))
+    assert rise_rank(base)<rise_rank(item(True,.5,7,.45))
 
 
 def test_prepared_rise_protocol_smoke_and_sampling_contract():

@@ -41,4 +41,6 @@ def test_pitch_cost_is_high_position_gated_and_signed_symmetric():
 
 def test_pitch_reward_is_registered_for_rollout():
     source=(ROOT/'src/native_stand/command_v6/train.py').read_text()
-    assert "reward_fields=(*reward_fields,'pitch_level')" in source
+    assert 'recovery_reward_fields(spec' in source
+    from native_stand.recovery.reward_fields import resolve
+    assert 'pitch_level' in resolve({'pitch_level':-.1},{})
