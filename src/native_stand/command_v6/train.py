@@ -15,6 +15,8 @@ import uuid
 ROOT=Path(__file__).resolve().parent
 sys.path.insert(0,str(ROOT.parents[1]))
 from native_stand.command_v6.config import PHASES,schedule,evaluation_seconds
+from native_stand.command_v6.domain.evaluation_config import scoring as scoring_configuration
+from native_stand.command_v6.domain.diagnostic_profiles import storage_plan
 from native_stand.command_v6.ledger import Ledger
 from native_stand.command_v6.tools.preflight import check,digest
 from native_stand.command_v6.completion import evaluation_identity, plan as runtime_plan, choose
@@ -46,6 +48,9 @@ def send_handshake(fd,payload):
 
 
 def _write(path,data):
+    if path.name=='candidate_registry.json':
+        from native_stand.command_v6.domain.evidence_summary import compact
+        data=compact(data)
     tmp=path.with_name(path.name+f".{os.getpid()}.tmp")
     tmp.write_text(json.dumps(data,indent=2)+"\n")
     os.replace(tmp,path)
@@ -113,6 +118,9 @@ def _snapshot(output,spec_path):
         if spec['recovery'].get('stand_spec'):
             paths['frozen_stand_spec.json']=Path(spec['recovery']['stand_spec'])
         paths['recovery_poses.json']=Path(spec['recovery']['pose_library'])
+    if spec.get('interface_version') in ('multiskill_student_v1','multiskill_mcu_v2'):
+        paths.update({f'student_{path.name}':path for path in (ROOT.parent/'students').glob('*.py')})
+        paths['model_factory.py']=ROOT/'tools/model_factory.py'
     folder=output/"source_snapshot"
     folder.mkdir()
     identity={}
@@ -120,6 +128,13 @@ def _snapshot(output,spec_path):
         shutil.copy2(path,folder/name)
         identity[name]=digest(path)
     return identity
+
+
+def _write_evaluation(spec,path,result):
+    if spec.get('artifacts',{}).get('evaluation_trace_encoding')=='evaluation_numeric_npz_v1':
+        from native_stand.command_v6.tools.evaluation_storage import write
+        return write(path,result)
+    return _write(path,result)
 
 
 def main():
@@ -139,6 +154,9 @@ def main():
     if plan["status"]!="PASS":
         raise RuntimeError(f"preflight failed: {plan['errors']}")
     spec=json.loads(args.spec.read_text())
+    if spec.get('student_training'):
+        from native_stand.students.training import execute
+        return execute(args,spec,plan)
     requested_spec=spec
     if spec.get('effective_recipe_version') == 1:
         from native_stand.command_v6.domain.recipe import resolve
@@ -180,12 +198,20 @@ def main():
             digest(ROOT/'tools/evaluation_state.py')+
             digest(ROOT/'tools/evaluate_checkpoint.py')+
             (''.join(digest(ROOT.parent/'recovery'/name) for name in
-                ('recipe.py','domain.py','standing.py','selection.py',*(['rising.py'] if spec['recovery'].get('rising_task') else [])))
+                ('recipe.py','domain.py','standing.py','selection.py','sampling.py',*(['rising.py'] if spec['recovery'].get('rising_task') else [])))
              if spec.get('recovery',{}).get('standing_task') else '')).encode()).hexdigest()
         eval_identity=evaluation_identity(spec,evaluator_sha)
         book=json.loads(args.spec.with_name('budget.json').read_text())
         source_runs=[row['output_dir'] for row in book['attempts'].values()
                      if row['phase']=='source_eval' and row['status']=='COMPLETED']
+        if spec.get('engineering_recovery'):
+            from native_stand.command_v6.tools.motion_recovery_certificate import validate as validate_recovery
+            certificate=validate_recovery(spec,book)
+            source_runs.append(certificate['facts']['source_capability']['run'])
+        if spec.get('source_evidence_reference') and not spec.get('engineering_recovery'):
+            from native_stand.command_v6.tools.source_evidence import check as check_source
+            if check_source(spec,spec['source_evidence_reference'])['status']!='REUSABLE':raise ValueError('source reuse certificate invalid')
+            source_runs.append(spec['source_evidence_reference'])
         source_baseline_run=(source_runs[-1] if source_runs else None) if (
             spec.get('task')!='recovery' or spec.get('recovery',{}).get('standing_task')) else None
         _write(output/"manifest.json",{"experiment":spec["experiment"],
@@ -203,6 +229,8 @@ def main():
             "source_snapshot_sha256":identity,"interpreter":sys.executable,
             "envs":spec["ppo"]["envs"],"steps_per_env":spec["ppo"]["steps_per_env"],
             "evaluator_sha256":evaluator_sha,"hapi_session":args.hapi_session,
+            'notification_route':{'owner_session':args.hapi_session,'target_session':args.hapi_session,
+                                  'origin':'explicit phase owner target'},
             "source_baseline_run":source_baseline_run,
             "preparation_probe_runs":source_runs if spec.get('task')=='recovery' else [],
             "run_plan":runtime_plan(spec,args.phase),"requested":requested_spec,
@@ -214,8 +242,11 @@ def main():
             baseline_registry=[row for row in json.loads(
                 (Path(source_baseline_run)/'candidate_registry.json').read_text())
                 if row.get('role')=='source' and row.get('identity')==eval_identity]
+        if spec.get('engineering_recovery'):
+            from native_stand.command_v6.tools.motion_recovery_certificate import migrated_source_entries
+            baseline_registry=migrated_source_entries(spec,eval_identity)
         standing_regression=None
-        if spec.get('recovery',{}).get('standing_task'):
+        if spec.get('recovery',{}).get('standing_task') and not spec['recovery'].get('swing_only') and not spec.get('receiver_training'):
             from native_stand.recovery.standing import StandingRegression
             standing_regression=StandingRegression(confirmed=bool(
                 choose(baseline_registry,None,eval_identity)['accepted_candidate']))
@@ -224,7 +255,17 @@ def main():
                     row.get('result',{}).get('retained_evaluations') and
                     all(item.get('accepted') for item in row['result']['retained_evaluations'])
                     for row in baseline_registry)
-        _write(output/'candidate_registry.json',registry)
+        recovery_progress_guard=None
+        if spec.get('recovery',{}).get('progress_guard') and baseline_registry and not spec['recovery'].get('swing_only'):
+            from native_stand.recovery.min_height import ProgressGuard
+            from native_stand.command_v6.tools.recovery_progress_baseline import load
+            guard_source,guard_evidence=load(source_baseline_run,baseline_registry[-1],
+                spec_sha256=digest(Path(source_baseline_run)/'source_snapshot/spec.json'),source_sha256=spec['source_sha256'],
+                asset_sha256=spec['asset_sha256'])
+            recovery_progress_guard=ProgressGuard(guard_source,spec['recovery']['progress_guard'])
+            progress['recovery_progress_baseline']=guard_evidence
+        from native_stand.command_v6.domain.evidence_summary import compact
+        _write(output/'candidate_registry.json',compact(registry))
         _write(output/"progress.json",progress)
         progress["stage"]="app_launcher"
         from isaaclab.app import AppLauncher
@@ -238,7 +279,7 @@ def main():
         from native_stand.command_v6.runtime.env import CommandEnv,CommandEnvCfg
         from native_stand.command_v6.runtime.control_readback import verify,verify_ground
         from native_stand.command_v6.runtime.configure import apply as configure_env,verify_asset_import
-        from native_stand.command_v6.learning import model as build_model
+        from native_stand.command_v6.tools.model_factory import model as build_model
         from native_stand.command_v6.domain.warmstart import (initialize_state,initialize_adam,
             clear_first_moment,convert_wheel_envelope,seed_training,preserve_rng_state)
         from native_stand.command_v6.domain.retention import load_reference,balanced_subset,attach_optimizer_retention,RetentionBatch
@@ -258,7 +299,10 @@ def main():
         stage=(0 if args.phase=="source_eval" and not spec.get('effective_recipe_version')
                else spec["curriculum"]["active_stage"])
         progress["stage"]="environment_init"
-        if spec.get('task')=='recovery':
+        if spec.get('receiver_training'):
+            from native_stand.recovery.receiver_recipe import environment,evaluate_actor
+            env=environment(cfg,spec)
+        elif spec.get('task')=='recovery':
             from native_stand.recovery.recipe import environment,evaluate_actor
             env=environment(cfg,spec)
         else:
@@ -279,6 +323,9 @@ def main():
         if spec.get('initialization','warmstart')!='random':
             source=torch.load(spec["source_checkpoint"],map_location="cpu",weights_only=False)
             actor.load_state_dict(initialize_state(source["actor"],actor.state_dict(),input_dim=spec.get('source_input_dim',132)),strict=True)
+            if source.get('initialization_candidate'):
+                from native_stand.recovery.initialization_candidate import verify
+                progress['initialization_candidate']=verify(source,spec['source_checkpoint'])
         progress['initialization_s']=time.monotonic()-started
         if args.phase=="source_eval":
             if source is not None and spec.get('wheel_envelope_conversion'):
@@ -295,24 +342,24 @@ def main():
                         'stage':'source_evaluation','physics_steps':1,'output_dir':str(output.resolve())})
             result=evaluate_actor(actor,wrapped,env,target=(0.,0.),
                 seconds=evaluation_seconds(spec,full=True) if spec.get('recovery',{}).get('rising_task') or spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3') else 10.,
-                full_trace=True,seed=spec["evaluation"]["seed"],
+                **storage_plan(spec,full=True,legacy_full_trace=True,legacy_diagnostics=spec.get('diagnostics',{}).get('enabled',bool(spec.get('diagnostics'))))["runtime_kwargs"],seed=spec["evaluation"]["seed"],
                 scored_envs=spec["evaluation"]["scored_envs"],
                 target_window=spec["evaluation"]["steady_window_s"],
-                standing_protocol=spec["evaluation"],diagnostics=(spec.get('diagnostics',{}).get('enabled',bool(spec.get('diagnostics')))),
+                standing_protocol=scoring_configuration((spec["recovery"]["standing_task"]["protocol"] if spec.get("recovery",{}).get("rising_task",{}).get("version")=="autonomous_rise_min_height_v2" else spec["evaluation"])),
                 stop_requested=lambda:STOP or time.monotonic()-started>=phase_wall-30,
                 progress_callback=baseline_handshake if spec.get('cohort_width_ab') else None)
             progress['source_evaluation_s']=time.monotonic()-evaluation_start
             source_gate=result.get('capability_gate',result.get('standing_gate',result.get('recovery_gate')))
             result.update(checkpoint_sha256=spec["source_sha256"],spec_sha256=digest(args.spec))
-            _write(output/"evaluation_source.json",result)
+            _write_evaluation(spec,output/"evaluation_source.json",result)
             registry.append({'role':'source','kind':'full','checkpoint':spec['source_checkpoint'],
                 'checkpoint_sha256':spec['source_sha256'],'update':0,'identity':eval_identity,
-                'evaluation':'evaluation_source.json','result':{**result,'per_env':[
+                'evaluation':'evaluation_source.json','evaluation_sha256':digest(output/'evaluation_source.json'),'result':{**result,'per_env':[
                     {key:value for key,value in row.items() if key not in (
                         'trace','compact_trace_100hz','posture_trace_100hz',
                         'gate_diagnostics_100hz','control_diagnostics_100hz','failure_window_100hz')}
                     for row in result['per_env']]}})
-            _write(output/'candidate_registry.json',registry)
+            _write(output/'candidate_registry.json',compact(registry))
             progress["evaluations"].append({"target":[0.,0.],"path":"evaluation_source.json",
                 "source_pass":source_gate["accepted"],
                 "outcome_counts":result["outcome_counts"]})
@@ -322,20 +369,20 @@ def main():
                 if command==[0,0]:
                     continue
                 result=evaluate_actor(actor,wrapped,env,target=command,
-                    seconds=evaluation_seconds(spec,full=True),full_trace=True,
+                    seconds=evaluation_seconds(spec,full=True),**storage_plan(spec,full=True,final=True,legacy_full_trace=True)["runtime_kwargs"],
                     seed=spec['evaluation']['seed'],scored_envs=spec['evaluation']['scored_envs'],
                     target_window=spec['evaluation']['motion_window_s'],
-                    standing_protocol=spec['evaluation'],
+                    standing_protocol=scoring_configuration((spec["recovery"]["standing_task"]["protocol"] if spec.get("recovery",{}).get("rising_task",{}).get("version")=="autonomous_rise_min_height_v2" else spec["evaluation"])),
                     stop_requested=lambda:STOP or time.monotonic()-started>=phase_wall-30)
                 result.update(checkpoint_sha256=spec['source_sha256'],spec_sha256=digest(args.spec))
                 label=f'evaluation_source_{command[0]}_{command[1]}.json'
-                _write(output/label,result)
+                _write_evaluation(spec,output/label,result)
                 gate=result['capability_gate']
                 registry.append({'role':'source','kind':'full','checkpoint':spec['source_checkpoint'],
                     'checkpoint_sha256':spec['source_sha256'],'update':0,'identity':eval_identity,
                     'evaluation':label,'result':{**result,'per_env':[
                         {key:value for key,value in row.items() if key!='trace'} for row in result['per_env']]}})
-                _write(output/'candidate_registry.json',registry)
+                _write(output/'candidate_registry.json',compact(registry))
                 progress['evaluations'].append({'target':command,'path':label,
                     'source_pass':gate['accepted'],'outcome_counts':result['outcome_counts']})
                 if command in spec.get('source_required_commands',[]):
@@ -349,6 +396,15 @@ def main():
             critic=build_model(obs,actor=False,spec=spec).to(env.device)
             if source is not None:
                 critic.load_state_dict(initialize_state(source["critic"],critic.state_dict(),input_dim=spec.get('source_input_dim',132)),strict=True)
+            if spec.get('recovery',{}).get('actor_update_scope'):
+                from native_stand.recovery.controlled_ppo import ControlledPPO,KEY
+                PPO=ControlledPPO
+                obs=obs.clone();obs[KEY]=torch.zeros((env.num_envs,1),device=env.device,dtype=torch.bool)
+                if spec.get('receiver_training'):
+                    obs['receiver_phase']=torch.zeros((env.num_envs,1),device=env.device,dtype=torch.long)
+                    obs['receiver_phase_time_s']=torch.zeros((env.num_envs,1),device=env.device)
+                    obs['receiver_executed_action']=torch.zeros((env.num_envs,6),device=env.device)
+                    obs['receiver_physical_target']=torch.zeros((env.num_envs,6),device=env.device)
             storage=RolloutStorage("rl",env.num_envs,spec["ppo"]["steps_per_env"],obs,[6],env.device)
             ppo=PPO(actor,critic,storage,num_learning_epochs=spec["ppo"]["epochs"],
                 num_mini_batches=spec["ppo"]["minibatches"],clip_param=.2,
@@ -373,9 +429,30 @@ def main():
                 "state_count":len(ppo.optimizer.state),
                 "first_moment_cleared":bool(cleared),
                 "first_moment_tensors_cleared":cleared}
+            exploration=spec.get('recovery',{}).get('exploration_initialization')
+            if exploration is not None:
+                from native_stand.recovery.exploration import initialize as initialize_exploration
+                if args.phase not in exploration['apply_phases']:
+                    raise ValueError('Exploration intervention applied to unexpected phase')
+                progress['exploration_initialization']=initialize_exploration(actor,exploration,
+                    wheel_scale_rad_s=spec['action']['wheel_scale_rad_s'],leg_scale_rad=spec['action']['leg_scale_rad'])
             retention_cfg=spec.get("retention")
             reference_eligible_count=None
             standing_retention=None
+            mean_auxiliary=None
+            leg_auxiliary=None
+            if spec.get('recovery',{}).get('leg_center_auxiliary'):
+                from native_stand.recovery.leg_center_auxiliary import LegCenterAuxiliary
+                leg_auxiliary=LegCenterAuxiliary(actor,spec['recovery']['leg_center_auxiliary'],max_grad_norm=ppo.max_grad_norm)
+                leg_auxiliary_family_mask=torch.tensor([p['family']==leg_auxiliary.config['family'] for p in env.pose_library['poses']],device=env.device)
+                ppo.optimizer.register_step_pre_hook(leg_auxiliary.before_step)
+            if spec.get('recovery',{}).get('wheel_mean_auxiliary'):
+                from native_stand.recovery.mean_auxiliary import MeanAuxiliary
+                mean_auxiliary=MeanAuxiliary(actor,spec['recovery']['wheel_mean_auxiliary'],max_grad_norm=ppo.max_grad_norm)
+                mean_auxiliary_family_mask=torch.tensor([p['family']==mean_auxiliary.config['family']
+                    for p in env.pose_library['poses']],device=env.device)
+                ppo.optimizer.register_step_pre_hook(mean_auxiliary.before_step)
+                progress['wheel_mean_auxiliary']=mean_auxiliary.summary()
             stand_retention_cfg=spec.get('recovery',{}).get('standing_task',{}).get('retention')
             if stand_retention_cfg and stand_retention_cfg.get('enabled'):
                 if source is None:raise ValueError('standing retention requires strict source actor')
@@ -443,33 +520,26 @@ def main():
                 if STOP or time.monotonic()-started>=phase_wall-60:
                     outcome="STOPPED_BOUNDED"
                     break
+                from native_stand.command_v6.domain.metrics import motion_reward_fields
                 reward_fields=(("lift","upright","effort","action_delta","joint_margin")
-                    if spec.get('task')=='recovery' else ("upright","height","velocity_tracking",
-                    "two_wheel_contact","effort","action_delta","joint_margin"))
-                if spec.get('task')=='recovery' and spec['recovery'].get('settling_reward'):
-                    fields=('settling_linear','settling_angular') if spec['recovery']['settling_reward'].get('kind')=='pseudo_huber' else ('settling_motion',)
-                    reward_fields=(*reward_fields,*fields)
-                    if 'settling_yaw_weight' in spec['recovery']['settling_reward']:
-                        reward_fields=(*reward_fields,'settling_yaw')
-                if spec.get('task')=='recovery' and 'height_overshoot' in spec['reward']:
-                    reward_fields=(*reward_fields,'height_overshoot')
-                if spec.get('task')=='recovery' and 'pitch_level' in spec['reward']:
-                    reward_fields=(*reward_fields,'pitch_level')
-                if spec.get('task')=='recovery' and 'roll_level' in spec['reward']:
-                    reward_fields=(*reward_fields,'roll_level')
-                if spec.get('task')=='recovery':
-                    reward_fields=(*reward_fields,*tuple(name for name in
-                        ('support','low_height_wheel_spin','leg_symmetry','support_balance',
-                         'support_region','slip_proxy','wheel_longitudinal_offset') if name in spec['reward']))
-                    if spec['recovery'].get('standing_task'):
-                        from native_stand.recovery.standing import REWARD_FIELDS
-                        reward_fields=(*reward_fields,*REWARD_FIELDS)
+                    if spec.get('task')=='recovery' else motion_reward_fields(spec['reward']))
+                if spec.get('receiver_training'):
+                    reward_fields=motion_reward_fields(spec['receiver_reward'])
+                    env.ownership_counts.zero_();env.ownership_by_family.zero_()
+                elif spec.get('task')=='recovery':
+                    from native_stand.recovery.reward_fields import resolve as recovery_reward_fields
+                    reward_fields=recovery_reward_fields(spec['reward'],spec['recovery'])
                 metric=RolloutMetrics(reward_fields,
                     ("nonfinite","closure","height","tilt","body_contact","joint_safety"),
                     env.num_envs,env.device)
                 rollout_start=time.monotonic()
                 command_begin=env.command_counts.clone()
                 env.begin_task_rollout()
+                swing_diag=None
+                if spec.get('recovery',{}).get('swing_only'):
+                    from native_stand.recovery.swing_training_diagnostics import SwingDiagnostics
+                    if not hasattr(ppo,'swing_diag'):ppo.swing_diag=SwingDiagnostics(env.num_envs,env.device)
+                    swing_diag=ppo.swing_diag;swing_diag.reset()
                 from native_stand.command_v6.domain.selected_diagnostics import selected,storage_summary,GradientSummary,summarize_tensor,PolicyUpdateSummary
                 diagnostics_selected=selected(spec,update)
                 diagnostic_config=spec.get('diagnostics',{})
@@ -486,9 +556,26 @@ def main():
                     standing_retention.gradient_diagnostics=(stand_retention_cfg.get('gradient_diagnostics',False) or
                         diagnostics_selected and diagnostic_config.get('record_retention_summary',False))
                 inference_host_s=0.
+                if mean_auxiliary is not None:mean_auxiliary.begin_rollout()
+                if leg_auxiliary is not None:leg_auxiliary.begin_rollout()
+                record_policy=None
+                if spec.get('recovery',{}).get('support_record_reward'):
+                    from native_stand.recovery.support_record_proposal import PolicyReadback
+                    record_policy=PolicyReadback(env.device)
                 with torch.inference_mode():
                     for rollout_step in range(spec["ppo"]["steps_per_env"]):
                         t=time.monotonic()
+                        if leg_auxiliary is not None:
+                            from native_stand.recovery.domain import Mode
+                            controlled=env.initialization_checked&(env.fsm.mode==int(Mode.RECOVERY))
+                            leg_auxiliary.capture_pre(obs,family=leg_auxiliary_family_mask[env.initial_pose_index],
+                                controlled=controlled,clock=env.fsm.age,entry=env.rise_hold.entry)
+                        if mean_auxiliary is not None:
+                            from native_stand.recovery.domain import Mode
+                            controlled=env.initialization_checked&(env.fsm.mode==int(Mode.RECOVERY))
+                            family_mask=mean_auxiliary_family_mask[env.initial_pose_index]
+                            eligible=controlled&family_mask&(env.rise_hold.entry<0)
+                            mean_auxiliary.capture(obs,eligible,controlled)
                         if standing_retention is not None:
                             eligible=((env.command[:,:2]==0.).all(-1) &
                                 (env.root_height>=stand_retention_cfg['height_min_m']) &
@@ -500,14 +587,48 @@ def main():
                                 torch.full((env.num_envs,1),rollout_step,device=env.device)),-1)
                                 if diagnostics_selected and diagnostic_config.get('record_retention_summary') else None)
                             standing_retention.capture(obs,eligible,metadata=metadata)
+                        if spec.get('recovery',{}).get('actor_update_scope'):
+                            from native_stand.recovery.controlled_ppo import pre_action_valid
+                            from native_stand.recovery.domain import Mode
+                            obs=obs.clone();obs[KEY]=(env.actor_valid_pre() if spec.get('receiver_training') else pre_action_valid(env.fsm.mode==int(Mode.INITIALIZING),env.initialization_checked))[:,None]
+                            if spec.get('receiver_training'):
+                                from native_stand.recovery.handoff_ownership import ownership
+                                phase,_=ownership(env.fsm.mode==int(Mode.INITIALIZING),env.initialization_checked,env.executed_prefix,torch.where(env.pose_direct_reset[env.initial_pose_index],0,50))
+                                from native_stand.recovery.handoff_ownership import phase_metadata
+                                phase,elapsed=phase_metadata(phase,env.initial_age,env.executed_prefix,env.rise_hold.motion_age,env.rise_hold.entry,env.rise_hold.count)
+                                obs['receiver_phase']=phase[:,None]
+                                obs['receiver_phase_time_s']=elapsed[:,None].clone()
+                                obs['receiver_executed_action']=torch.zeros((env.num_envs,6),device=env.device)
+                                obs['receiver_physical_target']=torch.zeros((env.num_envs,6),device=env.device)
                         action=ppo.act(obs)
+                        if swing_diag is not None:
+                            swing_diag.pre(obs[KEY].squeeze(-1),env.robot.data.joint_pos.torch[:,env.ids],action,env.reference)
+                        if record_policy is not None:
+                            from native_stand.recovery.domain import Mode
+                            record_eligible=(env.initialization_checked&(env.fsm.mode==int(Mode.RECOVERY))&
+                                env.support_record_family_mask[env.initial_pose_index]&(env.rise_hold.entry<0))
+                            record_policy.add(actor.output_mean,actor.output_std,action,record_eligible)
+                        if mean_auxiliary is not None:
+                            mean_auxiliary.observe_policy(actor.output_mean,actor.output_std,action,eligible)
                         inference_host_s+=time.monotonic()-t
                         episode_before=env.episode_length_buf.clone()
                         if diagnostics_selected and spec.get('task')!='recovery':
                             diagnostic_targets.append(env.target_xy.detach().clone())
                             diagnostic_ages.append(episode_before.float()*env.step_dt)
-                        obs,reward,dones,extras=wrapped.step(action.to(env.device).clone())
+                        executed_action=env.compose_training_action(action) if spec.get('receiver_training') else action
+                        if spec.get('receiver_training'):
+                            ppo.transition.observations['receiver_executed_action']=executed_action.clone()
+                        obs,reward,dones,extras=wrapped.step(executed_action.to(env.device).clone())
                         obs=obs.clone()
+                        if spec.get('receiver_training'):
+                            physical=torch.zeros((env.num_envs,6),device=env.device)
+                            physical[:,[0,1,3,4]]=env.recovery_control_snapshot[:,28:32]
+                            physical[:,[2,5]]=env.recovery_control_snapshot[:,[20,23]]*100.
+                            ppo.transition.observations['receiver_physical_target']=physical
+                        if leg_auxiliary is not None:
+                            leg_auxiliary.finish_transition(env.recovery_snapshot[:,3].bool()|env.recovery_snapshot[:,4].bool())
+                        if swing_diag is not None:
+                            swing_diag.post(env.recovery_snapshot,env.standing_snapshot,env.effort,dones.bool().reshape(-1),env.wheel_geometry_snapshot,env.wheel_geometry_snapshot.new_tensor(spec['recovery']['standing_task']['hip_anchors_root_m']))
                         if diagnostics_selected:
                             reward_total.add_(reward.sum())
                             diagnostic_durations.append(torch.where(dones.bool().reshape(-1),
@@ -531,6 +652,13 @@ def main():
                         metric.add(env.reward_raw,env.reward_weighted,env.terminal_causes,
                             env.contact_force>2.,env.closure_each,env.effort,EFFORT_LIMITS,
                             (episode_before+1).double()*env.step_dt,dones.bool(),motion)
+                        if spec.get('recovery',{}).get('actor_update_scope'):
+                            obs=obs.clone();obs[KEY]=torch.zeros((env.num_envs,1),device=env.device,dtype=torch.bool)
+                            if spec.get('receiver_training'):
+                                obs['receiver_phase']=torch.zeros((env.num_envs,1),device=env.device,dtype=torch.long)
+                                obs['receiver_phase_time_s']=env.rise_hold.motion_age[:,None].clone()
+                                obs['receiver_executed_action']=torch.zeros((env.num_envs,6),device=env.device)
+                                obs['receiver_physical_target']=torch.zeros((env.num_envs,6),device=env.device)
                         ppo.process_env_step(obs,reward,dones,extras)
                     ppo.compute_returns(obs)
                 rollout_s=time.monotonic()-rollout_start
@@ -542,6 +670,8 @@ def main():
                 gradient_observer=GradientSummary(actor,critic,ppo.optimizer) if selected_summary is not None else None
                 policy_probe=PolicyUpdateSummary(actor,storage,ppo.clip_param) if selected_summary is not None else None
                 t=time.monotonic()
+                if mean_auxiliary is not None:mean_auxiliary.finalize()
+                if leg_auxiliary is not None:leg_auxiliary.finalize()
                 try:losses=ppo.update()
                 finally:
                     if gradient_observer is not None:gradient_observer.close()
@@ -637,6 +767,21 @@ def main():
                     "command_sample_counts":(env.command_counts-command_begin).cpu().tolist()}
                 if spec.get('task')=='recovery':
                     progress['latest_metric']['recovery_initialization']=env.initialization_summary()
+                if mean_auxiliary is not None:
+                    progress['latest_metric']['wheel_mean_auxiliary']=mean_auxiliary.summary()
+                    progress['wheel_mean_auxiliary']=mean_auxiliary.summary()
+                if leg_auxiliary is not None:
+                    progress['latest_metric']['leg_center_auxiliary']=leg_auxiliary.summary()
+                if spec.get('recovery',{}).get('actor_update_scope'):
+                    if swing_diag is not None and ppo.mask_summary['valid_actor_samples']!=int(swing_diag.counts[1]):raise RuntimeError('Pre-action control mask/storage alignment conflict')
+                    progress['latest_metric']['actor_update_scope']=ppo.mask_summary
+                    if spec.get('receiver_training'):
+                        progress['latest_metric']['receiver_ownership']=env.receiver_summary()
+                        if ppo.mask_summary['valid_actor_samples']!=env.receiver_summary()['receiver']:
+                            raise RuntimeError('Receiver ownership/masked PPO sample conflict')
+                    progress['latest_metric']['swing_training_diagnostics']=swing_diag.summary() if swing_diag is not None else None
+                if record_policy is not None:
+                    progress['latest_metric']['support_record_policy']=record_policy.summary()
                 plan=schedule(update,args.phase,spec["evaluation"])
                 if args.phase=='smoke' and update==max_updates:
                     plan['light']=True
@@ -669,6 +814,9 @@ def main():
                         "task_curriculum":task_manager.state() if task_manager else None,
                         "recovery_curriculum":(env.recovery_curriculum_checkpoint_state()
                             if spec.get('task')=='recovery' and hasattr(env,'recovery_curriculum_checkpoint_state') else None)},path)
+                    if spec.get('source_input_dim')==150:
+                        from native_stand.command_v6.tools.update_proof import compare as saved_update_proof
+                        _write(output/f'actor_update_proof_{update}.json',saved_update_proof(spec['source_checkpoint'],path))
                     progress["latest_checkpoint"]={"path":str(path),"sha256":digest(path),
                         "update":update}
                     inventory=json.loads((output/'checkpoint_inventory.json').read_text()) if (output/'checkpoint_inventory.json').is_file() else []
@@ -682,7 +830,8 @@ def main():
                     evaluations=[]
                     task_cases=[]
                     evaluation_commands=([[0,0]] if plan.get('zero_only') else
-                        spec["curriculum"]["stages"][stage]["commands"])
+                        spec.get('motion_posture',{}).get('assessment_commands',
+                            spec["curriculum"]["stages"][stage]["commands"]))
                     for command in evaluation_commands:
                         if spec.get('straight_high_speed_course'):
                             eval_identity={**eval_identity,'course_stage':stage,
@@ -690,12 +839,12 @@ def main():
                         with preserve_rng_state():
                             result=evaluate_actor(actor,wrapped,env,target=command,
                             seconds=evaluation_seconds(spec,full=plan['full']),
-                            full_trace=(plan['full'] and (not spec.get('recovery',{}).get('standing_task') or
-                                                         update==max_updates)),seed=spec["evaluation"]["seed"],
+                            **storage_plan(spec,update=update,full=plan['full'],final=update==max_updates,
+                                legacy_full_trace=plan['full'] and (not spec.get('recovery',{}).get('standing_task') or update==max_updates))['runtime_kwargs'],seed=spec["evaluation"]["seed"],
                             scored_envs=spec["evaluation"]["scored_envs"],
                             target_window=((spec['evaluation'].get('motion_window_s',[2.,8.]) if command!=[0,0] else spec["evaluation"]["steady_window_s"]) if plan["full"]
                                            else spec["evaluation"]["light_window_s"]),
-                            standing_protocol=spec["evaluation"] if plan["full"] else None,
+                            standing_protocol=scoring_configuration((spec["recovery"]["standing_task"]["protocol"] if spec.get("recovery",{}).get("rising_task",{}).get("version")=="autonomous_rise_min_height_v2" else spec["evaluation"])) if plan["full"] else None,
                                 stop_requested=lambda:STOP or time.monotonic()-started>=phase_wall-60)
                         if (spec.get('recovery',{}).get('standing_task') and plan['full'] and
                                 env.reverse_curriculum is not None):
@@ -706,6 +855,12 @@ def main():
                                 raise RuntimeError('evaluation evidence identity fault: '+str(validated))
                             env.reverse_curriculum.confirm_evaluation(stage=env.reverse_curriculum.stage,
                                 accepted=result['accepted'],continuous_s=spec['evaluation']['seconds'])
+                        if recovery_progress_guard is not None and plan['full']:
+                            progress['recovery_progress_guard']=recovery_progress_guard.observe(result)
+                            if progress['recovery_progress_guard']['stop']:
+                                progress['early_stop_reason']='Recovery declared entry/oscillation protection failed twice'
+                        if mean_auxiliary is not None and plan['full'] and result['accepted']:
+                            progress['early_stop_reason']='Swing and retained families fully accepted; preserve candidate and stop bounded block'
                         if standing_regression is not None:
                             retained=result.get('retained_evaluations',[])
                             retention_accepted=all(row['accepted'] for row in retained) if retained else result['accepted']
@@ -713,8 +868,13 @@ def main():
                                 full=plan['full'],continuous_s=evaluation_seconds(spec,full=plan['full']))
                             progress['standing_regression']={'confirmed':standing_regression.confirmed,
                                 'consecutive_failures':standing_regression.failures,
-                                'scope':'retained_R0' if retained else 'current_family'}
-                            if stop_regression:
+                                'scope':'retained_families' if retained else 'current_family',
+                                'families':[row.get('evaluation_family') for row in retained]}
+                            from native_stand.recovery.regression_policy import should_stop
+                            effective_stop=should_stop(stop_regression,retained,spec.get('recovery',{}).get('retention_regression_policy'))
+                            progress['standing_regression'].update(stop_requested=stop_regression,stop_effective=effective_stop,
+                                policy=spec.get('recovery',{}).get('retention_regression_policy'))
+                            if effective_stop:
                                 progress['early_stop_reason']='standing regressed in two consecutive full evaluations'
                         if command!=[0,0] and plan['full'] and spec['evaluation'].get('protocol_identity') not in ('capability_v2','motion_absolute_v3'):
                             movement_protocol={**spec['evaluation'],
@@ -738,16 +898,16 @@ def main():
                             source_sha256=spec['source_sha256'],asset_sha256=spec['asset_sha256'],
                             spec_sha256=digest(args.spec))
                         write_start=time.monotonic()
-                        _write(output/label,result)
+                        _write_evaluation(spec,output/label,result)
                         registry.append({'role':'candidate','kind':('full' if plan['full'] else 'light') if command==[0,0] or spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3') else 'motion',
                             'checkpoint':str(path),'checkpoint_sha256':digest(path),'update':update,
-                            'identity':eval_identity,'evaluation':label,'result':{**result,'per_env':[
+                            'identity':eval_identity,'evaluation':label,'evaluation_sha256':digest(output/label),'result':{**result,'per_env':[
                                 {key:value for key,value in row.items() if key not in (
                                     'trace','compact_trace_100hz','posture_trace_100hz',
                                     'gate_diagnostics_100hz','control_diagnostics_100hz','failure_window_100hz',
                                     'failure_posture_window_100hz')}
                                 for row in result['per_env']]}})
-                        _write(output/'candidate_registry.json',registry)
+                        _write(output/'candidate_registry.json',compact(registry))
                         serialization_s+=time.monotonic()-write_start
                         evaluations.append({"command":command,"path":label,
                             "outcome_counts":result["outcome_counts"],
@@ -767,15 +927,16 @@ def main():
                     if task_manager is not None and plan['full'] and not plan.get('zero_only'):
                         last_confirmation=update
                         if spec.get('effective_recipe_version'):
-                            task_manager.config['required_commands']=spec['curriculum']['stages'][stage]['commands']
+                            task_manager.config['required_commands']=spec.get('motion_posture',{}).get('assessment_commands',
+                                spec['curriculum']['stages'][stage]['commands'])
                         event=task_manager.confirm(update,task_cases,
-                            new_commands=spec['curriculum']['stages'][stage]['boundary'],
+                            new_commands=[] if spec.get('motion_posture') else spec['curriculum']['stages'][stage]['boundary'],
                             episode_length_s=env.episode_windows.config['lengths_s'][env.episode_windows.level]
                             if env.episode_windows else env.cfg.episode_length_s)
                         with (output/'task_confirmations.jsonl').open('a') as handle:
                             handle.write(json.dumps(event)+'\n')
                         progress['task_curriculum']=task_manager.state()
-                        if stage>0 and event['passed']:
+                        if stage>0 and event['passed'] and not spec.get('motion_posture'):
                             progress['best_motion_candidate']={'checkpoint':str(path),'sha256':digest(path),
                                 'stage':stage,'update':update,'cases':task_cases}
                             progress['accepted_by_stage'][str(stage)]={'checkpoint':str(path),
@@ -795,15 +956,15 @@ def main():
                                     for final_command in spec['curriculum']['stages'][stage]['commands']:
                                         with preserve_rng_state():
                                             final_result=evaluate_actor(actor,wrapped,env,target=final_command,
-                                                seconds=evaluation_seconds(spec,full=True),full_trace=True,
+                                                seconds=evaluation_seconds(spec,full=True),**storage_plan(spec,full=True,final=True,legacy_full_trace=True)["runtime_kwargs"],
                                                 seed=final_seed,scored_envs=spec['evaluation']['scored_envs'],
                                                 target_window=spec['evaluation']['motion_window_s'] if final_command!=[0,0] else spec['evaluation']['steady_window_s'],
-                                                standing_protocol=spec['evaluation'],
+                                                standing_protocol=scoring_configuration((spec["recovery"]["standing_task"]["protocol"] if spec.get("recovery",{}).get("rising_task",{}).get("version")=="autonomous_rise_min_height_v2" else spec["evaluation"])),
                                                 stop_requested=lambda:STOP or time.monotonic()-started>=phase_wall-60)
                                         label=f'final_seed_{final_seed}_{final_command[0]}_{final_command[1]}.json'
                                         final_result.update(checkpoint_sha256=digest(path),spec_sha256=digest(args.spec),
                                             evaluator_sha256=evaluator_sha,seed=final_seed)
-                                        _write(output/label,final_result)
+                                        _write_evaluation(spec,output/label,final_result)
                                         final_cases.append({'seed':final_seed,'command':final_command,
                                             'evaluation':label,'gate':final_result['capability_gate']})
                                 progress['final_capability_certificate']={'checkpoint':str(path),'sha256':digest(path),
@@ -880,6 +1041,9 @@ def main():
                 'asset_sha256':spec['asset_sha256'],'episode_curriculum':progress.get('episode_curriculum'),
                 'recovery_curriculum':(env.recovery_curriculum_checkpoint_state()
                     if spec.get('task')=='recovery' and env is not None and hasattr(env,'recovery_curriculum_checkpoint_state') else None)},path)
+            if spec.get('source_input_dim')==150:
+                from native_stand.command_v6.tools.update_proof import compare as saved_update_proof
+                _write(output/f'actor_update_proof_{update}.json',saved_update_proof(spec['source_checkpoint'],path))
             progress['latest_checkpoint']={'path':str(path),'sha256':digest(path),'update':update}
             inventory=json.loads((output/'checkpoint_inventory.json').read_text()) if (output/'checkpoint_inventory.json').is_file() else []
             inventory.append(progress['latest_checkpoint'])

@@ -52,6 +52,18 @@ class CommandEnv(NativeStandEnv):
     def set_evaluation_target(self,vx,yaw):
         self.forced_target=(float(vx),float(yaw))
 
+    def measure_posture_geometry(self):
+        """Explicit diagnostic call; no reward/action/reset changes."""
+        from isaaclab.utils.math import quat_apply
+        from native_stand.command_v6.domain.posture_geometry import measure
+        data=self.robot.data
+        hip_ids=[self.body_ids[side+'_upper_leg'] for side in ('left','right')]
+        body=data.body_pos_w.torch
+        q=data.root_quat_w.torch
+        columns=[quat_apply(q,q.new_tensor(axis).expand(self.num_envs,-1))
+                 for axis in ((1.,0.,0.),(0.,1.,0.),(0.,0.,1.))]
+        return measure(body[:,hip_ids],body[:,self.wheel_body_ids],torch.stack(columns,dim=-1))
+
     def clear_evaluation_target(self):
         self.forced_target=None
 
@@ -100,6 +112,8 @@ class CommandEnv(NativeStandEnv):
         if not hasattr(self,"target_xy"):
             return
         if self.forced_target is None:
+            from native_stand.command_v6.domain.command_sampling import resolve as sampling_plan
+            sampling_plan(self.stage_spec,self.num_envs)
             slots=self.stage_spec.get('sampling_slots')
             if slots is not None:
                 slot_tensor=torch.as_tensor(slots,device=self.device,dtype=torch.long)
@@ -179,7 +193,9 @@ class CommandEnv(NativeStandEnv):
             linear_denominator=linear_width(self.target_xy,self.reward_config),
             yaw_denominator=self.reward_config["yaw_error_denominator"],
             terminal_penalty=self.reward_config["terminal_penalty"],dt=self.step_dt,
-            action_delta_wheel_factor=self.reward_config.get('action_delta_wheel_factor',1.))
+            action_delta_wheel_factor=self.reward_config.get('action_delta_wheel_factor',1.),
+            posture_config=self.reward_config.get('posture_balance'),
+            posture_geometry=(self.measure_posture_geometry() if self.reward_config.get('posture_balance') else None))
         self.reward_raw=raw
         self.reward_weighted=weighted
         # Fault detection remains on the GPU; the trainer checks before PPO.

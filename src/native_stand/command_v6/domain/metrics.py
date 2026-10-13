@@ -3,6 +3,12 @@ import torch
 from .episode_summary import build as episode_summary
 
 
+def motion_reward_fields(reward_config):
+    """Declared optional reward terms must be registered before first rollout."""
+    from .reward import fields
+    return fields(reward_config)
+
+
 class RolloutMetrics:
     def __init__(self, names, causes, num_envs, device):
         self.names = tuple(names)
@@ -23,7 +29,7 @@ class RolloutMetrics:
         self.motion_samples=0
 
     def add(self, raw, weighted, causes, contact, closure, effort, limits, episode_seconds=None, episode_done=None, motion=None):
-        if set(raw) != set(self.names) or set(causes) != set(self.causes):
+        if set(raw) != set(self.names) or set(weighted)!=set(self.names) or set(causes) != set(self.causes):
             raise ValueError("rollout metric fields changed")
         self.raw += torch.stack([raw[n].double().sum() for n in self.names])
         self.weighted += torch.stack([weighted[n].double().sum() for n in self.names])

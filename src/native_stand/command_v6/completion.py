@@ -99,7 +99,10 @@ def evaluation_identity(spec, evaluator_sha):
             sample_rate_hz=base['sample_rate_hz'],scored_envs=base['scored_envs'],
             termination_semantics=base['termination_semantics'])
     if spec['evaluation'].get('protocol_identity') in ('capability_v2','motion_absolute_v3'):
-        result['capability_commands']=spec['curriculum']['stages'][spec['curriculum']['active_stage']]['commands']
+        result['capability_commands']=spec.get('motion_posture',{}).get('assessment_commands',
+            spec['curriculum']['stages'][spec['curriculum']['active_stage']]['commands'])
+        if spec.get('motion_posture'):
+            result['posture_acceptance']=spec['motion_posture']['acceptance']
         result['source_baseline_commands']=[[0,0],*spec.get('source_required_commands',
             [command for command in result['capability_commands'] if command!=[0,0]])]
         if spec.get('straight_high_speed_course'):
@@ -135,6 +138,10 @@ def classify(entry, expected):
             'zero' if not any(result.get('target',[0,0])[:2]) else 'motion'))
     if not normalized['candidate_eligible']:
         problems.append('missing_gate')
+    if expected.get('posture_acceptance') and any(
+            not row.get('posture_geometry',{}).get('complete_window') or
+            row.get('posture_cost_mean') is None or not math.isfinite(row['posture_cost_mean']) for row in rows):
+        problems.append('missing_posture_window')
     eligible = not problems
     means = {field: sum(row[field] for row in rows)/len(rows) if rows and
         all(row.get(field) is not None and math.isfinite(float(row[field])) for row in rows) else None for field in fields}
@@ -185,6 +192,9 @@ def choose(entries, latest, expected, checkpoints=None):
     eligible = [entry for entry in classified if entry['eligible']]
     def rank(entry):
         means = entry['means']
+        if entry.get('result_protocol')=='autonomous_rise':
+            from native_stand.recovery.selection import rise_rank
+            return rise_rank(entry)
         if entry.get('task')=='recovery' and entry.get('result_protocol')=='continuous_standing':
             if entry.get('objective')=='survival_level':
                 return (-int(entry['accepted']),-entry['passed_envs'],-means['continuous_s'],
@@ -214,11 +224,30 @@ def choose(entries, latest, expected, checkpoints=None):
         'unreviewed_checkpoints': [checkpoint for checkpoint in (checkpoints or ([latest] if latest else []))
                                   if checkpoint['sha256'] not in reviewed],
         'candidates': classified, 'full_eligible_count': len(eligible),
-        'ranking': ('Survival/level: accepted, passed envs, continuous duration, accepted curriculum stage, pitch+roll, contact, closure, SHA; motion/symmetry/reward unused'
+        'ranking': ('Autonomous rise: full acceptance, passed envs, retained passed envs, complete valid hold windows, fewer terminations, standing entries, SHA; failed pre-entry duration/height/reward unused'
+            if any(row.get('result_protocol')=='autonomous_rise' for row in classified) else
+            'Survival/level: accepted, passed envs, continuous duration, accepted curriculum stage, pitch+roll, contact, closure, SHA; motion/symmetry/reward unused'
             if any(row.get('objective')=='survival_level' for row in classified) else
             'Recovery: accepted, successful envs, recovery time for accepted / survival for failed, closure, SHA; reward unused'
             if any(row.get('task')=='recovery' for row in classified) else
             'accepted, mean continuous survival, passed envs, mean drift, contact, SHA tie-break; reward unused')}
+    recovery_candidates=[entry for entry in eligible if entry.get('task')=='recovery']
+    if recovery_candidates:
+        def diagnostic(entry):
+            rows=entry['per_env']
+            contact=[r.get('standing_metrics',{}).get('dual_contact_fraction',r.get('dual_contact_fraction')) for r in rows]
+            tilt=[r.get('standing_metrics',{}).get('peak_tilt_rad',r.get('tilt_peak_rad')) for r in rows]
+            prefix=[r.get('diagnostic_hold_prefix_s') for r in rows]
+            return {'checkpoint':entry['checkpoint'],'sha256':entry['checkpoint_sha256'],
+                'accepted':entry['accepted'],'min_contact':min(contact) if all(v is not None for v in contact) else None,
+                'max_tilt':max(tilt) if all(v is not None for v in tilt) else None,
+                'min_hold_prefix_s':min(prefix) if all(v is not None for v in prefix) else None}
+        rows=[diagnostic(entry) for entry in recovery_candidates]
+        result['diagnostic_comparison']={'candidates':rows,'certification_ranking_unchanged':True,
+            'best_contact':max((r for r in rows if r['min_contact'] is not None),key=lambda r:r['min_contact'],default=None),
+            'best_posture':min((r for r in rows if r['max_tilt'] is not None),key=lambda r:r['max_tilt'],default=None),
+            'best_prefix':max((r for r in rows if r['min_hold_prefix_s'] is not None),key=lambda r:r['min_hold_prefix_s'],default=None),
+            'scope':'diagnostic alternatives; no new acceptance or stitched model capability'}
     from .domain.candidate_roles import register_roles
     return register_roles(result,source=result['source_baseline'],latest=latest,best_new=best_new,
                           best_overall=best_overall,accepted=accepted)
@@ -250,6 +279,43 @@ def choose_capability(classified,latest,expected,checkpoints=None):
             scored_envs=len(required)*expected['scored_envs'])
         candidates.append(candidate)
     eligible=[row for row in candidates if row['eligible']]
+    posture_rule=expected.get('posture_acceptance')
+    if posture_rule:
+        source=next((r for r in eligible if r['role']=='source'),None)
+        def score_posture(candidate):
+            values=[r.get('posture_cost_mean') for r in candidate['per_env']]
+            return sum(values)/len(values) if values and all(v is not None and math.isfinite(v) for v in values) else None
+        baseline=score_posture(source) if source else None
+        def component_means(candidate):
+            metrics=[r.get('posture_geometry',{}).get('posture_component_means') for r in candidate['per_env']]
+            if not metrics or any(not isinstance(m,dict) for m in metrics):return None
+            keys=set(metrics[0])
+            if any(set(m)!=keys or any(not math.isfinite(v) for v in m.values()) for m in metrics):return None
+            return {k:sum(m[k] for m in metrics)/len(metrics) for k in keys}
+        baseline_components=component_means(source) if source else None
+        for candidate in eligible:
+            value=score_posture(candidate)
+            motion_pass=candidate['accepted']
+            improved=(value is not None and baseline is not None and
+                value<=baseline*(1-posture_rule['minimum_relative_improvement']))
+            components=component_means(candidate)
+            component_guard=bool(components and baseline_components and all(
+                components[k]<=baseline_components[k]*(1+posture_rule['maximum_component_regression_fraction'])+.005
+                for k in components))
+            candidate['posture_goal']={'motion_retained':motion_pass,'mean_cost':value,
+                'baseline_cost':baseline,'improvement_passed':improved,'component_guard':component_guard,
+                'component_means':components,'baseline_component_means':baseline_components,
+                'scope':'all assessment command environments'}
+            candidate['accepted']=motion_pass and improved and component_guard and candidate['role']!='source'
+            candidate['gate']['accepted']=candidate['accepted']
+        passing=[r for r in eligible if r['accepted']]
+        updates=sorted({r['update'] for r in passing})
+        repeated=len(updates)>=posture_rule['required_confirmations'] and updates[-1]-updates[0]>=posture_rule['minimum_confirmation_spacing_updates']
+        if not repeated:
+            for candidate in passing:
+                candidate['accepted']=False
+                candidate['gate']['accepted']=False
+                candidate['posture_goal']['awaiting_repeated_confirmation']=True
     def rank(row):
         motion=[env for env in row['per_env'] if env['command']!=[0,0]]
         endpoint=max((abs(command[0]) for command in required),default=0.)
@@ -257,7 +323,9 @@ def choose_capability(classified,latest,expected,checkpoints=None):
                      if abs(case['command'][0])<endpoint or case['command']==[0,0])
         current=all(case['accepted'] for case in row['command_results'] if abs(case['command'][0])==endpoint)
         worst=max((env.get('mean_abs_vx_error_mps',float('inf')) for env in motion),default=float('inf'))
-        return (-int(row['accepted']),-int(retained),-int(current),-row['passed_envs'],worst,
+        posture_score=row.get('posture_goal',{}).get('mean_cost')
+        return (-int(row['accepted']),-int(retained),-int(current),-row['passed_envs'],
+                (posture_score if posture_score is not None else float('inf')) if posture_rule else 0.,worst,
                 max((env['peak_tilt_rad'] for env in row['per_env']),default=float('inf')),
                 -min((env['dual_contact_fraction'] for env in row['per_env']),default=0.))
     eligible.sort(key=rank)
@@ -276,9 +344,15 @@ def choose_capability(classified,latest,expected,checkpoints=None):
         best_overall=eligible[0] if eligible else None,accepted=accepted)
 
 
-def finalize_report(run, exit_code=None):
+def finalize_report(run, exit_code=None, *, corrected_output=None):
     run = Path(run).resolve()
-    with (run/'completion.lock').open('a') as lock:
+    destination=run
+    if corrected_output is not None:
+        destination=Path(corrected_output).resolve()
+        if destination==run or destination.is_relative_to(run):
+            raise ValueError('Corrected report must be outside immutable run')
+        destination.mkdir(parents=True,exist_ok=False)
+    with (destination/'completion.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if (run/'report_ready.json').is_file():
             return read(run/'analysis.json')
@@ -289,11 +363,18 @@ def finalize_report(run, exit_code=None):
         terminal = read(run/'terminal_report.json', {})
         progress = read(run/'progress.json', {})
         metrics, issues = read_metrics(run/'metrics.jsonl')
+        if spec.get('student_training'):
+            from native_stand.students.training_evidence import finalize
+            return finalize(run,spec,manifest,terminal,progress,metrics,exit_code,destination)
         expected = evaluation_identity(spec, manifest.get('evaluator_sha256'))
         entries = read(run/'candidate_registry.json', [])
         baseline_run = manifest.get('source_baseline_run')
         if baseline_run and Path(baseline_run).resolve() != run:
-            entries += [entry for entry in read(Path(baseline_run)/'candidate_registry.json', []) if entry.get('role') == 'source']
+            if spec.get('engineering_recovery'):
+                from .tools.motion_recovery_certificate import migrated_source_entries
+                entries+=migrated_source_entries(spec,expected,report_manifest=manifest,
+                    report_snapshot=run/'source_snapshot')
+            else:entries += [entry for entry in read(Path(baseline_run)/'candidate_registry.json', []) if entry.get('role') == 'source']
         for entry in entries:
             checkpoint=Path(entry['checkpoint'])
             if not checkpoint.is_file() or sha(checkpoint)!=entry['checkpoint_sha256']:
@@ -336,8 +417,12 @@ def finalize_report(run, exit_code=None):
             'confirmed': ['only identity-matched complete evaluations are ranked'],
             'unknown': ['reward/actuator/dynamics causal explanations require separate evidence'],
             'timing_caveat': 'host elapsed timing; GPU asynchronous work not independently synchronized'}
-        write(run/'analysis.json', analysis)
-        write(run/'candidate_selection.json', selection)
+        from .domain.evidence_summary import compact
+        analysis=compact(analysis);selection=compact(selection)
+        from .tools.storage_budget import actual_bytes
+        analysis['artifact_storage_actual']=actual_bytes(run)
+        write(destination/'analysis.json', analysis)
+        write(destination/'candidate_selection.json', selection)
         report = ['# Native '+('straight-line capability' if spec.get('straight_high_speed_course') else 'recovery' if spec.get('task')=='recovery' else 'standing')+' completion', f'Event: {event_id}', f'Run: {run}',
             f"Terminal: {analysis['status']}; exit={exit_code}; conflict={conflict}",
             f"Updates/samples: {analysis['actual_updates']} / {samples}; wall={wall}",
@@ -355,9 +440,10 @@ def finalize_report(run, exit_code=None):
                 report.append(json.dumps(compact_report_value({**row,'failed_checks':failures})))
         report += ['Missing values are unknown, never zero. Drift alone does not prove a reward defect.',
                    'Read analysis.json and candidate_selection.json for gates and identities. This report does not authorize more training.']
-        (run/'completion_report.md').write_text('\n\n'.join(report)+'\n')
-        write(run/'report_ready.json', {'event_id': event_id, 'status': 'report_ready',
-            'report_sha256': sha(run/'completion_report.md'), 'time': time.time()})
+        (destination/'completion_report.md').write_text('\n\n'.join(report)+'\n')
+        write(destination/'report_ready.json', {'event_id': event_id, 'status': 'report_ready',
+            'report_sha256': sha(destination/'completion_report.md'), 'time': time.time(),
+            'original_run':str(run),'corrected_output':corrected_output is not None})
         return analysis
 
 
@@ -385,7 +471,32 @@ def notify(run, send=transport):
             return prior
         manifest = read(run/'manifest.json', {})
         session = manifest.get('hapi_session')
+        # Match frozen submission/authorization records; never silently reroute a report.
+        route_errors=[]
+        frozen=read(run/'source_snapshot/spec.json',{})
+        if frozen.get('notifications',{}).get('enabled') is False:
+            event={'event_id':ready['event_id'],'status':'notification_disabled',
+                   'reason':'Frozen experiment explicitly disables external delivery'}
+            write(run/'hapi_notification.json',event)
+            return event
+        declared=frozen.get('authorization',{})
+        configured=declared.get('hapi_session') if isinstance(declared,dict) else None
+        if configured and configured!=session:route_errors.append('frozen authorization target differs from manifest')
+        route=manifest.get('notification_route')
+        if route is not None:
+            if (not isinstance(route,dict) or route.get('target_session')!=session
+                    or route.get('owner_session')!=session):
+                route_errors.append('explicit notification owner/target differs')
+        spec_path=manifest.get('spec_path')
+        if spec_path:
+            receipt=read(Path(spec_path).with_name('chain_submission.json'),{})
+            if receipt and (receipt.get('chain')!=str(run.resolve()) or receipt.get('hapi_session')!=session):
+                route_errors.append('chain submission notification target differs')
         event = {'event_id': ready['event_id'], 'session_id': session, 'status': 'sending', 'time': time.time()}
+        if route_errors:
+            event.update(status='notification_route_conflict',errors=route_errors)
+            write(run/'hapi_notification.json',event)
+            return event
         if not session:
             event['status'] = 'notification_not_configured'
         write(run/'hapi_notification.json', event)

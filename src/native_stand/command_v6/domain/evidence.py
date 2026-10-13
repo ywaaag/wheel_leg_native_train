@@ -8,7 +8,7 @@ import math
 GATE_STATES = ("PASSED", "FAILED", "NOT_RUN", "MISSING_EVIDENCE", "CONFLICTING_EVIDENCE")
 PROTOCOL_FIELDS = frozenset('''checkpoint_every_updates closure_max_m command_mode direction_fraction_min
 dual_contact_min durability_only_for_selected durability_seconds durability_steady_window_s envs
-evaluation_schedule_s final_evaluation_seeds full_at_final full_every_updates gate_identity
+evaluation_schedule_s final_evaluation_seeds full_at_final full_every_updates full_trace_updates gate_identity
 height_steady_fraction_min hold_seconds light_every_updates light_seconds light_window_s motion_commands
 motion_protocol motion_vx_error_cap_mps motion_vx_error_floor_mps motion_vx_error_fraction
 motion_vx_error_max_mps motion_vx_min_speed_enabled motion_vx_min_speed_fraction motion_window_s
@@ -24,7 +24,8 @@ yaw_abs_max_rad_s parking_window_s requested_seconds actual_duration_seconds sam
 termination_semantics metric_scope effective_protocol_sha256 diagnostics
 observed_duration_per_env_s scoring_protocol_sha256 yaw_translation_max_mps
 straight_yaw_max_rad_s field_boundary_max_m zero_every_updates
-recovery_deadline_s post_rise_hold_s window_alignment'''.split())
+recovery_deadline_s post_rise_hold_s window_alignment minimum_height_m entry_dwell_s
+dual_contact_min_n chassis_clearance_min_m'''.split())
 
 
 def effective_protocol(protocol, *, requested_seconds, actual_duration_seconds=None,

@@ -74,6 +74,17 @@ def run_phase(spec_path,phase,output,handshake_fd=None):
     result=check(spec_path,output,phase)
     if result['status']!='PASS':
         raise ValueError(f'{phase} preflight: {result}')
+    wall_override=None
+    if spec.get('recovery',{}).get('swing_only') or spec.get('student_training'):
+        submitted=read(output.parent/'manifest.json')['submitted_unix_s']
+        remaining=submitted+spec['budget']['chain_wall_s']-time.time()-100
+        if remaining<60:raise TimeoutError('Swing-only chain wall budget exhausted')
+        wall_override=min(spec['budget'][phase+'_wall_s'],remaining)
+    if spec.get('motion_posture'):
+        submitted=read(output.parent/'manifest.json')['submitted_unix_s']
+        remaining=submitted+spec['motion_posture']['chain_wall_s']-time.time()-120
+        if remaining<60:raise TimeoutError('motion posture chain wall budget exhausted')
+        wall_override=min(spec['budget'][phase+'_wall_s'],remaining)
     attempt=uuid.uuid4().hex
     Ledger(spec_path.with_name('budget.json')).reserve(attempt,phase,output)
     temporary_pipe=handshake_fd is None
@@ -83,6 +94,7 @@ def run_phase(spec_path,phase,output,handshake_fd=None):
         writer=handshake_fd
     command=[sys.executable,str(ROOT/'monitor.py'),'--spec',str(spec_path),'--phase',phase,
         '--output-dir',str(output),'--attempt-id',attempt,'--handshake-fd',str(writer)]
+    if wall_override is not None:command+=['--wall-limit-s',str(wall_override)]
     with output.with_name(output.name+'.log').open('x') as stream:
         child=subprocess.Popen(command,stdout=stream,stderr=subprocess.STDOUT,pass_fds=(writer,))
         write(output.with_name(output.name+'.monitor.json'),{'attempt_id':attempt,'monitor_pid':child.pid,
@@ -158,6 +170,8 @@ def chain_report(chain,spec_path,phase_results,status,failure,durability):
     analysis['task_curriculum']=(formal or {}).get('terminal',{}).get('task_curriculum')
     analysis['best_motion_candidate']=(formal or {}).get('terminal',{}).get('best_motion_candidate')
     analysis['chain_wall_s']=time.time()-read(chain/'manifest.json').get('submitted_unix_s',time.time())
+    from native_stand.command_v6.domain.evidence_summary import compact
+    analysis=compact(analysis);selected=compact(selected)
     write(chain/'chain_terminal_report.json',analysis)
     write(chain/'analysis.json',analysis)
     write(chain/'candidate_selection.json',selected)
@@ -171,6 +185,8 @@ def chain_report(chain,spec_path,phase_results,status,failure,durability):
         f"Best verified motion: {analysis['best_motion_candidate']}",
         f"Chain wall seconds: {analysis['chain_wall_s']}",
         '## Phase quantitative reports']
+    if spec.get('student_training',{}).get('selection_scope'):
+        report.insert(6,'Capability scope: '+spec['student_training']['selection_scope'])
     for row in phase_results:
         path=Path(row['run'])/'completion_report.md'
         report.extend([f"{row['phase']}: {row['status']}, exit={row['exit_code']}, report={path}",
@@ -196,9 +212,22 @@ def worker(args):
         if not (chain/'run_state.json').exists():
             # Direct internal workers and old CPU fixtures still get the canonical receipt.
             record_state(chain,RunState.SUBMITTED.value,phase='submission')
-        for phase in ('source_eval','smoke','formal'):
+        declaration=read(spec)
+        if declaration.get('source_evidence_reference'):
+            from native_stand.command_v6.tools.source_evidence import check as check_source
+            certificate=check_source(declaration,declaration['source_evidence_reference'])
+            if certificate['status']!='REUSABLE':raise ValueError(certificate)
+            phases.append({'phase':'source_eval','run':certificate['folder'],'status':'COMPLETED',
+                'exit_code':0,'reused':True,'certificate':certificate,'historical_wall_not_charged_as_new':True,
+                'terminal':read(Path(certificate['folder'])/'terminal_report.json')})
+        for phase in (('source_eval','formal') if declaration.get('recovery_course',{}).get('resume') else ('smoke','formal') if declaration.get('source_evidence_reference') else ('source_eval','smoke','formal')):
+            continuation={}
+            if phase=='formal' and declaration.get('recovery_course',{}).get('resume'):
+                from native_stand.students.course_requests import verify_continuation
+                if not verify_continuation(declaration):raise ValueError('unverified course continuation lifecycle')
+                continuation={'continuation':{'version':'verified_course_continuation_v1','verified':True,'checkpoint_sha256':declaration['source_sha256']}}
             record_state(chain,state_from_stage(phase),phase=phase,worker_pid=os.getpid(),
-                active_run=str(chain/phase),finished_phases=[row['phase'] for row in phases])
+                active_run=str(chain/phase),finished_phases=[row['phase'] for row in phases],**continuation)
             chain_event(args.handshake_fd,{'event_type':'stage_started','phase':phase,
                 'worker_pid':os.getpid(),'active_run':str(chain/phase)})
             row=run_phase(spec,phase,chain/phase,args.handshake_fd if phase=='formal' else None)
@@ -222,6 +251,8 @@ def worker(args):
                     tolerance_m=geometry['tolerance_m'],samples_per_env=geometry['samples_per_env'])
                 write(chain/'wheel_geometry_readback.json',review)
                 if not review['passed']:raise RuntimeError('Runtime/USD wheel geometry mismatch; no PPO started')
+            if phase=='source_eval' and declaration.get('student_training') and not row['progress'].get('engineering_valid'):
+                raise RuntimeError('student source engineering validity missing; no PPO')
             if phase=='smoke' and (row['terminal'].get('actual_updates',0)!=read(spec)['budget']['smoke_updates'] or
                     not row['progress'].get('actor_parameters_changed')):
                 raise RuntimeError('smoke did not verify a finite actual actor update')
@@ -255,6 +286,9 @@ def worker(args):
             'worker_pid':os.getpid(),'failure':failure})
         try:
             chain_report(chain,spec,phases,status,failure,durability)
+            if read(spec).get('recovery_course'):
+                from native_stand.students.course_io import finish_block
+                finish_block(spec,chain,status,failure)
         except Exception as exc:
             write(chain/'completion_error.json',{'error':repr(exc),'failure':failure})
         try:
@@ -272,7 +306,8 @@ def launch(args):
         raise ValueError(preflight)
     if not args.hapi_session:
         raise ValueError('this chain requires an explicit confirmed HAPI target')
-    configured=read(spec).get('authorization',{}).get('hapi_session')
+    from .domain.submission_contract import authorization
+    configured=authorization(read(spec)).get('hapi_session')
     if configured and args.hapi_session!=configured:
         raise ValueError('HAPI target differs from the authorized spec')
     explicit_wait=getattr(args,'handshake_wait_s',None)
@@ -292,6 +327,8 @@ def launch(args):
         resource={'resource_policy':getattr(args,'resource_policy',None),
                   'resource_review':getattr(args,'resource_review',None)}
         write(chain/'manifest.json',{'attempt_id':attempt,'hapi_session':args.hapi_session,
+            'notification_route':{'owner_session':args.hapi_session,'target_session':args.hapi_session,
+                                  'origin':'explicit supervisor --hapi-session'},
             'spec_path':str(spec),'spec_sha256':sha(spec),'kind':'standing_chain',
             'declared_execution_source_root':read(spec).get('execution_source_root'),
             'execution_modules_sha256':{str(p.relative_to(chain/'source_snapshot/native_stand')):sha(p)

@@ -1,12 +1,16 @@
 """Shared smoke evidence validation; no fixed update number or evaluation filename."""
 import hashlib
 import json
+import math
 from pathlib import Path
 from .domain.execution_plan import smoke_plan
 from .domain.episode_summary import normalize as episode_summary
 
 
 def smoke_certificate(folder, spec):
+    if spec.get('student_training'):
+        from native_stand.students.training_evidence import smoke_certificate as student_certificate
+        return student_certificate(folder,spec)
     folder=Path(folder)
     errors=[]
     inputs={}
@@ -19,6 +23,17 @@ def smoke_certificate(folder, spec):
     progress=read('progress.json')
     terminal=read('terminal_report.json')
     manifest=read('manifest.json')
+    if spec.get('receiver_training'):
+        path=folder/'metrics.jsonl'
+        try:
+            rows=[json.loads(line) for line in path.read_text().splitlines()]
+            owners=[row.get('receiver_ownership',{}) for row in rows]
+            masks=[row.get('actor_update_scope',{}) for row in rows]
+            if not any(o.get('frozen_recovery',0)>0 and o.get('receiver',0)>0 and o.get('real_handoffs',0)>0 for o in owners):errors.append('receiver smoke real control handoff missing')
+            if not any(o.get('receiver_episode_ends',0)>0 for o in owners):errors.append('receiver smoke episode end missing')
+            if not masks or any(m.get('valid_actor_samples')!=o.get('receiver') for m,o in zip(masks,owners)) or not any(m.get('actor_optimizer_steps',0)>0 for m in masks):errors.append('receiver smoke masked optimizer missing/misaligned')
+            inputs['receiver_metrics_sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+        except (OSError,ValueError,TypeError):errors.append('receiver smoke ownership evidence missing')
     frozen_spec=read('source_snapshot/spec.json')
     if frozen_spec!=spec:errors.append('smoke frozen spec differs')
     if inputs.get('source_snapshot/spec.json')!=manifest.get('spec_sha256'):
@@ -28,6 +43,77 @@ def smoke_certificate(folder, spec):
     if terminal.get('actual_updates')!=progress.get('actual_updates'):
         errors.append('terminal/progress update conflict')
     if not progress.get('actor_parameters_changed'):errors.append('actor update unproven')
+    if spec.get('recovery',{}).get('actor_update_scope'):
+        path=folder/'metrics.jsonl'
+        try:
+            rows=[json.loads(line) for line in path.read_text().splitlines()]
+            inputs['controlled_actor_metrics_sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+            audits=[r.get('actor_update_scope') for r in rows]
+            if not audits or any(a is None for a in audits):errors.append('Controlled actor optimizer readback missing')
+            elif not any(a['valid_actor_samples']>0 and a['actor_optimizer_steps']>0 for a in audits):errors.append('Controlled actor optimizer events missing')
+            elif any(a['valid_actor_samples']+a['invalid_actor_samples']!=a['total_transitions'] for a in audits):errors.append('Actor mask accounting conflict')
+        except (OSError,ValueError,KeyError,TypeError):errors.append('Controlled actor evidence missing')
+    if spec.get('recovery',{}).get('drawback_guidance'):
+        path=folder/'metrics.jsonl'
+        try:
+            rows=[json.loads(line) for line in path.read_text().splitlines()]
+            inputs['drawback_guidance_metrics_sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+            audits=[r.get('task_metrics',{}).get('drawback_guidance_audit') for r in rows]
+            if not audits or any(a is None for a in audits):errors.append('DrawBack guidance runtime readback missing')
+            elif (not any(a['positive_samples']>0 for a in audits) or
+                  any(a['failed_reward_violations'] or a['ineligible_reward_violations'] for a in audits)):
+                errors.append('DrawBack guidance positive-event/mask certificate failed')
+        except (OSError,ValueError,KeyError,TypeError):errors.append('DrawBack guidance evidence missing')
+    if spec.get('recovery',{}).get('leg_center_auxiliary'):
+        path=folder/'metrics.jsonl'
+        try:
+            rows=[json.loads(line) for line in path.read_text().splitlines()]
+            inputs['leg_center_metrics_sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+            if not any(r.get('leg_center_auxiliary',{}).get('eligible_count',0)>0 and
+                r.get('leg_center_auxiliary',{}).get('nonempty_applications',0)>0 and
+                (r.get('leg_center_auxiliary',{}).get('first_step') or {}).get('weighted_aux_actor_norm',0)>0 for r in rows):
+                errors.append('leg center smoke eligible nonzero gradient missing')
+        except (OSError,ValueError,TypeError):errors.append('leg center smoke evidence missing')
+    if spec.get('action_distribution'):
+        path=folder/'metrics.jsonl'
+        try:
+            rows=[json.loads(line) for line in path.read_text().splitlines()]
+            inputs['bounded_mean_policy_metrics_sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+            policies=[r.get('support_record_policy',{}) for r in rows if r.get('support_record_policy',{}).get('eligible_count',0)>0]
+            proven=bool(policies) and all(len(p.get('abs_mean_normalized',[]))==2 and
+                all(math.isfinite(v) and 0<=v<=1+1e-6 for v in p['abs_mean_normalized']) for p in policies)
+            for channel in (0,1):
+                proven=proven and any(len(p.get('sample_clip_fraction',[]))==2 and
+                    math.isfinite(p['sample_clip_fraction'][channel]) and 0<=p['sample_clip_fraction'][channel]<1 for p in policies)
+            if not proven:errors.append('bounded mean smoke actual eligible policy/exploration unproven')
+        except (OSError,ValueError,KeyError,TypeError):errors.append('bounded mean smoke policy evidence missing')
+    if spec.get('recovery',{}).get('support_record_reward'):
+        path=folder/'metrics.jsonl'
+        try:
+            rows=[json.loads(line) for line in path.read_text().splitlines()]
+            inputs['support_record_metrics_sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+            audits=[row.get('task_metrics',{}).get('support_record_audit') for row in rows]
+            if not audits or any(a is None for a in audits):errors.append('support record baseline/reset audit missing')
+            elif any(a.get(k,1)!=0 for a in audits for k in ('failed_step_reward_violations','ineligible_reward_violations','episode_budget_violations')):
+                errors.append('support record reward budget/scope violations')
+            elif not any(a.get('baseline_established_count',0)>0 and a.get('reset_count',0)>0 for a in audits):errors.append('support record baseline/reset events unproven')
+            observed=[row.get('rollout',{}).get('weighted_mean',{}).get('support_record_progress') for row in rows]
+            if not observed or any(value is None or not isinstance(value,(int,float)) or not math.isfinite(value) or value<0 for value in observed):
+                errors.append('smoke support record reward readback missing or invalid')
+            elif not any(value>0 for value in observed):
+                errors.append('smoke support record positive progress event unproven')
+        except (OSError,ValueError,KeyError):errors.append('smoke support record evidence missing')
+    if spec.get('recovery',{}).get('wheel_mean_auxiliary'):
+        path=folder/'metrics.jsonl'
+        try:
+            rows=[json.loads(line) for line in path.read_text().splitlines()]
+            inputs['mean_auxiliary_metrics_sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+            proven=any(row.get('wheel_mean_auxiliary',{}).get('eligible_count',0)>0 and
+                row.get('wheel_mean_auxiliary',{}).get('nonempty_applications',0)>0 and
+                (row.get('wheel_mean_auxiliary',{}).get('first_step') or {}).get('weighted_aux_actor_norm',0)>0
+                for row in rows)
+            if not proven:errors.append('smoke mean auxiliary eligible gradient unproven')
+        except (OSError,ValueError,KeyError):errors.append('smoke mean auxiliary evidence missing')
     if terminal.get('failure') or terminal.get('status') not in ('COMPLETED','STOPPED_BOUNDED'):
         errors.append('smoke terminal failure')
     if manifest.get('source_sha256')!=spec.get('source_sha256'):
@@ -119,6 +205,17 @@ def validate_persisted_certificate(folder, spec, *, certificate_path=None):
 
 
 def completed_smoke(book,spec):
+    if spec.get('recovery_course',{}).get('resume'):
+        try:
+            from native_stand.students.course_requests import verify_continuation
+            return verify_continuation(spec)
+        except (OSError,ValueError,KeyError,TypeError):return False
+    if spec.get('engineering_recovery'):
+        try:
+            from .tools.motion_recovery_certificate import validate
+            validate(spec,book)
+            return True  # Explicit recovered wiring, not an edited historical smoke certificate.
+        except (OSError,ValueError,KeyError,TypeError):return False
     for row in book.get('attempts',{}).values():
         if row.get('phase')!='smoke' or row.get('status') not in ('COMPLETED','STOPPED_BOUNDED'):continue
         folder=Path(row['output_dir'])

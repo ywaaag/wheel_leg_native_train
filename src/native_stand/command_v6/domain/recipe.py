@@ -4,8 +4,13 @@ import copy
 
 def resolve(spec):
     result = copy.deepcopy(spec)
+    if spec.get('receiver_training'):
+        return result, {'mode':'receiver_motion_recipe','reward':result['receiver_reward'],
+            'actor_scope':'receiver_only','critic_context':result['receiver_training']['critic_context'],
+            'changes':[],'control_scales':result['action']}
     if spec.get('task') == 'recovery':
-        return result, {'mode': 'recovery_owned', 'changes': []}
+        from native_stand.recovery.effective import disclose
+        return result, {'mode': 'recovery_owned', 'changes': [],'effective_recovery':disclose(spec)}
     strict = spec.get('effective_recipe_version') == 1
     conflicts = []
     reward = result['reward']
@@ -14,9 +19,12 @@ def resolve(spec):
             'joint_margin','height_width_m','linear_error_denominator','yaw_error_denominator',
             'terminal_penalty','stage_linear_denominators','stage_yaw_denominators',
             'action_delta_wheel_factor','action_delta_semantics','tracking_mode','width_diagnostics',
-            'linear_cohort_width'}
+            'linear_cohort_width','posture_balance'}
         unknown=set(reward)-supported
         if unknown:raise ValueError('unsupported reward fields: '+', '.join(sorted(unknown)))
+    if reward.get('posture_balance') is not None:
+        from .posture_geometry import validate_balance
+        validate_balance(reward['posture_balance'])
     if reward.get('tracking_mode','combined') not in ('combined','separate'):
         raise ValueError('unknown tracking_mode')
     if reward.get('tracking_mode', 'combined') != 'combined':

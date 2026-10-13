@@ -10,7 +10,35 @@ SIM_PHASES = ("evaluate", "play")
 
 
 def validate(spec):
+    if spec.get("interface_version") in ("multiskill_student_v1","multiskill_mcu_v2"):
+        from native_stand.students.requests import validate as validate_student
+        return validate_student(spec)
+    if spec.get("interface_version") not in (None,"legacy150D"):
+        return ["Unknown interface version"]
     errors = [f"missing {key}" for key in REQUIRED if key not in spec]
+    if spec.get("artifacts",{}).get("evaluation_trace_encoding") not in (None,"evaluation_numeric_npz_v1"):
+        errors.append("Unknown evaluation trace encoding")
+    if spec.get('action_distribution'):
+        from .domain.action_distribution import validate as validate_distribution
+        try:validate_distribution(spec)
+        except (ValueError,KeyError,TypeError) as exc:errors.append(str(exc))
+    if spec.get('receiver_training'):
+        from native_stand.recovery.receiver_contract import validate as validate_receiver
+        try:validate_receiver(spec)
+        except (ValueError,KeyError,TypeError) as exc:errors.append(str(exc))
+    if spec.get('motion_handoff'):
+        from native_stand.recovery.handoff_requests import validate as validate_handoff
+        try:validate_handoff(spec)
+        except (ValueError,KeyError,TypeError) as exc:errors.append(str(exc))
+    if spec.get('rollout_probe'):
+        from .domain.rollout_probe import validate as validate_probe
+        try:validate_probe(spec)
+        except (ValueError,KeyError,TypeError) as exc:errors.append(str(exc))
+    try:
+        from .domain.submission_contract import authorization
+        authorization(spec)
+    except ValueError as exc:
+        errors.append(str(exc))
     if errors:
         return errors
     try:
@@ -69,7 +97,13 @@ def validate(spec):
     if [termination.get(k) for k in ("fall_root_height_m","minimum_up_cos","body_contact_max_n","active_leg_angle_max_rad")] != termination_expected:
         errors.append("frozen task failure threshold differs")
     reward=spec["reward"]
-    if spec.get('task')=='recovery':
+    if spec.get('motion_posture') is not None:
+        try:
+            from .domain.posture_geometry import validate_task
+            validate_task(spec)
+        except (ValueError,KeyError,TypeError) as exc:
+            errors.append('motion posture: '+str(exc))
+    if spec.get('task')=='recovery' and not spec.get('receiver_training'):
         if any(not isinstance(reward.get(k),(int,float)) for k in
             ('lift','upright','effort','action_delta','joint_margin','success_once','failure_once')):
             errors.append('Recovery reward fields missing')
@@ -83,9 +117,16 @@ def validate(spec):
     if cohort is not None:
         if (cohort.get('retained_commands')!=[[0,0],[.5,0],[-.5,0]] or
                 cohort.get('retained_denominator')!=.04 or
-                reward['linear_error_denominator']!=1. or not (spec.get('cohort_width_ab') or spec.get('straight_high_speed_course'))):
+                reward['linear_error_denominator']!=1. or not (spec.get('cohort_width_ab') or spec.get('straight_high_speed_course') or spec.get('receiver_training'))):
             errors.append('cohort-width A/B contract differs')
     evaluation = spec["evaluation"]
+    try:
+        from .domain.diagnostic_profiles import storage_plan
+        storage_plan(spec,full=True,legacy_full_trace=False)
+        for saved_update in evaluation.get('full_trace_updates',[]):
+            storage_plan(spec,update=saved_update,full=True,legacy_full_trace=False)
+    except (ValueError,KeyError,TypeError) as exc:
+        errors.append('evaluation storage plan: '+str(exc))
     checkpoint = evaluation.get("checkpoint_every_updates")
     light = evaluation.get("light_every_updates")
     full = evaluation.get("full_every_updates")
@@ -129,6 +170,9 @@ def validate(spec):
             errors.append(f"stage {row.get('id')} lacks required zero command fraction")
         if any(abs(c[0])>.2 or abs(c[1])>.2 for c in commands) and spec['curriculum'].get('task_progression') and action['wheel_scale_rad_s']==6.:
             errors.append('unverified commands exceed frozen action envelope')
+        from .domain.command_sampling import resolve as sampling_plan
+        try:sampling_plan(row,spec['ppo']['envs'])
+        except (ValueError,KeyError,TypeError) as exc:errors.append(str(exc))
         slots=row.get('sampling_slots')
         if slots is not None and (len(slots)!=64 or any(not isinstance(index,int) or index<0 or index>=len(commands) for index in slots)):
             errors.append(f"stage {row.get('id')} sampling slots invalid")
@@ -144,11 +188,25 @@ def validate(spec):
         from native_stand.recovery.validation import validate_recovery
         errors.extend(validate_recovery(spec))
     ppo, budget = spec["ppo"], spec["budget"]
+    trace_updates=evaluation.get('full_trace_updates',[])
+    if (not isinstance(trace_updates,list) or
+            any(type(u) is not int or u<1 or u>budget.get('formal_updates',0) or
+                not (u%evaluation['full_every_updates']==0 or
+                     u in evaluation.get('unlock_full_updates',[])) for u in trace_updates)):
+        errors.append('full_trace_updates must select declared full formal milestones')
     if ppo.get("envs",0)<=0 or ppo.get("steps_per_env",0)<=0 or ppo.get("learning_rate",0)<=0:
         errors.append("PPO sizing or learning rate invalid")
     if spec.get('evaluation_only'):
         if budget.get('formal_updates')!=0 or budget.get('smoke_updates')!=0:
             errors.append('evaluation-only recipe cannot allocate PPO updates')
+    elif spec.get('engineering_recovery'):
+        from .tools.motion_recovery_certificate import VERSION
+        ref=spec['engineering_recovery']
+        if (spec.get('task')=='recovery' or ref.get('version')!=VERSION or budget.get('smoke_updates')!=0 or
+                budget.get('source_eval_updates')!=0 or not 1<=budget.get('formal_updates',0)<=50 or
+                not 0<budget.get('formal_wall_s',0) or not spec.get('restore_source_rng') or
+                spec.get('source_input_dim')!=150 or not ref.get('sha256') or not ref.get('single_use_id')):
+            errors.append('Restricted Motion engineering recovery declaration invalid')
     elif (budget.get("formal_updates",0)<1 or budget.get("smoke_updates",0)<1 or
             budget.get("source_eval_wall_s",0)<=30 or budget.get("smoke_wall_s",0)<=60 or
             (budget.get("formal_wall_s",0) is not None and budget.get("formal_wall_s",0)<=120)):

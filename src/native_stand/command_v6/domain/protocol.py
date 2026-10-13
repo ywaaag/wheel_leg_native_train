@@ -81,8 +81,11 @@ def score(rows, valid, done, causes, timeout, *, dt, target_window=(1.,4.),
             completion_reason="early_time_limit"
         xy = sample[:,:2]
         displacement = torch.linalg.vector_norm(xy-xy[0],dim=-1)
-        time = torch.arange(1,count+1,dtype=sample.dtype)*dt
-        window = (time>=target_window[0]) & (time<=target_window[1])
+        time = torch.arange(1,count+1,dtype=torch.float64,device=sample.device)*dt
+        from .time_axis import window_indices
+        window_plan=window_indices(count,dt=dt,window_s=target_window)
+        lo,hi=window_plan['index_half_open']
+        window=torch.zeros(count,dtype=torch.bool,device=sample.device);window[lo:hi]=True
         steady = window if effective_protocol is not None else time>=2.
         parking=(time>=9.) if effective_protocol is None else torch.zeros_like(time,dtype=torch.bool)
         if effective_protocol is not None and effective_protocol.get('parking_window_s'):
@@ -97,6 +100,7 @@ def score(rows, valid, done, causes, timeout, *, dt, target_window=(1.,4.),
             "final_root_xy_m":xy[-1].tolist(),"net_drift_m":float(displacement[-1]),
             "max_excursion_m":float(displacement.max()),
             "dual_contact_fraction":float(((sample[:,8:10]>2.).all(-1)).float().mean()),
+            "window_time_axis":window_plan,
             "mean_abs_vx_error_mps":optional_mean((sample[:,3]-sample[:,6]).abs(),window),
             "mean_abs_yaw_error_rad_s":optional_mean((sample[:,5]-sample[:,7]).abs(),window),
             "mean_abs_vx_mps":optional_mean(sample[:,3].abs(),window),
@@ -300,9 +304,10 @@ def absolute_motion_gate(result, target, protocol):
             missing.append('trace'); failed.append('MISSING_EVIDENCE:trace')
         else:
             sample = torch.as_tensor(trace, dtype=torch.float64)
-            times = torch.arange(1, len(sample)+1, dtype=sample.dtype) * result['dt']
             start, end = protocol['motion_window_s'] if any(target) else protocol['steady_window_s']
-            window = sample[(times >= start-1e-8) & (times <= end+1e-8)]
+            from .time_axis import window_indices
+            hold_plan=window_indices(len(sample),dt=result['dt'],window_s=[start,end])
+            lo,hi=hold_plan['index_half_open'];window=sample[lo:hi]
             expected = round((end-start)/result['dt'])
             if len(window) < expected:
                 missing.append('full_hold_window'); failed.append('MISSING_EVIDENCE:full_hold_window')

@@ -40,6 +40,22 @@ class Ledger:
                 row["phase"]==name and row["status"]=="COMPLETED"
                 for row in book["attempts"].values())}
             spec=json.loads(self.path.with_name('spec.json').read_text())
+            from .tools.storage_budget import check as storage_check
+            storage=storage_check(spec,output,phase)
+            if storage['status']!='PASS':raise ValueError('insufficient output storage before reserve')
+            if spec.get('engineering_recovery'):
+                if phase!='formal' or book['attempts']:raise ValueError('Single-use recovery allows one formal attempt only')
+                from .tools.motion_recovery_certificate import validate as validate_recovery
+                certificate=validate_recovery(spec,book)
+                if spec.get('authorization',{}).get('status')!='AUTHORIZED':
+                    raise ValueError('Recovery spec and ledger both require explicit authorization')
+                from .tools.experiment_preparation import verify_publication
+                verify_publication(self.path.with_name('spec.json'),authorized=True)
+                completed.add('source_eval')
+            if spec.get('source_evidence_reference') and not spec.get('engineering_recovery'):
+                from .tools.source_evidence import check as check_source
+                if check_source(spec,spec['source_evidence_reference'])['status']!='REUSABLE':raise ValueError('source certificate not reusable')
+                completed.add('source_eval')
             if phase=='formal':
                 from native_stand.command_v6.wiring import completed_smoke
                 completed.discard('smoke')
@@ -55,7 +71,24 @@ class Ledger:
                 raise ValueError("required preceding phase has not completed")
             book["attempts"][attempt_id] = {"phase":phase,"output_dir":output,
                 "status":"RUNNING","updates":0,"started_unix_s":time.time()}
-        self._change(change)
+        spec_path=self.path.with_name('spec.json')
+        recovery=json.loads(spec_path.read_text()).get('engineering_recovery') if spec_path.exists() else None
+        if recovery:
+            project=Path(__file__).resolve().parents[3]
+            claims=project/'configs/experiments'/'.engineering_recovery_submissions';claims.mkdir(exist_ok=True)
+            claim=claims/(recovery['single_use_id']+'.json')
+            with (claims/'.lock').open('a') as handle:
+                fcntl.flock(handle,fcntl.LOCK_EX)
+                if claim.exists():raise ValueError('Recovery certificate already reserved; no duplicate submission')
+                # Claim first: a process death cannot leave an unclaimed running
+                # attempt. Unexpected I/O failures fail closed until audited.
+                with claim.open('x') as stream:
+                    json.dump({'attempt_id':attempt_id,'ledger':str(self.path.resolve()),'output':output},stream)
+                    stream.flush();os.fsync(stream.fileno())
+                try:self._change(change)
+                except ValueError:
+                    claim.unlink();raise
+        else:self._change(change)
 
 
     def charge(self, attempt_id, output_dir):

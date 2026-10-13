@@ -25,7 +25,9 @@ def verify_asset_import(spec, *, allow_colleague_config_drift=False):
     return result
 
 
-def apply(cfg,spec,*,envs):
+def apply(cfg,spec,*,envs,mode="training"):
+    from ..domain.environment_mode import resolve
+    cfg.native_execution_mode=resolve(mode,envs=envs)["mode"]
     control=spec["control"]
     ground=spec["ground"]
     termination=spec["termination"]
