@@ -30,8 +30,13 @@ for _state in (RunState.SUBMITTED, RunState.SOURCE_EVAL, RunState.SMOKE, RunStat
 _NEXT[RunState.STOPPED_BOUNDED] = set()
 
 
-def transition(previous, current):
+def transition(previous, current, *, continuation=None):
     previous, current = RunState(previous), RunState(current)
+    if previous==RunState.SOURCE_EVAL and current==RunState.FORMAL and continuation is not None:
+        if (continuation.get('version')!='verified_course_continuation_v1' or continuation.get('verified') is not True
+                or len(continuation.get('checkpoint_sha256',''))!=64):
+            raise ValueError('invalid verified continuation lifecycle evidence')
+        return current.value
     if current != previous and current not in _NEXT[previous]:
         raise ValueError(f"invalid RunState transition {previous.value}->{current.value}")
     return current.value
@@ -43,7 +48,7 @@ def record(chain, current, *, previous=None, phase=None, **evidence):
     current = RunState(current)
     existing = read(chain / "run_state.json", {}) or {}
     old = previous or existing.get("state", RunState.PLANNED.value)
-    transition(old, current)
+    transition(old, current,continuation=evidence.get('continuation'))
     event = {"state": current.value, "previous_state": old, "phase": phase,
              "time_unix_s": time.time(), **evidence}
     write(chain / "run_state.json", event)

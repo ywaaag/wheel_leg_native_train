@@ -25,6 +25,11 @@ def inspect(path,spec,spec_path):
             if checkpoint.get('update')!=spec['source_update'] or checkpoint.get('asset_sha256')!=spec.get('source_asset_sha256',spec['asset_sha256']):
                 raise ValueError('native source internal identity differs')
             kind='NATIVE_SOURCE_STRICT'
+            if checkpoint.get('initialization_candidate'):
+                from native_stand.recovery.initialization_candidate import verify
+                c=verify(checkpoint,path)
+                if spec.get('initialization_candidate',{}).get('sha256')!=c['sha256']:raise ValueError('Candidate declaration missing or differs')
+                kind='UNTRAINED_LEG_INITIALIZATION_SOURCE'
         elif (not spec.get('diagnostic_identity_only') and
               (checkpoint.get("spec_sha256")!=digest(spec_path) or
                checkpoint.get("asset_sha256")!=spec["asset_sha256"])):

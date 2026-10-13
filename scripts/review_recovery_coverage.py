@@ -7,7 +7,7 @@ from pathlib import Path
 import torch
 from tensordict import TensorDict
 
-from native_stand.command_v6.learning import model
+from native_stand.command_v6.tools.model_factory import model
 
 
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()

@@ -21,6 +21,13 @@ def checkpoint_metadata(path):
     import torch
     try:
         checkpoint=torch.load(path,map_location='cpu',weights_only=False)
+        if checkpoint.get('interface_version') in ('multiskill_student_v1','multiskill_mcu_v2'):
+            return {'interface_version':checkpoint['interface_version'],'role':checkpoint['role'],
+                'actor_input_shape':list(checkpoint['actor']['mlp.0.weight'].shape),
+                'critic_input_shape':list(checkpoint['critic']['mlp.0.weight'].shape),
+                'std':checkpoint['actor']['log_std'].exp().tolist(),
+                'dataset_sha256':checkpoint['dataset_sha256'],'manifest_sha256':checkpoint['manifest_sha256'],
+                'offline_bc_steps':checkpoint['offline_bc_steps']}
         return {'update':checkpoint.get('update'),'asset_sha256':checkpoint.get('asset_sha256'),
             'spec_sha256':checkpoint.get('spec_sha256'),
             'source_sha256':checkpoint.get('source_sha256'),
@@ -207,11 +214,35 @@ def inspect_project(root, *, spec_path=None, run=None, include_processes=False, 
                 elif digest(path)!=spec[sha_field]:issue('IDENTITY_ERROR',path,sha_field)
             source=local_path(spec.get('source_checkpoint',''))
             if source.is_file():
-                checkpoint_info=check_metadata(source,update=spec.get('source_update'),
-                    spec_sha=spec.get('source_spec_sha256'),input_dim=spec.get('source_input_dim'),
-                    asset_sha=spec.get('source_asset_sha256',spec.get('asset_sha256')))
-            authorization=spec.get('authorization',{})
-            configured_session=authorization.get('hapi_session') if isinstance(authorization,dict) else None
+                if spec.get('interface_version') in ('multiskill_student_v1','multiskill_mcu_v2'):
+                    checkpoint_info=metadata(source)
+                    if checkpoint_info.get('interface_version')!=spec['interface_version'] or checkpoint_info.get('actor_input_shape')!=([128,31] if spec['interface_version']=='multiskill_mcu_v2' else [256,1182]) or checkpoint_info.get('critic_input_shape')!=([256,40] if spec['interface_version']=='multiskill_mcu_v2' else [256,1191]):
+                        issue('IDENTITY_ERROR',source,'student interface/network internal identity differs')
+                    from native_stand.students.model import load
+                    try:
+                        _,student=load(source,'RecoveryStudent')
+                        dependencies=spec['student_dependencies']
+                        manifests=[Path(p) for p,h in dependencies.items() if h==student['manifest_sha256']]
+                        if len(manifests)!=1 or digest(manifests[0])!=student['manifest_sha256']:
+                            raise ValueError('student teacher manifest binding differs')
+                        manifest=json.loads(manifests[0].read_text())
+                        datasets=[row for role,row in manifest.items() if role==student['role']]
+                        if len(datasets)!=1 or datasets[0]['sha256']!=student['dataset_sha256']:
+                            raise ValueError('student dataset identity differs')
+                        episodes=[e for e in manifest['episodes'] if e['role']==student['role']]
+                        if not episodes or any(e['asset_sha256']!=spec['asset_sha256'] for e in episodes):
+                            raise ValueError('student teacher data asset provenance differs')
+                    except (OSError,ValueError,KeyError,TypeError) as exc:issue('IDENTITY_ERROR',source,str(exc))
+                else:
+                    checkpoint_info=check_metadata(source,update=spec.get('source_update'),
+                        spec_sha=spec.get('source_spec_sha256'),input_dim=spec.get('source_input_dim'),
+                        asset_sha=spec.get('source_asset_sha256',spec.get('asset_sha256')))
+            from native_stand.command_v6.domain.submission_contract import authorization
+            try:
+                configured_session=authorization(spec).get('hapi_session')
+            except ValueError as exc:
+                configured_session=None
+                issue('CONFIG_ERROR',spec_path,str(exc))
             if hapi_session is not None and configured_session not in (None,hapi_session):
                 issue('AUTHORIZATION_MISSING',spec_path,'configured HAPI target is not current session')
             book=read(spec_path.with_name('budget.json'))

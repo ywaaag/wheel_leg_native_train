@@ -46,11 +46,38 @@ def identity(spec):
     relative={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
               for p in sorted(root.rglob('*.py'))}
     source_digest=hashlib.sha256(json.dumps(relative,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    scoped=execution_dependencies(relative,spec.get('task','motion'))
     return {'source_root': str(root.parent.resolve()),
             'declared_source_root':str(Path(expected).resolve()) if expected else None,
             'actual_execution_root':str(root.parent.resolve()),
             'location_independent_modules_sha256':source_digest,
-            'relative_modules_sha256':relative,
+            'relative_modules_sha256':relative,'execution_dependencies':scoped,
             'frozen_identity':frozen_identity,'python': sys.executable,
             'modules': modules, 'dependencies': dependencies,
             'PPO_path': str(algorithm), 'PPO_sha256': hashlib.sha256(algorithm.read_bytes()).hexdigest()}
+
+
+def execution_dependencies(relative,task):
+    """Task subsystem plus explicit non-runtime tool boundaries, all exclusions recorded.
+
+    The full snapshot remains recorded. Related execution code is never excluded
+    just because it changed; excluded preparation/audit tools must remain outside
+    the trainer/evaluator runtime call graph.
+    """
+    recovery_tools={'command_v6/domain/recovery_course.py','command_v6/tools/prepare_recovery_course.py',
+        'command_v6/tools/prepare_recovery_retry.py','command_v6/tools/recovery_batch.py',
+        'command_v6/tools/recovery_progress_baseline.py','command_v6/tools/review_recovery_events.py',
+        'command_v6/tools/review_recovery_takeoff.py','command_v6/tools/frozen_rollout_probe.py',
+        'command_v6/domain/rollout_probe.py'}
+    selected={};excluded={}
+    for path,sha in relative.items():
+        reason=None
+        if path.startswith('tests/') or '/tests/' in path:reason='test-only; separately validated'
+        elif task!='recovery' and path.startswith('recovery/'):reason='Recovery subsystem; Motion environment/actor/reward do not call it'
+        elif task!='recovery' and path in recovery_tools:reason='Recovery preparation/audit/probe; not Motion training/evaluation execution'
+        if reason:excluded[path]={'sha256':sha,'reason':reason}
+        else:selected[path]=sha
+    return {'version':'task_subsystem_v2','task':task,'modules_sha256':selected,
+        'sha256':hashlib.sha256(json.dumps(selected,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+        'excluded_modules':excluded,
+        'scope':'conservative task dependencies; explicit tool exclusions recorded, related changes need per-file review'}

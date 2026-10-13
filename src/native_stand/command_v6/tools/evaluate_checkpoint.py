@@ -11,11 +11,18 @@ import uuid
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT.parents[1]))
+from native_stand.command_v6.domain.evaluation_config import scoring as scoring_configuration
 from native_stand.command_v6.tools.evaluation_state import isolated_evaluation,failure_evidence
 
 
 def _sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def recovery_batch_arguments(spec,row):
+    if spec.get('task')!='recovery' or spec.get('rollout_probe'):return None
+    return {'family':row['family'],'check_retained':False,
+            'diagnostic_profile':row['diagnostic_storage']['profile']}
 
 
 def stop_on_term(_signal,_frame):
@@ -24,9 +31,17 @@ def stop_on_term(_signal,_frame):
 
 def protocol_for_spec(spec,seconds,diagnostics=False):
     from native_stand.command_v6.domain.evidence import effective_protocol
+    from native_stand.command_v6.domain.evaluation_config import scoring
     recovery=spec.get('task')=='recovery'
+    if spec.get('receiver_training'):
+        from native_stand.recovery.min_height import protocol
+        source=protocol();source.update(protocol_identity='receiver_combination_v1',version='receiver_combination_v1',
+            recovery_deadline_s=2.,seconds=seconds,steady_window_s=[0.,seconds])
+        return effective_protocol(source,requested_seconds=seconds,steady_window_s=[0.,seconds],
+            sample_rate_hz=100.,scored_envs=spec['evaluation']['scored_envs'],
+            termination_semantics='first_episode_pre_reset; complete finite task_success terminal allowed; early terminal fails')
     source=(spec.get('recovery',{}).get('standing_task',{}).get('protocol',{})
-            if recovery else spec['evaluation'])
+            if recovery else scoring(spec['evaluation']))
     if recovery and spec['recovery'].get('rising_task'):
         from native_stand.recovery.rising import rise_protocol
         source=rise_protocol(source,spec['recovery']['rising_task'])
@@ -44,7 +59,7 @@ def protocol_for_spec(spec,seconds,diagnostics=False):
         motion_window_s=None if recovery else source.get('motion_window_s'),
         parking_window_s=None if recovery else source.get('parking_window_s',
             [seconds-source['stop_window_s'],seconds] if source.get('stop_window_s',0)>0 else None),
-        termination_semantics='first_episode_pre_reset; early termination fails continuous window')
+        termination_semantics=('first_episode_pre_reset; complete finite task_success terminal allowed; early terminal fails' if source.get('protocol_identity')=='autonomous_rise_min_height_v2' else 'first_episode_pre_reset; early termination fails continuous window'))
 
 
 def validate_evaluation_request(spec, request):
@@ -54,10 +69,26 @@ def validate_evaluation_request(spec, request):
     return adapter.validate_request(spec,request)
 
 
+def batch_protocol(spec, request, diagnostics):
+    if request.get('evaluation_mode','full')=='light':
+        from native_stand.command_v6.domain.evidence import effective_protocol
+        if request['seconds']!=spec['evaluation']['light_seconds']:
+            raise ValueError('light request must match declared light duration')
+        return effective_protocol({'diagnostics':{'requested':diagnostics,'enabled':diagnostics,
+            'merge_rule':'explicit batch request'}},requested_seconds=request['seconds'],
+            steady_window_s=spec['evaluation']['light_window_s'],
+            sample_rate_hz=1/spec['control']['policy_dt_s'],scored_envs=spec['evaluation']['scored_envs'],
+            motion_window_s=None,parking_window_s=None,
+            termination_semantics='first_episode_pre_reset; early termination fails continuous window')
+    return protocol_for_spec(spec,request['seconds'],diagnostics)
+
+
 @isolated_evaluation
 def evaluate_actor(actor,wrapped,env,*,target,seconds,full_trace,seed=104,scored_envs=8,
                    target_window=(2.,10.),standing_protocol=None,diagnostics=False,stop_requested=None,
-                   progress_callback=None,effective_protocol=None):
+                   progress_callback=None,effective_protocol=None,paired_state=False):
+    if standing_protocol is not None:
+        standing_protocol=scoring_configuration(standing_protocol)
     import torch
     from native_stand.command_v6.domain.protocol import EpisodeBuffer,score,standing_gate,motion_gate,capability_gate
     from native_stand.command_v6.domain.command_schedule import effective
@@ -98,6 +129,15 @@ def evaluate_actor(actor,wrapped,env,*,target,seconds,full_trace,seed=104,scored
     buffer=EpisodeBuffer(int(round(seconds/env.step_dt)),n,env.device,dt=env.step_dt)
     diagnostic_rows=torch.zeros(buffer.rows.shape[0],n,54,device=env.device) if diagnostics else None
     diagnostic_valid=torch.zeros(buffer.rows.shape[0],n,dtype=torch.bool,device=env.device) if diagnostics else None
+    posture_enabled=bool(getattr(env,'reward_config',{}).get('posture_balance'))
+    posture_names=('left_leg_length_m','right_leg_length_m','leg_length_difference_m',
+        'wheel_heading_offset_m','wheel_height_difference_m','roll_rad')
+    posture_rows=torch.zeros(buffer.rows.shape[0],n,6,device=env.device) if posture_enabled else None
+    posture_valid=torch.zeros(buffer.rows.shape[0],n,dtype=torch.bool,device=env.device) if posture_enabled else None
+    if paired_state and not (full_trace and diagnostics):raise ValueError('paired state requires full trace/control diagnostics')
+    from native_stand.command_v6.domain.paired_state import root_geometry,concatenate,CHANNELS
+    paired_rows=torch.empty(buffer.rows.shape[0],n,CHANNELS,device=env.device) if paired_state else None
+    paired_episode_ids=env.reset_count[:n].clone().cpu().tolist() if paired_state else None
     actor.eval()
     start=time.monotonic()
     try:
@@ -112,9 +152,19 @@ def evaluate_actor(actor,wrapped,env,*,target,seconds,full_trace,seed=104,scored
                     env.episode_length_buf[:n].float()*env.step_dt,
                     height=env.command_height,entry=env.schedule_s[0],
                     ramp=env.schedule_s[1],hold=env.schedule_s[2],exit=env.schedule_s[3]))
+                if paired_state:
+                    actor_inputs={'policy':obs['policy'][:n].clone(),'history':obs['history'][:n].clone()}
+                    pre_geometry=root_geometry(env.robot.data,env.wheel_body_ids,n).clone()
                 obs,reward,dones,_=wrapped.step(actions.to(env.device).clone())
                 obs=obs.clone()
                 data=env.robot.data
+                if posture_enabled:
+                    geometry=env.measure_posture_geometry()
+                    posture_rows[buffer.index].copy_(torch.stack([geometry[k][:n] for k in posture_names],dim=-1))
+                    posture_valid[buffer.index].copy_(buffer.active & ~dones[:n].bool() & geometry['valid'][:n])
+                if paired_state:
+                    paired_rows[buffer.index].copy_(concatenate(actor_inputs,actions[:n],applied_command,
+                        pre_geometry,root_geometry(data,env.wheel_body_ids,n)))
                 if diagnostics:
                     q=data.joint_pos.torch[:n,env.ids]
                     dq=data.joint_vel.torch[:n,env.ids]
@@ -142,10 +192,48 @@ def evaluate_actor(actor,wrapped,env,*,target,seconds,full_trace,seed=104,scored
         protocol=observed_protocol(protocol,[row.get('continuous_s',0.) for row in report['per_env']])
         report.update(target=list(target),seconds=seconds,seed=seed,effective_protocol=protocol,
                       evaluation_s=time.monotonic()-start)
+        from native_stand.command_v6.domain.evaluation_config import identities
+        report['evaluation_identity_components']=identities(protocol)
+        if posture_enabled:
+            count=buffer.index
+            values=posture_rows[:count].cpu()
+            validity=posture_valid[:count].cpu()
+            times=torch.arange(1,count+1,dtype=torch.float64)*env.step_dt
+            from native_stand.command_v6.domain.posture_geometry import diagnostic_window
+            posture_axis=diagnostic_window(protocol,target,total_samples=count,dt=env.step_dt)
+            window=posture_axis['window_s']
+            mask=(times>=window[0]-1e-8)&(times<=window[1]+1e-8)
+            report['posture_diagnostics']={'schema_version':'native_posture_geometry_v1',
+                'axes':['policy_time','scored_env','channel'],'fields':list(posture_names),
+                'sample_rate_hz':1/env.step_dt,'scope':'post-policy state; excludes reset/terminal samples',
+                'rows':[[row if valid else None for row,valid in zip(step,valids)]
+                    for step,valids in zip(values.tolist(),validity.tolist())],
+                'valid':validity.tolist(),'scored_window_s':window,'window_time_axis':posture_axis,'per_env':[]}
+            from native_stand.command_v6.domain.posture_geometry import bounded_cost
+            for env_id,row in enumerate(report['per_env']):
+                selected=values[mask & validity[:,env_id],env_id]
+                complete=posture_axis['complete'] and len(selected)==posture_axis['required_samples']
+                summary={'env_id':env_id,'complete_window':complete,'samples':len(selected),
+                         'window_time_axis':posture_axis}
+                for i,name in enumerate(posture_names):
+                    summary[name+'_mean']=float(selected[:,i].mean()) if complete else None
+                    summary[name+'_abs_mean']=float(selected[:,i].abs().mean()) if complete else None
+                if complete:
+                    geometry={name:selected[:,i] for i,name in enumerate(posture_names)}
+                    geometry['valid']=torch.ones(len(selected),dtype=torch.bool)
+                    cost,parts=bounded_cost(geometry,env.reward_config['posture_balance'])
+                    summary['posture_cost_mean']=float(cost.mean())
+                    summary['posture_component_means']={k:float(v.mean()) for k,v in parts.items()}
+                else:
+                    summary.update(posture_cost_mean=None,posture_component_means=None)
+                row['posture_geometry']=summary
+                row['posture_cost_mean']=summary['posture_cost_mean']
+                report['posture_diagnostics']['per_env'].append(summary)
         if diagnostics:
             values=diagnostic_rows.cpu().tolist()
             validity=diagnostic_valid.cpu().tolist()
-            report['control_diagnostics']={'sampling':'100Hz policy end; torque held from latest5ms PD update',
+            report['control_diagnostics']={'schema_version':'motion_policy_control_v1',
+                'axes':['policy_time','scored_env','channel'],'sampling':'100Hz policy end; torque held from latest5ms PD update',
                 'groups':{'q': [0,6],'dq':[6,12],'raw_action':[12,18],'clipped_action':[18,24],
                     'leg_target_before_projection':[24,28],'leg_target_after_projection':[28,32],
                     'leg_position_error':[32,36],'PD_requested_nm':[36,42],
@@ -153,6 +241,16 @@ def evaluate_actor(actor,wrapped,env,*,target,seconds,full_trace,seed=104,scored
                 'rows':[[row if valid else None for row,valid in zip(step,mask)]
                         for step,mask in zip(values,validity)],'valid':validity,
                 'terminal_diagnostics_missing':(~diagnostic_valid).any().item()}
+        if paired_state:
+            from native_stand.command_v6.domain.paired_state import VERSION,AXES,GROUPS
+            packed_pairs=paired_rows.cpu().tolist();pair_valid=diagnostic_valid.cpu().tolist()
+            report['paired_state']={'schema_version':VERSION,'axes':AXES,'groups':GROUPS,
+                'rows':[[row if valid else None for row,valid in zip(step,mask)] for step,mask in zip(packed_pairs,pair_valid)],
+                'valid':pair_valid,'actor_sample_phase':'pre_policy_step','post_state_phase':'post_policy_step',
+                'measurement_point':'body_COM','wheel_geometry_point':'body_origins; collider centers not inferred',
+                'terminal_scope':'pre/post aligned rows exclude reset/terminal rows; terminal evidence separately saved',
+                'episode_id_by_env':paired_episode_ids,'policy_index':'row axis; zero-based',
+                'sample_rate_hz':1/env.step_dt}
         report['diagnostics_validity']={'control_diagnostics':diagnostic_field(
             True if diagnostics else None,requested=diagnostics,enabled=diagnostics,
             sample_count=int(diagnostic_valid.sum()) if diagnostics else 0,
@@ -239,13 +337,13 @@ def main():
         import torch
         sys.path.insert(0,spec["asset_module_root"])
         from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper
-        from native_stand.command_v6.learning import model as build_model
+        from native_stand.command_v6.tools.model_factory import model as build_model
         from native_stand.command_v6.runtime.env import CommandEnv,CommandEnvCfg
         from native_stand.command_v6.runtime.control_readback import verify,verify_ground
         from native_stand.command_v6.runtime.configure import apply as configure_env,verify_asset_import
         from native_stand.command_v6.domain.warmstart import expand_state
         asset_import=verify_asset_import(spec)
-        cfg=configure_env(CommandEnvCfg(),spec,envs=spec["evaluation"]["envs"])
+        cfg=configure_env(CommandEnvCfg(),spec,envs=spec["evaluation"]["envs"],mode="evaluation")
         if spec.get('task')=='recovery':
             from native_stand.recovery.recipe import environment
             env=environment(cfg,spec)
@@ -281,11 +379,13 @@ def main():
         evaluator=evaluate_actor
         if spec.get('task')=='recovery':
             from native_stand.recovery.recipe import evaluate_actor as evaluator
+        from native_stand.command_v6.domain.diagnostic_profiles import storage_plan
+        collection=storage_plan(spec,full=True,legacy_full_trace=args.full_trace,legacy_diagnostics=args.diagnostics)
         result=evaluator(actor,wrapped,env,target=(args.vx,args.yaw),
-            seconds=args.seconds,full_trace=args.full_trace,seed=spec["evaluation"]["seed"],
+            seconds=args.seconds,**collection['runtime_kwargs'],seed=spec["evaluation"]["seed"],
             scored_envs=spec["evaluation"]["scored_envs"],
             target_window=protocol["steady_window_s"],
-            standing_protocol=protocol,diagnostics=args.diagnostics,
+            standing_protocol=protocol,
             effective_protocol=plan['effective_protocol'])
         result.update({key:value for key,value in plan.items() if key!='effective_protocol'})
         result['requested_effective_protocol']=plan['effective_protocol']
@@ -293,8 +393,11 @@ def main():
         result["ground_readback"]=ground
         result["asset_import_readback"]=asset_import
         args.output.parent.mkdir(parents=True,exist_ok=True)
-        with args.output.open("x") as stream:
-            stream.write(json.dumps(result,indent=2)+"\n")
+        if spec.get('artifacts',{}).get('evaluation_trace_encoding')=='evaluation_numeric_npz_v1':
+            from native_stand.command_v6.tools.evaluation_storage import write as write_evaluation
+            write_evaluation(args.output,result)
+        else:
+            with args.output.open('x') as stream:stream.write(json.dumps(result,indent=2)+'\n')
         status="COMPLETED"
         print(json.dumps({"output":str(args.output),"outcome_counts":result["outcome_counts"]}))
     except KeyboardInterrupt:
@@ -319,11 +422,30 @@ def main():
 
 
 def batch_plan(args, spec):
+    if spec.get("interface_version") in ("multiskill_student_v1","multiskill_mcu_v2"):
+        from native_stand.students.requests import plan
+        return plan(args,spec)
     from native_stand.command_v6.tools.preflight import check
     from native_stand.command_v6.domain.recipe import resolve
+    from native_stand.command_v6.domain.input_capture import validate as validate_capture
+    validate_capture(spec)
     from native_stand.command_v6.tools.checkpoint_input import inspect
     preflight=check(args.spec,args.output,'evaluate',attempt_id=args.attempt_id)
     effective_spec,recipe=resolve(spec)
+    if spec.get('motion_handoff'):
+        from native_stand.recovery.handoff_evaluator import plan as handoff_plan
+        return handoff_plan(args,spec,preflight)
+    if spec.get('rollout_probe'):
+        from native_stand.command_v6.domain.rollout_probe import validate as validate_probe
+        validate_probe(spec)
+        info=inspect(Path(spec['source_checkpoint']),spec,args.spec)
+        if info['checkpoint_sha256']!=spec['source_sha256']:raise ValueError('Probe source SHA differs')
+        return {'preflight':preflight,'requested':spec,'effective_recipe':recipe,
+            'execution_identity':preflight['execution_identity'],'requests':[{
+                'checkpoint':spec['source_checkpoint'],'sha256':spec['source_sha256'],'target':[0,0],
+                'seconds':2.56,'seed':spec['seed'],'family':'mixed_fixed_training_families',
+                'role':'frozen_stochastic_rollout','diagnostic_storage':None,'effective_protocol':{'capability_gate':'NOT_RUN'}}],
+            'simulation':0,'online_PPO':0,'offline_optimizer_updates':0,'files_written':0}
     requests=spec['evaluation_requests']
     if not requests or spec.get('effective_recipe_version') != 1:
         raise ValueError('batch evaluation requires explicit effective recipe and requests')
@@ -337,12 +459,21 @@ def batch_plan(args, spec):
         target=row['target']
         if len(target)!=2 or not all(__import__('math').isfinite(v) for v in target):
             raise ValueError('invalid batch target')
-        seconds=row.get('seconds',10. if spec.get('task')=='recovery' else 30.)
+        seconds=row['seconds']
         if spec.get('task')=='recovery':
             families={p['family'] for p in json.loads(Path(spec['recovery']['pose_library']).read_text())['poses']}
-            if row.get('family') not in families or target!=[0,0] or seconds!=10.:
-                raise ValueError('Recovery batch requires known family,zero target,10s')
-        planned.append({**row,**info,'effective_protocol':protocol_for_spec(effective_spec,seconds,True)})
+            from native_stand.recovery.task_protocol import batch_seconds
+            required_seconds=batch_seconds(spec)
+            if row.get('family') not in families or target!=[0,0] or seconds!=required_seconds:
+                raise ValueError('Recovery batch requires known family,zero target,task duration')
+        from native_stand.command_v6.domain.diagnostic_profiles import storage_plan
+        storage=storage_plan(spec,full=True,request=row,legacy_full_trace=True,legacy_diagnostics=True)
+        if storage.get('fields') is not None and spec.get('task')=='recovery' and not spec['recovery'].get('standing_task'):
+            storage['fields']=[name for name in storage['fields'] if name not in ('posture','geometry')]
+            if set(storage['required_fields'])-set(storage['fields']):
+                raise ValueError('Recovery task lacks required posture/geometry runtime fields')
+        planned.append({**row,**info,'diagnostic_storage':storage,
+            'effective_protocol':batch_protocol(effective_spec,row,True if storage is None else storage['diagnostics'])})
     return {'preflight':preflight,'requested':spec,'effective_recipe':recipe,
             'execution_identity':preflight['execution_identity'],'requests':planned,
             'simulation':0,'online_PPO':0,'offline_optimizer_updates':0,'files_written':0}
@@ -350,6 +481,12 @@ def batch_plan(args, spec):
 
 def evaluate_batch(args, spec):
     """PPO0 batch adapter under the existing monitor and exact ledger."""
+    if spec.get("interface_version") in ("multiskill_student_v1","multiskill_mcu_v2"):
+        from native_stand.students.evaluator import execute
+        return execute(args,spec)
+    if spec.get('motion_handoff'):
+        from native_stand.recovery.handoff_evaluator import execute
+        return execute(args,spec)
     import os
     from native_stand.command_v6.completion import write
     from native_stand.command_v6.ledger import Ledger
@@ -395,9 +532,9 @@ def evaluate_batch(args, spec):
         from native_stand.command_v6.runtime.env import CommandEnv,CommandEnvCfg
         from native_stand.command_v6.runtime.configure import apply,verify_asset_import
         from native_stand.command_v6.runtime.control_readback import verify,verify_ground
-        from native_stand.command_v6.learning import model
+        from native_stand.command_v6.tools.model_factory import model
         effective_spec,_=resolve(spec)
-        cfg=apply(CommandEnvCfg(),effective_spec,envs=spec['evaluation']['envs'])
+        cfg=apply(CommandEnvCfg(),effective_spec,envs=spec['evaluation']['envs'],mode='evaluation')
         cfg.sim.device='cuda:0'
         if spec.get('task')=='recovery':
             from native_stand.recovery.recipe import environment
@@ -424,28 +561,70 @@ def evaluate_batch(args, spec):
             item_start=time.monotonic()
             evaluator=evaluate_actor
             extra={}
-            if spec.get('task')=='recovery':
+            recovery_arguments=recovery_batch_arguments(spec,row)
+            if recovery_arguments is not None:
                 from native_stand.recovery.recipe import evaluate_actor as evaluator
-                extra={'family':row['family'],'check_retained':False}
+                extra=recovery_arguments
+            recorder=None
+            if spec.get('input_capture'):
+                from native_stand.command_v6.domain.input_capture import Recorder
+                recorder=Recorder(round(row['seconds']/env.step_dt),spec['evaluation']['scored_envs'],env.device,
+                    std=saved['actor']['distribution.std_param'].to(env.device),active_indices=env.ids,
+                    joint_names=env.robot.joint_names,dt=env.step_dt)
+                extra['input_recorder']=recorder
+            if spec.get('rollout_probe'):
+                from native_stand.command_v6.tools.frozen_rollout_probe import collect
+                def evaluator(actor,wrapped,env,**kwargs):
+                    return collect(actor,wrapped,env,spec=spec,output=args.output,
+                        stop_requested=kwargs['stop_requested'])
+                extra={}
+            storage=row.get('diagnostic_storage')
+            if spec.get('task')!='recovery' and storage and storage['profile']=='paired_state':extra['paired_state']=True
             result=evaluator(actor,wrapped,env,target=tuple(row['target']),
-                seconds=row.get('seconds',10. if spec.get('task')=='recovery' else 30.),
-                full_trace=True,seed=row.get('seed',spec['evaluation']['seed']),scored_envs=8,
-                standing_protocol=spec['evaluation'],diagnostics=True,
+                seconds=row['seconds'],
+                full_trace=True if storage is None else storage['full_trace'],seed=row['seed'],scored_envs=8,
+                standing_protocol=None if row.get('evaluation_mode')=='light' else scoring_configuration(spec['evaluation']),diagnostics=True if storage is None else storage['diagnostics'],
                 effective_protocol=row['effective_protocol'],
                 stop_requested=lambda:time.monotonic()>=deadline-90.,**extra)
             result.update(checkpoint=row['checkpoint'],checkpoint_sha256=row['sha256'],
                 spec_sha256=_sha(args.spec),asset_sha256=spec['asset_sha256'],
                 execution_identity=plan['execution_identity'],runtime_readback=readback)
+            result['diagnostic_storage']=storage
+            if row.get('evaluation_mode')=='light':
+                result['engineering_diagnostic_only']=True
+                result['capability_gate']={'accepted':False,'status':'NOT_RUN',
+                    'reason':'light engineering diagnostic cannot certify full capability'}
+            if spec.get('task')=='recovery' and storage is not None:
+                for episode in result['per_env']:
+                    missing=set(storage['required_fields'])-set(episode.get('diagnostic_profile_available_fields',[]))
+                    if missing:raise ValueError('runtime diagnostic fields unavailable: '+str(sorted(missing)))
             name=f'evaluation_{index:02d}.json'
-            write(args.output/name,result)
+            if recorder is not None:
+                import numpy as np
+                arrays=recorder.finish();raw_name=f'input_capture_{index:02d}.npz'
+                size=sum(p.stat().st_size for p in args.output.rglob('*') if p.is_file())
+                required=sum(a.nbytes for a in arrays.values())+65536+len(json.dumps(result,indent=2).encode())
+                if size+required>spec['input_capture']['max_storage_bytes']:
+                    raise TimeoutError('Input capture storage ceiling reached; item incomplete')
+                with (args.output/raw_name).open('xb') as stream:np.savez(stream,**arrays)
+                result['input_capture']={**recorder.metadata(),'path':raw_name,'sha256':_sha(args.output/raw_name),
+                    'array_shapes':{k:list(a.shape) for k,a in arrays.items()},'bytes':(args.output/raw_name).stat().st_size}
+            if spec.get('artifacts',{}).get('evaluation_trace_encoding')=='evaluation_numeric_npz_v1':
+                from .evaluation_storage import write as write_evaluation
+                write_evaluation(args.output/name,result)
+            else:write(args.output/name,result)
             elapsed_items.append(time.monotonic()-item_start)
             completed.append({'path':name,'checkpoint_sha256':row['sha256'],'target':row['target'],
                 'wall_s':elapsed_items[-1],'family':row.get('family'),'seed':row.get('seed'),
                 'accepted':(result['recovery_gate'] if spec.get('task')=='recovery' else result['capability_gate'])['accepted']})
             progress.update(completed=completed,last_activity_unix_s=time.time())
             write(args.output/'progress.json',progress)
-            if spec.get('task')!='recovery' and index==2 and any(not item['accepted'] for item in completed):
-                status='STOPPED_BOUNDED';failure={'reason':'source 0/+-1 regression failed; boundary probing blocked'};break
+            group_name=row.get('evaluation_group')
+            if group_name and row.get('on_group_failure')=='stop':
+                members=[i for i,r in enumerate(plan['requests']) if r.get('evaluation_group')==group_name]
+                if index==max(members) and any(not completed[i]['accepted'] for i in members):
+                    status='STOPPED_BOUNDED';failure={'reason':'explicit evaluation group failed','group':group_name};break
+
         else:status='COMPLETED'
     except (KeyboardInterrupt,TimeoutError) as exc:
         status='STOPPED_BOUNDED';failure={'reason':str(exc),'evaluation_evidence':getattr(exc,'evaluation_evidence',None)}
@@ -456,7 +635,7 @@ def evaluate_batch(args, spec):
         terminal={'status':status,'attempt_id':args.attempt_id,'actual_updates':0,'samples':0,
             'online_PPO':0,'offline_optimizer_updates':0,'completed':completed,
             'missing_requests':plan['requests'][len(completed):], 'failure':failure,
-            'reason':failure.get('reason') if failure else 'all requested deterministic evaluations completed',
+            'reason':failure.get('reason') if failure else ('frozen stochastic rollout diagnostic completed' if spec.get('rollout_probe') else 'all requested deterministic evaluations completed'),
             'wall_s':time.time()-attempt['started_unix_s'],'cleanup':'pending; monitor confirms child exit'}
         progress['status']=status
         write(args.output/'progress.json',progress)

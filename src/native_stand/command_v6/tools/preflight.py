@@ -56,7 +56,35 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
     except (OSError,ValueError) as exc:
         return {"status":"FAIL","reason_code":"CONFIG_ERROR","action":"correct spec JSON",
                 "errors":[f"spec JSON: {exc}"],"simulation":0,"ppo":0,"files_written":0}
+    if spec.get("interface_version") in ("multiskill_student_v1","multiskill_mcu_v2"):
+        from native_stand.students.requests import preflight
+        return preflight(spec_path,output_dir,phase,attempt_id)
     errors.extend(validate(spec))
+    publication=None
+    try:
+        from .experiment_preparation import verify_publication
+        publication=verify_publication(spec_path,authorized=True)
+    except (OSError,ValueError,KeyError) as exc:errors.append('publication integrity: '+str(exc))
+    engineering_certificate=None
+    if spec.get('engineering_recovery'):
+        try:
+            from .motion_recovery_certificate import validate as validate_recovery
+            engineering_certificate=validate_recovery(spec,json.loads(spec_path.with_name('budget.json').read_text()))
+            if phase!='formal':errors.append('engineering recovery is formal-only; no source/smoke budget')
+            claims=Path(__file__).resolve().parents[4]/'configs/experiments/.engineering_recovery_submissions'
+            claim=claims/(spec['engineering_recovery']['single_use_id']+'.json')
+            if claim.exists():
+                row=json.loads(claim.read_text())
+                if not (attempt_id and row.get('attempt_id')==attempt_id and
+                        Path(row.get('output','')).resolve()==output_dir.resolve() and
+                        Path(row.get('ledger','')).resolve()==spec_path.with_name('budget.json').resolve()):
+                    errors.append('engineering recovery certificate already reserved; no duplicate submission')
+        except (OSError,ValueError,KeyError,TypeError) as exc:errors.append('engineering recovery: '+str(exc))
+    source_certificate=None
+    if spec.get('source_evidence_reference') and not spec.get('engineering_recovery'):
+        from .source_evidence import check as check_source
+        source_certificate=check_source(spec,spec['source_evidence_reference'])
+        if source_certificate['status']!='REUSABLE':errors.append('source evidence reuse '+source_certificate['status'])
     effective = execution = None
     try:
         from native_stand.command_v6.domain.recipe import resolve
@@ -134,13 +162,15 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
         completed = {name for name in book["limits"] if any(
             row["phase"]==name and row["status"]=="COMPLETED"
             for row in book["attempts"].values())}
+        if source_certificate and source_certificate['status']=='REUSABLE':completed.add('source_eval')
+        if engineering_certificate:completed.add('source_eval')
         if phase=='formal':
             from native_stand.command_v6.wiring import completed_smoke
             completed.discard('smoke')
             if completed_smoke(book,spec):completed.add('smoke')
         if spec.get('recovery',{}).get('standing_task') and phase in ('smoke','formal'):
             baselines=[row for row in book['attempts'].values() if row['phase']=='source_eval' and row['status']=='COMPLETED']
-            valid=False
+            valid=bool(source_certificate and source_certificate['status']=='REUSABLE')
             for row in baselines:
                 folder=Path(row['output_dir'])
                 result_path=folder/'evaluation_source.json'
@@ -154,7 +184,7 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
                         digest(Path(evidence_spec)) == manifest.get('spec_sha256') and
                         reusable_spec(evidence_spec, spec))
                 valid_rising=(bool(spec['recovery'].get('rising_task')) and
-                    result.get('effective_protocol',{}).get('protocol_identity')=='autonomous_rise_v1' and
+                    result.get('effective_protocol',{}).get('protocol_identity')==spec['recovery']['rising_task']['version'] and
                     result.get('effective_protocol',{}).get('recovery_deadline_s')==11.5 and
                     result.get('effective_protocol',{}).get('post_rise_hold_s')==10. and
                     len(result.get('per_env',[]))==8 and all(
@@ -165,6 +195,13 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
                     from native_stand.command_v6.tools.evaluate_checkpoint import protocol_for_spec
                     valid_rising=resolve_gate(result,'recovery',expected_envs=8,
                         expected_protocol=protocol_for_spec(spec,spec['evaluation']['seconds']))['candidate_eligible']
+                if spec.get('receiver_training'):
+                    from native_stand.command_v6.domain.evidence import resolve_gate
+                    from native_stand.command_v6.tools.evaluate_checkpoint import protocol_for_spec
+                    valid_rising=(len(result.get('per_env',[]))==8 and
+                        result.get('receiver_protocol')==spec['receiver_training']['protocol'] and
+                        all(p.get('initial_valid') and not p.get('runtime_fault') for p in result['per_env']) and
+                        resolve_gate(result,'recovery',expected_envs=8,expected_protocol=protocol_for_spec(spec,spec['evaluation']['seconds']))['candidate_eligible'])
                 valid |= (same_spec and result.get('checkpoint_sha256')==spec['source_sha256'] and valid_rising)
                 valid |= (not spec['recovery'].get('rising_task') and same_spec and
                     result.get('checkpoint_sha256')==spec['source_sha256'] and
@@ -230,6 +267,9 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
         wiring_plan={'status':'INVALID','error':str(exc)}
     if phase=='smoke' and wiring_plan.get('budget_sufficient') is False:
         errors.append('declared smoke budget cannot reach required event')
+    from .storage_budget import check as storage_check
+    storage=storage_check(spec,output_dir,phase)
+    if storage['status']!='PASS':errors.append('insufficient output storage capacity')
     auth_only=bool(errors) and all(error in authorization_errors for error in errors)
     reason_code,action=classify_errors(errors)
     return {"status":"READY_NEEDS_AUTH" if auth_only else "PASS" if not errors else "FAIL",
@@ -237,7 +277,7 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
             "cpu_valid":not errors or auth_only,"errors":errors,
             "phase":phase,"output_dir":str(output_dir),"spec_sha256":digest(spec_path),
             "source_sha256":spec.get("source_sha256"),"asset_sha256":spec.get("asset_sha256"),
-            "evaluation_plan":plan,"wiring_smoke_plan":wiring_plan,"effective_recipe":effective,"execution_identity":execution,
+            "engineering_recovery_certificate":{'status':engineering_certificate['status'],'sha256':spec['engineering_recovery']['sha256']} if engineering_certificate else None,"publication_integrity":publication,"source_evidence_certificate":source_certificate,"storage_budget":storage,"evaluation_plan":plan,"wiring_smoke_plan":wiring_plan,"effective_recipe":effective,"execution_identity":execution,
             "simulation":0,"ppo":0,"files_written":0}
 
 

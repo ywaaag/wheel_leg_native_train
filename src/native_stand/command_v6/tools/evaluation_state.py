@@ -33,12 +33,31 @@ def isolated_evaluation(function):
         else:
             saved=(env.cfg.episode_length_s,env.schedule_s,getattr(env,'capture_terminal',False))
             forced_target=getattr(env,'forced_target',None)
+        old_mode=getattr(env,'execution_mode',None)
+        had_mode=hasattr(env,'execution_mode')
+        old_capture=getattr(env,'capture_terminal',None)
+        had_capture=hasattr(env,'capture_terminal')
+        receiver_saved=None
+        if hasattr(env,'receiver_config'):
+            receiver_saved={name:(hasattr(env,name),getattr(env,name,None)) for name in ('motion_command','return_to_original')}
+            receiver_saved['defer_completion']=getattr(env.rise_hold,'defer_completion',False)
         try:
             if actor_training is not None:actor.eval()
             return function(actor,wrapped,env,**kwargs)
         finally:
             original_error=sys.exception()
             try:
+                if receiver_saved is not None:
+                    env.rise_hold.defer_completion=receiver_saved['defer_completion']
+                    for name in ('motion_command','return_to_original'):
+                        existed,value=receiver_saved[name]
+                        if existed:setattr(env,name,value)
+                        elif hasattr(env,name):delattr(env,name)
+                if had_mode:env.execution_mode=old_mode
+                elif hasattr(env,'execution_mode'):del env.execution_mode
+                if recovery:
+                    if had_capture:env.capture_terminal=old_capture
+                    elif hasattr(env,'capture_terminal'):del env.capture_terminal
                 if recovery:
                     family,split,training,continuous,timeout,diagnostics=saved
                     env.curriculum_training=training

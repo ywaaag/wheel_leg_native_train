@@ -11,11 +11,21 @@ def sha(p):
 
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--run',type=Path,required=True); ap.add_argument('--output',type=Path)
-    a=ap.parse_args(); run=a.run.resolve(); metrics={}
+    ap.add_argument('--historical-replay',action='store_true')
+    a=ap.parse_args()
+    if not a.historical_replay:ap.error('HISTORICAL_ENTRY: legacy150D recovery only; --historical-replay required')
+    run=a.run.resolve();spec=json.loads((run/'source_snapshot/spec.json').read_text())
+    if spec.get('task')!='recovery' or spec.get('interface_version') or spec.get('student_training') or spec.get('receiver_training') or spec.get('motion_handoff'):
+        raise ValueError('Historical selector supports legacy Recovery schema only; use shared completion for students/receiver')
+    if spec.get('observation',{}).get('frame_dim')!=25 or spec.get('history',{}).get('dim')!=125:
+        raise ValueError('Historical selector requires legacy150D schema')
+    if a.output is None or a.output.exists() or a.output.resolve().is_relative_to(run):
+        raise ValueError('Fresh external --output required; never overwrite run evidence')
+    metrics={}
     for line in (run/'metrics.jsonl').read_text().splitlines():
         try:
             row=json.loads(line); metrics[row.get('actual_update')]=row
-        except ValueError: pass
+        except ValueError as error:raise ValueError('Malformed historical metrics') from error
     evaluated={}
     for f in run.glob('evaluation_*_0_0.json'):
         d=json.loads(f.read_text()); u=int(f.name.split('_')[1]); rows=d.get('per_env',[])
@@ -44,7 +54,7 @@ def main():
     out={'run':str(run),'selection_scope':'No new simulation; independent evaluations outrank rollout proxies.',
         'accepted_candidate':next((r for r in ranked if r['evaluation'] and r['evaluation']['accepted']),None),
         'best_independently_evaluated':next((r for r in ranked if r['evaluation']),None),
-        'best_rollout_proxy':max(records,key=lambda r:(r['rollout_proxy'].get('weighted_lift') or -1)),
+        'best_rollout_proxy':max(records,key=lambda r:(r['rollout_proxy'].get('weighted_lift') or -1),default=None),
         'records':records,'ranked_updates':[r['update'] for r in ranked]}
-    outpath=a.output or (run/'checkpoint_selection.json'); outpath.write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps({k:out[k] for k in ('accepted_candidate','best_independently_evaluated','best_rollout_proxy','ranked_updates')},indent=2))
+    outpath=a.output; outpath.write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps({k:out[k] for k in ('accepted_candidate','best_independently_evaluated','best_rollout_proxy','ranked_updates')},indent=2))
 if __name__=='__main__':main()

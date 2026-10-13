@@ -117,3 +117,18 @@ def add_lighting(stage):
         cfg = sim_utils.DomeLightCfg(intensity=1800.0, color=(0.82, 0.87, 0.92))
         cfg.func(path, cfg)
     return {"path": path, "intensity": 1800.0}
+
+
+def camera_view(sim, root_xy=(0., 0.)):
+    """Shared legacy/student GUI view; visual camera only."""
+    x, y = float(root_xy[0]), float(root_xy[1])
+    sim.set_camera_view(eye=(x+1.3, y+1.3, .85), target=(x, y, .35))
+
+
+def setup(stage, sim, *, style="grid", extent_m=128., grid_spacing_m=1.):
+    """Same floor, light and initial camera for every public play adapter."""
+    result = {"ground_visual": apply(stage, style=style, extent_m=extent_m,
+                                    grid_spacing_m=grid_spacing_m),
+              "lighting": add_lighting(stage)}
+    camera_view(sim)
+    return result
