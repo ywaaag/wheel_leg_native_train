@@ -1,0 +1,28 @@
+"""Future PPO assembly only; no online rollout or optimizer step on import."""
+import torch
+from .model import load,Student
+
+def assemble(checkpoint,observations,*,steps_per_env=128,recipe=None):
+    from rsl_rl.storage import RolloutStorage
+    from native_stand.recovery.controlled_ppo import ControlledPPO,KEY
+    actor,data=load(checkpoint)
+    mcu=data['interface_version']=='multiskill_mcu_v2'
+    if mcu:
+        from .training_recipe import declaration
+        expected=declaration(recipe.get('version'),source_actor_sha256=recipe.get('source_actor_sha256')) if recipe else None
+        if recipe and recipe.get('version')=='student_recovery_ppo_dynamic_suffix_contact_v10' and recipe.get('milestones')==[50,100]:expected['milestones']=[50,100]
+        if recipe is None or recipe!=expected:raise ValueError('MCU v2 online reward undefined or recipe missing; PPO request rejected')
+        actor.log_std.requires_grad_(False)
+    critic=Student(False,version=data['interface_version'])
+    if observations['student_actor'].shape[-1]!=(31 if mcu else 1182) or observations['student_critic'].shape[-1]!=(40 if mcu else 1191):raise ValueError('Student PPO observation dimensions differ')
+    if KEY not in observations or observations[KEY].dtype!=torch.bool:raise ValueError('Student PPO requires pre-action control metadata')
+    device=str(observations['student_actor'].device)
+    storage=RolloutStorage('rl',observations.batch_size[0],steps_per_env,observations,[6],device=device)
+    ppo=ControlledPPO(actor,critic,storage,learning_rate=3e-5,schedule='fixed',num_learning_epochs=4,num_mini_batches=4,entropy_coef=.001,clip_param=.2,gamma=.99,lam=.95,value_loss_coef=.5,max_grad_norm=1.,use_clipped_value_loss=False,device=device)
+    if ppo.optimizer.state:raise RuntimeError('New student PPO Adam must be empty')
+    return ppo
+
+def demonstration_loss(actor,independent_demo_batch):
+    """Independent BC data only; never added to on-policy rollout storage."""
+    from .distill import loss
+    return loss(actor(independent_demo_batch['x']),independent_demo_batch['y'])

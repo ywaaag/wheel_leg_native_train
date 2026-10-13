@@ -217,7 +217,12 @@ def process_reward(height, initial_height, target_height, up, effort, action_del
                    support_region=None,slip_proxy=None,wheel_longitudinal_offset=None,
                    standing_config=None,standing_diagnostics=None):
     # Broad linear progress is informative even at chassis-down height.
-    progress = ((height-initial_height)/(target_height-initial_height).clamp_min(.05)).clamp(-1.,1.)
+    minimum_height=weights.get('height_objective_version')=='autonomous_rise_min_height_v2'
+    if minimum_height:
+        from native_stand.recovery.min_height import height_terms
+        progress=height_terms(height)['lift']
+    else:
+        progress = ((height-initial_height)/(target_height-initial_height).clamp_min(.05)).clamp(-1.,1.)
     raw = {'lift':progress, 'upright':up.clamp(0.,1.),
            'effort':(effort/effort.new_tensor([40,40,5.5,40,40,5.5])).square().mean(-1),
            'action_delta':action_delta.square().mean(-1), 'joint_margin':joint_margin}
@@ -259,6 +264,9 @@ def process_reward(height, initial_height, target_height, up, effort, action_del
                 scale=weights.get('wheel_longitudinal_scale_m',.1)
                 if scale<=0 or deadband<0: raise ValueError('Invalid wheel longitudinal geometry scale')
                 value=torch.relu(value-deadband).square()/scale**2
+                if 'wheel_longitudinal_start_m' in weights:
+                    value=value*reward_height_gate(height,weights['wheel_longitudinal_start_m'],
+                                                  weights['wheel_longitudinal_full_m'],'height')
             if name == 'leg_symmetry' and 'leg_symmetry_start_m' in weights:
                 start=weights['leg_symmetry_start_m']
                 full=weights.get('leg_symmetry_full_m', start)
@@ -283,6 +291,8 @@ def process_reward(height, initial_height, target_height, up, effort, action_del
             raise ValueError('Standing reward requires pre-reset posture and body angular velocity')
         for name, value in standing_costs(height,target_height,standing_diagnostics,
                                          angular_velocity,standing_config).items():
+            if minimum_height and name=='standing_height':
+                value=height_terms(height)['standing_height']
             raw[name]=value
             weighted[name]=value*standing_config['weights'][name]*dt
     total = sum(weighted.values()) + success.float()*weights['success_once'] + task_failed.float()*weights['failure_once']

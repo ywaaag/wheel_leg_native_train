@@ -2,6 +2,26 @@
 import math
 
 
+def rise_rank(entry):
+    """Progress ordering is diagnostic; only the full gate can accept a model."""
+    rows=entry['per_env']
+    retained=entry.get('retained_evaluations',[])
+    retained_pass=sum(item.get('passed_envs',0) for item in retained)
+    if entry.get('gate',{}).get('effective_protocol',{}).get('protocol_identity')=='autonomous_rise_min_height_v2' or any('diagnostic_hold_prefix_s' in row for row in rows):
+        groups=[rows]+[item.get('per_env',[]) for item in retained]
+        prefixes=[min((row.get('diagnostic_hold_prefix_s',0.) for row in group),default=0.) for group in groups]
+        entries=[sum(row.get('recovery_s') is not None for row in group) for group in groups]
+        return (-int(entry['accepted']),-min(entries),-min(prefixes),
+                -entry['passed_envs']-retained_pass,entry['checkpoint_sha256'])
+    entered=[r for r in rows if r.get('recovery_s') is not None]
+    complete=sum(r.get('post_rise_evidence_status')=='COMPLETE' and
+                 not r.get('standing_failed_checks') for r in rows)
+    falls=sum(r.get('episode_result',{}).get('terminated',False) for r in rows)
+    # Failed windows never gain rank merely by collecting more pre-entry time.
+    return (-int(entry['accepted']),-entry['passed_envs'],-retained_pass,-complete,
+            falls,-len(entered),entry['checkpoint_sha256'])
+
+
 def classify_recovery(entry,expected):
     result=entry['result'];rows=result.get('per_env',[])
     problems=[]
@@ -22,7 +42,8 @@ def classify_recovery(entry,expected):
     if gate is None:problems.append('missing_recovery_gate')
     protocol=result.get('success_protocol',{'mode':'handover','required_stable_s':5.})
     continuous=protocol.get('standing_protocol')
-    required=2. if protocol.get('mode')=='autonomous_hold' else 5.
+    minimum_v2=bool(continuous and continuous.get('protocol_identity')=='autonomous_rise_min_height_v2')
+    required=10. if minimum_v2 else 2. if protocol.get('mode')=='autonomous_hold' else 5.
     if protocol.get('required_stable_s')!=required:problems.append('success_protocol_mismatch')
     if not continuous and any(row.get('success') and row.get('verify_s',0.)<required-1e-5 for row in rows):
         problems.append('insufficient_stand_verification')
@@ -38,7 +59,8 @@ def classify_recovery(entry,expected):
         if any('standing_metrics' not in row or 'standing_failed_checks' not in row for row in rows):
             problems.append('missing_standing_metrics')
         if any(row.get('success') and (not row.get('continuous_window_completed') or
-                row.get('continuous_s',0.)<continuous['seconds']-1e-3 or
+                (row.get('post_rise_observed_s',0.)<10.-1e-3 if minimum_v2 else
+                 row.get('continuous_s',0.)<continuous['seconds']-1e-3) or
                 row.get('standing_failed_checks')) for row in rows):
             problems.append('invalid_standing_certificate')
         if gate and (gate.get('passed_envs')!=sum(bool(row.get('success')) for row in rows) or
@@ -59,7 +81,9 @@ def classify_recovery(entry,expected):
             values=[row.get('standing_metrics',{}).get(key) for row in rows]
             means[key]=sum(values)/len(values) if values and all(v is not None for v in values) else None
     return {**{key:value for key,value in entry.items() if key!='result'},'task':'recovery',
-        'result_protocol':'continuous_standing' if continuous else 'recovery',
+        'result_protocol':('autonomous_rise' if continuous and
+            continuous.get('protocol_identity') in ('autonomous_rise_v1','autonomous_rise_min_height_v2') else
+            'continuous_standing' if continuous else 'recovery'),
         'objective':continuous.get('objective','stationary') if continuous else 'recovery',
         'evaluation_family':result.get('evaluation_family'),
         'evaluation_curriculum_stage':result.get('evaluation_curriculum_stage',0),

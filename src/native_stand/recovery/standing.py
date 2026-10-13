@@ -25,22 +25,11 @@ def standing_success_mask(diagnostics, protocol):
 
 
 def pose_sampling(poses, family, split, *, retained_families=(), retained_fraction=0.):
-    """Metadata-only weighted rehearsal; physics states are never altered."""
-    current = [i for i, p in enumerate(poses)
-               if p['family'] == family and p['split'] == split and p['offline_valid']]
-    old = [i for i, p in enumerate(poses) if p['family'] in retained_families and
-           p['family'] != family and p['split'] == split and p['offline_valid']]
-    if not current or not 0. <= retained_fraction < 1. or (retained_fraction and not old):
-        raise ValueError('Invalid standing pose sampling or missing rehearsal poses')
-    indices, weights = [], []
-    groups = [(current, 1.-retained_fraction), (old, retained_fraction)] if retained_fraction else [(current, 1.)]
-    for group, mass in groups:
-        total = sum(poses[i].get('sample_weight', 1.) for i in group)
-        if total <= 0:
-            raise ValueError('Pose sampling weights must have positive mass')
-        indices.extend(group)
-        weights.extend(mass*poses[i].get('sample_weight', 1.)/total for i in group)
-    return indices, weights
+    """Historical public API; implementation lives with sampling, not scoring."""
+    from .sampling import legacy_pose_sampling
+    return legacy_pose_sampling(poses,family,split,retained_families=retained_families,
+                                retained_fraction=retained_fraction)
+
 
 def longitudinal_geometry(wheels_root, gravity):
     """Wheel-center offset projected on horizontal native forward=-root Z."""

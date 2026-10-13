@@ -71,7 +71,7 @@ def main():
         from native_stand.command_v6.runtime.configure import apply,verify_asset_import
         from native_stand.command_v6.runtime.control_readback import verify,verify_ground
         from native_stand.command_v6.runtime.env import CommandEnv,CommandEnvCfg
-        from native_stand.command_v6.learning import model
+        from native_stand.command_v6.tools.model_factory import model
         from native_stand.command_v6.tools.evaluate_checkpoint import evaluate_actor
         from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper
         from native_stand.recovery.recipe import environment

@@ -3,6 +3,43 @@
 
 def validate_recovery(spec):
     config=spec.get('recovery',{})
+    if spec.get('receiver_training'):
+        from .receiver_contract import validate
+        from .sampling import validate as sampling_validate,allocation_plan
+        try:
+            validate(spec);sampling_validate(config);allocation_plan(config,64)
+            for key in ('pose_library','pose_library_sha256','fsm','gate','initialization','contacts','rising_task','standing_task'):
+                if key not in config:raise ValueError('Receiver physical adapter missing '+key)
+            if spec['termination'].get('joint_limit_mode')!='usd_authored':raise ValueError('Receiver requires authored USD limits')
+            if config.get('actor_update_scope')!=spec['receiver_training']['actor_mask']:raise ValueError('Receiver actor scope not wired')
+            return []
+        except (KeyError,TypeError,ValueError) as exc:return ['Receiver physical adapter: '+str(exc)]
+    if config.get('actor_update_scope') is not None:
+        from .controlled_ppo import declaration
+        if config['actor_update_scope']!=declaration():return ['Invalid actor update scope']
+        if any(config.get(k) for k in ('leg_center_auxiliary','wheel_mean_auxiliary')):return ['Actor mask auxiliary combination unsupported']
+    if config.get('swing_only') and (config.get('assessment',{}).get('retained_families')!=[] or config.get('assessment',{}).get('families')!=['swing_candidate_from_historical_r1']):
+        return ['Swing-only assessment differs']
+    if config.get('retention_regression_policy') is not None:
+        from .regression_policy import declaration
+        if config['retention_regression_policy']!=declaration() or not config.get('drawback_guidance'):
+            return ['Explicit contact-only diagnostic regression policy requires DrawBack guidance']
+    from .drawback_guidance_proposal import validate as validate_guidance
+    try:validate_guidance(spec)
+    except (ValueError,KeyError,TypeError) as exc:return ['Recovery DrawBack guidance: '+str(exc)]
+    from .leg_center_auxiliary import validate as validate_leg_aux
+    try:validate_leg_aux(spec)
+    except (ValueError,KeyError,TypeError) as exc:return ['Recovery leg center auxiliary: '+str(exc)]
+    from native_stand.recovery.support_record_proposal import validate as validate_record
+    try:validate_record(spec)
+    except (ValueError,KeyError,TypeError) as exc:return ['Recovery support record: '+str(exc)]
+    from native_stand.recovery.mean_auxiliary import validate as validate_mean_auxiliary
+    try:validate_mean_auxiliary(spec)
+    except (ValueError,KeyError,TypeError) as exc:return ['Recovery wheel mean auxiliary: '+str(exc)]
+    from native_stand.recovery.exploration import validate as validate_exploration
+    try:validate_exploration(spec)
+    except (ValueError,KeyError,TypeError) as exc:return ['Recovery exploration: '+str(exc)]
+    minimum_v2=config.get('rising_task',{}).get('version')=='autonomous_rise_min_height_v2'
     from native_stand.command_v6.domain.episode_result import requires_stand,STAND_DEPENDENCY_FIELDS
     try:
         needs_stand=requires_stand(config)
@@ -37,7 +74,7 @@ def validate_recovery(spec):
                            'linear_speed_max_mps':.05,'angular_speed_max_rad_s':.1}
         expected_level={'objective':'survival_level','height_m':expected_height,
             'tilt_max_rad':.18,'dual_contact_min_n':2.,'chassis_clearance_min_m':.25}
-        if level_only and config.get('autonomous_stability')!=expected_level:
+        if level_only and not minimum_v2 and config.get('autonomous_stability')!=expected_level:
             errors.append('Survival/level online success protocol differs')
         if not level_only and config.get('autonomous_stability') not in (
                 (expected_legacy,expected_horizontal,expected_standing) if standing else
@@ -118,20 +155,20 @@ def validate_recovery(spec):
                        'mirror_error_max_rad','leg_length_difference_max_m','support_difference_max')
         if protocol.get('objective','stationary') not in ('stationary','survival_level'):
             errors.append('Unknown standing objective')
-        if (any(not isinstance(protocol.get(n),(int,float)) or not math.isfinite(protocol[n]) or
+        if not minimum_v2 and (any(not isinstance(protocol.get(n),(int,float)) or not math.isfinite(protocol[n]) or
                 protocol[n]<=0 for n in positive) or protocol.get('height_m')!=[.34,.38] or
                 protocol.get('steady_window_s')!=[2.,10.] or protocol.get('seconds')!=10.):
             errors.append('Standing continuous protocol invalid')
         fractions=('height_fraction_min','dual_contact_min','saturation_max')
         if not level_only:fractions+=('support_difference_max',)
-        if any(not 0<protocol.get(n,0)<=1 for n in fractions):
+        if not minimum_v2 and any(not 0<protocol.get(n,0)<=1 for n in fractions):
             errors.append('Standing fractions must be in (0,1]')
         if level_only:
             removed=('vx_abs_max_mps','vy_abs_max_mps','yaw_abs_max_rad_s','excursion_max_m',
                      'mirror_error_max_rad','leg_length_difference_max_m','support_difference_max')
             if any(name in protocol for name in removed):
                 errors.append('Survival/level protocol must remove obsolete acceptance gates')
-            if (protocol.get('version')!='survival_level_v1' or
+            if not minimum_v2 and (protocol.get('version')!='survival_level_v1' or
                     protocol.get('level_mean_max_rad')!=.10 or protocol.get('level_peak_max_rad')!=.15 or
                     protocol.get('peak_tilt_max_rad')!=.18):
                 errors.append('Survival/level frozen horizontal limits differ')
@@ -139,7 +176,10 @@ def validate_recovery(spec):
                     ('settling_linear_weight','settling_angular_weight','settling_yaw_weight')) or
                     any(weights.get(n)!=0 for n in ('mirror_posture','leg_length_balance','wheel_difference')) or
                     any(spec['reward'].get(n,0)!=0 for n in
-                        ('wheel_longitudinal_offset','leg_symmetry','support_balance','slip_proxy'))):
+                        ('leg_symmetry','support_balance','slip_proxy')) or
+                    (spec['reward'].get('wheel_longitudinal_offset',0)!=0 and
+                     not (config.get('rising_task') and
+                          'wheel_longitudinal_start_m' in spec['reward']))):
                 errors.append('Survival/level recipe still contains motion or symmetry costs')
         if (spec['evaluation'].get('seconds')!=protocol.get('seconds') or
                 spec['evaluation'].get('steady_window_s')!=protocol.get('steady_window_s')):
@@ -154,6 +194,14 @@ def validate_recovery(spec):
                 if (not isinstance(value,(int,float)) or not math.isfinite(value) or value<0 or
                         (key.endswith('scale_m') and value<=0)):
                     errors.append('Wheel longitudinal geometry reward scale invalid')
+        geometry_gate=('wheel_longitudinal_start_m','wheel_longitudinal_full_m')
+        if any(key in spec['reward'] for key in geometry_gate):
+            start,full=(spec['reward'].get(key) for key in geometry_gate)
+            if ('wheel_longitudinal_offset' not in spec['reward'] or
+                    not all(isinstance(v,(int,float)) and not isinstance(v,bool) and
+                            math.isfinite(v) for v in (start,full)) or
+                    not 0<=start<full):
+                errors.append('Wheel longitudinal height gate requires finite0<=start<full and cost')
         retention=standing.get('retention',{})
         if retention.get('sample_selection','first') not in ('first','uniform_rollout'):
             errors.append('Unknown retention sample selection')
@@ -188,14 +236,15 @@ def validate_recovery(spec):
         if (not isinstance(cap,int) or not 0<=cap<len(curriculum.get('levels',[])) or
                 curriculum.get('full_confirmations_required')!=2):
             errors.append('Standing curriculum requires an explicit stage cap and two full confirmations')
-        for index, level in enumerate(curriculum.get('levels',[])):
-            fraction=level.get('retained_fraction',0.)
-            if (not isinstance(fraction,(int,float)) or not math.isfinite(fraction) or not 0<=fraction<1 or
-                    (fraction and (not index or not level.get('retained_families')))):
-                errors.append('Standing curriculum rehearsal configuration invalid')
+    from native_stand.recovery.sampling import validate as validate_sampling,scoring_config
+    try:
+        validate_sampling(config)
+        from .sampling import allocation_plan
+        allocation_plan(config,spec['ppo']['envs'])
+    except (ValueError,TypeError,KeyError) as exc:errors.append('Recovery sampling: '+str(exc))
     if config.get('rising_task'):
         from native_stand.recovery.rising import validate_rise
-        try:validate_rise(config['rising_task'])
+        try:validate_rise(scoring_config(config['rising_task']))
         except ValueError as exc:errors.append(str(exc))
         if (not config.get('standing_task') or not autonomous or
                 config['standing_task'].get('training_episode') is not None or
@@ -203,4 +252,21 @@ def validate_recovery(spec):
                 fsm.get('timeout_s')!=11.5 or spec['evaluation'].get('seconds')!=23. or
                 spec['evaluation'].get('steady_window_s')!=[0.,23.]):
             errors.append('Invalid autonomous rise episode/evaluation contract')
+    if minimum_v2:
+        from native_stand.recovery.min_height import protocol as minimum_protocol,VERSION
+        expected=minimum_protocol()
+        guard=config.get('progress_guard',{})
+        guard_expected={'entry_count_drop':2,'confirmations':2,'delta_min_rad_s':10.,'alternation_fraction_min':.8,'limit_fraction_min':.5}
+        if guard!=guard_expected:errors.append('Minimum-height bounded progress protection declaration differs')
+        if config['standing_task']['protocol']!=expected or config.get('autonomous_stability')!=expected:
+            errors.append('Minimum-height effective/online protocol differs')
+        if (spec['reward'].get('height_objective_version')!=VERSION or
+                spec['reward'].get('height_overshoot',0)!=0 or
+                spec['reward'].get('wheel_longitudinal_offset',0)!=0 or
+                spec['reward'].get('lift')!=2. or
+                spec['reward'].get('success_once')!=10. or
+                spec['reward'].get('failure_once')!=-1. or
+                config['standing_task']['reward']['weights'].get('standing_height')!=3. or
+                spec['control'].get('height_command_m')!=.36):
+            errors.append('Minimum-height reward/event/compatibility contract differs')
     return errors

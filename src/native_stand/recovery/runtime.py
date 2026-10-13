@@ -9,7 +9,7 @@ from native_stand.command_v6.runtime.env import CommandEnv
 from native_stand.command_v6.domain import contract
 from native_stand.recovery.domain import RecoveryFSM,Mode,blend_targets,process_reward,autonomous_stable,ReverseRecoveryCurriculum
 from native_stand.recovery.initialization import settlement_joint_indices,zero_initial_velocities
-from native_stand.recovery.standing import POSTURE_FIELDS,posture,standing_success_mask,pose_sampling
+from native_stand.recovery.standing import POSTURE_FIELDS,posture,standing_success_mask
 from native_stand.command_v6.domain.episode_result import recovery_episode_mode
 
 
@@ -28,9 +28,17 @@ class RecoveryEnv(CommandEnv):
             for parameter in self.stand_policy.parameters():
                 parameter.requires_grad_(False)
         self.recovery_ready=False
+        self.support_record=None
+
         self.continuous_evaluation=False
         super().__init__(cfg,**kwargs)
+        self.guidance_audit_sums=torch.zeros(7,device=self.device)
+        self.guidance_family_mask=torch.tensor([p['family']=='swing_candidate_from_historical_r1' for p in pose_library['poses']],device=self.device)
         self.fsm=RecoveryFSM(self.num_envs,self.device,recovery_config['fsm'])
+        self.rise_hold=None
+        if recovery_config.get('rising_task',{}).get('version')=='autonomous_rise_min_height_v2':
+            from native_stand.recovery.min_height import RiseHold,protocol
+            self.rise_hold=RiseHold(self.num_envs,self.device,dt=self.step_dt,p=protocol())
         self.stand_history=torch.zeros_like(self.history)
         self.stand_previous=torch.zeros_like(self.action)
         self.executed_leg=torch.zeros_like(self.leg_target)
@@ -76,11 +84,14 @@ class RecoveryEnv(CommandEnv):
         self.rollout_events=torch.zeros(7,device=self.device,dtype=torch.long)
         from native_stand.recovery.episode_metrics import PoseEpisodeMetrics
         self.pose_episode_metrics=PoseEpisodeMetrics(pose_library['poses'],self.device)
-        self.split='train'
+        from native_stand.command_v6.domain.environment_mode import resolve as execution_mode
+        intent=execution_mode(getattr(cfg,'native_execution_mode','training'),envs=self.num_envs)
+        self.execution_mode=intent['mode']
+        self.split=intent['split']
         self.family=recovery_config['active_family']
         curriculum=recovery_config.get('curriculum',{})
         self.reverse_curriculum=None
-        self.curriculum_training=True
+        self.curriculum_training=intent['curriculum_training']
         if curriculum.get('automatic_upgrade'):
             self.reverse_curriculum=ReverseRecoveryCurriculum(curriculum['levels'],
                 windows_required=curriculum['windows_required'],
@@ -124,7 +135,20 @@ class RecoveryEnv(CommandEnv):
         from native_stand.recovery.domain import support_indices
         self.allowed_sensor,self.restricted_sensor=support_indices(self.sensor.body_names,
             recovery_config['contacts']['allowed_candidate'])
+        self.phase_coverage=None
+        # Subclasses may install their task clock after this constructor.
+        # _get_dones owns this cache independently of optional coverage logging.
+        self.task_phase=torch.zeros(self.num_envs,device=self.device,dtype=torch.long)
+        if self.rise_hold is not None:
+            from native_stand.recovery.min_height import PhaseCoverage
+            self.phase_coverage=PhaseCoverage(len(pose_library['poses']),self.device)
         self.recovery_ready=True
+        self.support_record=None
+        if recovery_config.get('support_record_reward'):
+            from native_stand.recovery.support_record_proposal import RecordState
+            self.support_record=RecordState(self.num_envs,self.device)
+            self.support_record_family_mask=torch.tensor([p['family']==recovery_config['support_record_reward']['family']
+                for p in pose_library['poses']],device=self.device)
 
     def select_initial_family(self,family,split):
         if not any(p['family']==family for p in self.pose_library['poses']) or split not in ('train','holdout'):
@@ -136,24 +160,22 @@ class RecoveryEnv(CommandEnv):
         if not self.recovery_ready:
             return
         ids=torch.arange(self.num_envs,device=self.device) if env_ids is None else env_ids.long()
+        if getattr(self,'support_record',None) is not None:self.support_record.reset(ids)
         if self.reverse_curriculum is not None and self.curriculum_training:
             self.family=self.reverse_curriculum.current_level()['pose_family']
             self.episode_stage[ids]=self.reverse_curriculum.stage
-        retained=()
-        fraction=0.
-        if self.curriculum_training and self.recovery_config.get('rising_task'):
-            retained=self.recovery_config['rising_task']['retained_families']
-            fraction=self.recovery_config['rising_task']['retained_fraction']
-        if self.curriculum_training and self.reverse_curriculum is not None and self.reverse_curriculum.stage:
-            stage_config=self.recovery_config['curriculum']['levels'][self.reverse_curriculum.stage]
-            retained=stage_config.get('retained_families',())
-            fraction=stage_config.get('retained_fraction',0.)
-        eligible,weights=pose_sampling(self.pose_library['poses'],self.family,self.split,
-                                      retained_families=retained,retained_fraction=fraction)
+        from native_stand.recovery.sampling import sample_poses
+        eligible,weights=sample_poses(self.pose_library['poses'],self.recovery_config,self.family,self.split,
+            training=self.curriculum_training,
+            stage=self.reverse_curriculum.stage if self.reverse_curriculum is not None else None)
         if not eligible:
             raise RuntimeError('No valid initial poses; rejected candidates remain in library')
         candidates=torch.tensor(eligible,device=self.device)
-        if self.split=='holdout' and self.recovery_config.get('holdout_sampling')=='balanced_pose_cycle':
+        if (self.curriculum_training and not self.continuous_evaluation and
+                self.recovery_config.get('sampling',{}).get('version')=='fixed_environment_families_v1'):
+            from native_stand.recovery.sampling import fixed_reset_choices
+            choice=fixed_reset_choices(self.pose_library['poses'],self.recovery_config,self.split,ids,self.num_envs)
+        elif self.split=='holdout' and self.recovery_config.get('holdout_sampling')=='balanced_pose_cycle':
             choice=candidates[ids % len(candidates)]
         elif self.recovery_config.get('standing_task'):
             weights=torch.tensor(weights,device=self.device)
@@ -173,6 +195,7 @@ class RecoveryEnv(CommandEnv):
         self.robot.write_joint_velocity_to_sim_index(velocity=torch.zeros_like(all_q[choice]),env_ids=ids)
         self.initial_height[ids]=poses[:,2]
         self.fsm.reset(ids)
+        if self.rise_hold is not None:self.rise_hold.reset(ids)
         if self.holding_episode is not None:
             self.holding_episode.reset(ids)
         self.fsm.mode[ids]=int(Mode.INITIALIZING)
@@ -193,6 +216,10 @@ class RecoveryEnv(CommandEnv):
         # recovery_snapshot intentionally survives reset: evaluator reads it next.
 
     def _pre_physics_step(self,actions):
+        if getattr(self,'support_record',None) is not None:
+            eligible=(self.initialization_checked&(self.fsm.mode==int(Mode.RECOVERY))&
+                self.support_record_family_mask[self.initial_pose_index]&(self.rise_hold.entry<0))
+            self.support_record.before(self._support_quality(),eligible)
         super()._pre_physics_step(actions)
         student_legs=self.leg_target.clone();student_wheels=self.wheel_target.clone()
         if self.episode_mode=='continuous_holding' or self.recovery_config.get('rising_task'):
@@ -332,6 +359,22 @@ class RecoveryEnv(CommandEnv):
         self.settle_dwell.copy_(torch.where(initializing&self.initial_velocity_zeroed&~second_zero&settled,self.settle_dwell+self.step_dt,0.))
         accepted=initializing&(self.initial_age>=initial['settle_min_s'])&(self.settle_dwell>=initial['settle_dwell_s'])
         rejected=initializing&((self.initial_age>=initial['settle_max_s'])|fault|restricted|tilt)&~accepted
+        if getattr(self,'student_fault_diagnostics_enabled',False):
+            # All environments, post-physics/pre-reset. No RNG or safety mutation.
+            self.student_fault_joint_data={'q':q.clone(),'dq':data.joint_vel.torch.clone(),'limits':self.joint_limits[None].expand(self.num_envs,-1,-1).clone(),'root_state':data.root_state_w.torch.clone(),'executed_legs':self.leg_target.clone(),'executed_wheels':self.wheel_target.clone(),'requested_torque':self.effort_pre.clone(),'clipped_torque':self.effort.clone(),'applied_torque':data.applied_torque.torch[:,self.ids].clone()}
+            self.student_fault_components={k:v.clone() for k,v in {
+                'nonfinite':nonfinite,'closure':closure,'penetration':penetration,
+                'joint_outside':outside,'initial_rejected':rejected,
+                'initializing':initializing,'settled':settled,
+                'restricted_contact':restricted,'tilt_termination':tilt,
+                'initial_age_s':self.initial_age,'settle_dwell_s':self.settle_dwell,
+                'root_linear_speed_mps':torch.linalg.vector_norm(velocity,dim=-1),
+                'root_angular_speed_rad_s':torch.linalg.vector_norm(data.root_ang_vel_w.torch,dim=-1),
+                'settlement_joint_speed_rad_s':data.joint_vel.torch[:,self.settlement_joint_ids].abs().amax(-1),
+                'root_height_m':self.root_height,'chassis_clearance_m':chassis,
+                'closure_m':self.closure_each.amax(-1),'minimum_gap_m':gaps.amin(-1),
+                'pose_index':self.initial_pose_index,'episode_id':self.reset_count,
+            }.items()}
         self.initial_accepts.index_add_(0,self.initial_pose_index,accepted.long())
         self.initial_rejects.index_add_(0,self.initial_pose_index,rejected.long())
         self.initialization_checked |= accepted
@@ -375,7 +418,7 @@ class RecoveryEnv(CommandEnv):
         stable=(physical_eligible & (self.vx.abs()<=gate['stand_vx_abs_max_mps'])&
             (self.vy.abs()<=gate['stand_vy_abs_max_mps'])&
             (self.yaw.abs()<=gate['stand_yaw_abs_max_rad_s'])&(excursion<=gate['stand_excursion_max_m']))
-        if self.fsm.config.get('success_mode') == 'autonomous_hold':
+        if self.fsm.config.get('success_mode') == 'autonomous_hold' and self.rise_hold is None:
             stable=autonomous_stable(self.root_height,torch.acos(self.up.clamp(-1.,1.)),
                 velocity,data.root_ang_vel_w.torch,self.contact_force,chassis,
                 self.recovery_config['autonomous_stability']) & ~initializing & ~fault & ~restricted
@@ -385,7 +428,22 @@ class RecoveryEnv(CommandEnv):
             enter=torch.zeros_like(enter)  # No teacher handover in this task.
         previous_mode=self.fsm.mode.clone()
         timeout=torch.zeros_like(fault)
-        if self.holding_episode is not None and not self.continuous_evaluation:
+        if self.rise_hold is not None:
+            enter=torch.zeros_like(enter)
+            count=self.rise_hold.count
+            self.task_phase.copy_(torch.where(self.rise_hold.entry<0,0,
+                torch.where(count<200,1,torch.where(count<500,2,3))))
+            pulse,failed,ended,fault=self.rise_hold.observe(self.root_height,self.standing_snapshot[:,:2],
+                torch.acos(self.up.clamp(-1.,1.)),self.contact_force,chassis,self.closure_each.amax(-1),
+                (self.effort.abs()>=self.effort.new_tensor(contract.EFFORT_LIMITS)-1e-4).any(-1),
+                active=~initializing,valid=self.initialization_checked,
+                safety_failed=tilt|restricted|rejected,fault=fault)
+            self.fsm.age.copy_(self.rise_hold.age)
+            self.fsm.verify.copy_(self.rise_hold.count.float()*self.step_dt)
+            self.fsm.mode[pulse]=int(Mode.STAND)
+            self.fsm.mode[failed]=int(Mode.RECOVERY_FAILED)
+            self.fsm.mode[fault]=int(Mode.RUNTIME_FAULT)
+        elif self.holding_episode is not None and not self.continuous_evaluation:
             self.fsm.age.add_((~initializing).float()*self.step_dt)
             failed=(tilt|restricted|rejected)&~fault
             self.holding_episode.observe(self.root_height,self.contact_force,self.standing_snapshot[:,:2],
@@ -408,7 +466,7 @@ class RecoveryEnv(CommandEnv):
             'height':torch.zeros_like(fault),'tilt':tilt,'body_contact':restricted,'joint_safety':outside}
         terminated=failed|fault
         if self.holding_episode is None:
-            terminated |= pulse & (not self.continuous_evaluation)
+            terminated |= pulse & (self.rise_hold is not None or not self.continuous_evaluation)
         certificate_evaluated=(timeout if self.holding_episode is not None and not self.continuous_evaluation
                                else pulse|terminated)
         self.episode_result_snapshot.copy_(torch.stack((terminated,timeout,pulse,fault,certificate_evaluated),-1))
@@ -445,6 +503,18 @@ class RecoveryEnv(CommandEnv):
         self.recovery_snapshot_valid.copy_(terminated|timeout)
         return terminated,timeout
 
+    def _support_quality(self):
+        from native_stand.recovery.support_geometry_proposal import geometry
+        from native_stand.recovery.support_record_proposal import quality
+        data=self.robot.data;_,gravity=self._motion_state()
+        centers=data.body_pos_w.torch[:,self.wheel_body_ids]-data.root_pos_w.torch[:,None,:]
+        centers=quat_apply_inverse(data.root_quat_w.torch[:,None,:].expand(-1,2,-1),centers)
+        anchors=centers.new_tensor(self.recovery_config['standing_task']['hip_anchors_root_m'])
+        cfg=self.recovery_config['support_record_reward']
+        geo=geometry(centers,anchors,gravity)
+        return quality(geo['length_m'],torch.cos(geo['down_angle_rad']),
+            short_m=cfg['short_m'],width_m=cfg['width_m'])['quality']
+
     def _get_rewards(self):
         q=self.robot.data.joint_pos.torch[:,self.ids]
         margin=(q[:,contract.LEG_COLUMNS].abs()/self.cfg.leg_position_scale_rad).square().mean(-1)
@@ -476,11 +546,39 @@ class RecoveryEnv(CommandEnv):
             wheel_longitudinal_offset=self.wheel_longitudinal_offset,
             standing_config=self.recovery_config.get('standing_task',{}).get('reward'),
             standing_diagnostics=self.standing_snapshot)
+        if self.support_record is not None:
+            failed=self.recovery_snapshot[:,3].bool()|self.recovery_snapshot[:,4].bool()
+            bonus=self.support_record.after(self._support_quality(),failed,
+                beta=self.recovery_config['support_record_reward']['beta'])
+            raw['support_record_progress']=bonus/self.recovery_config['support_record_reward']['beta']
+            weighted['support_record_progress']=bonus # episodebudget,dt NOT applied
+            total+=bonus
+        if self.recovery_config.get('drawback_guidance'):
+            from native_stand.recovery.drawback_guidance_proposal import guided_reward
+            data=self.robot.data
+            centers=data.body_pos_w.torch[:,self.wheel_body_ids]-data.root_pos_w.torch[:,None,:]
+            centers=quat_apply_inverse(data.root_quat_w.torch[:,None,:].expand(-1,2,-1),centers)
+            eligible=(~self.initializing_step)&self.initialization_checked&self.guidance_family_mask[self.initial_pose_index]&(self.rise_hold.entry<0)
+            failed=self.recovery_snapshot[:,3].bool()|self.recovery_snapshot[:,4].bool()
+            bonus,terms=guided_reward(centers,active_q[:,[0,1,3,4]],self.root_height,eligible,failed,
+                config=self.recovery_config['drawback_guidance'],dt=self.step_dt)
+            raw['drawback_mirror_guidance']=bonus/(self.step_dt*self.recovery_config['drawback_guidance']['weight_per_s'])
+            weighted['drawback_mirror_guidance']=bonus
+            total+=bonus
+            self.guidance_audit_sums.add_(torch.stack((eligible.sum().float(),(bonus>0).sum().float(),
+                (failed&(bonus!=0)).sum().float(),((~eligible)&(bonus!=0)).sum().float(),
+                (terms['mirror_error_rad'].abs().mean(-1)*eligible).sum(),
+                (terms['wheel_distance_m'].mean(-1)*eligible).sum(),bonus.sum())))
         # Initialization has no agent control; it contributes no task reward.
         total[self.initializing_step]=0.
         for value in raw.values():value[self.initializing_step]=0.
         for value in weighted.values():value[self.initializing_step]=0.
+        from native_stand.recovery.reward_fields import verify as verify_reward_fields
+        verify_reward_fields(raw,weighted,self.reward_config,self.recovery_config)
         self.reward_raw=raw;self.reward_weighted=weighted
+        if self.phase_coverage is not None and self.curriculum_training and not self.continuous_evaluation:
+            self.phase_coverage.observe(self.initial_pose_index,self.task_phase,~self.initializing_step,
+                raw,weighted,self.effort.abs()>=self.effort.new_tensor(contract.EFFORT_LIMITS)-1e-4)
         controlled=~self.initializing_step
         self.height_stats.add_(torch.stack(((self.root_height*controlled).sum(),
             ((self.root_height-self.command_height).abs()*controlled).sum(),
@@ -505,12 +603,13 @@ class RecoveryEnv(CommandEnv):
 
     def initialization_summary(self):
         packed=torch.stack((self.initial_attempts,self.initial_accepts,self.initial_rejects),-1).cpu().tolist()
-        return [{'pose_id':pose['pose_id'],'attempted':row[0],'accepted':row[1],'rejected':row[2],
+        return [{'pose_id':pose['pose_id'],'family':pose['family'],'attempted':row[0],'accepted':row[1],'rejected':row[2],
             'pending':row[0]-row[1]-row[2],'rejection_rate_decided':row[2]/(row[1]+row[2]) if row[1]+row[2] else None}
             for pose,row in zip(self.pose_library['poses'],packed)]
 
     def begin_task_rollout(self):
         self.rollout_events.zero_()
+        if self.phase_coverage is not None:self.phase_coverage.reset()
         self.pose_episode_metrics.reset()
         self.holding_rollout_counts.zero_()
         if self.holding_episode is not None:
@@ -518,6 +617,7 @@ class RecoveryEnv(CommandEnv):
         self.height_stats.zero_();self.height_count.zero_()
         self.standing_stats.zero_()
         self.wheel_geometry_stats.zero_()
+        self.guidance_audit_sums.zero_()
         self.reverse_cursor=0;self.reverse_valid.zero_()
 
     def collect_reverse_episodes(self):
@@ -543,9 +643,20 @@ class RecoveryEnv(CommandEnv):
         names=('initialization_env_steps','recovery_env_steps','handover_attempts',
             'complete_successes','task_failures','runtime_faults','initial_rejections')
         height=(self.height_stats/self.height_count.clamp_min(1)).cpu().tolist()
-        return {'counts':dict(zip(names,self.rollout_events.cpu().tolist())),
+        from native_stand.recovery.sampling import allocation_plan,coverage
+        plan=allocation_plan(self.recovery_config,self.num_envs)
+        phases=self.phase_coverage.summary(self.pose_library['poses'],self.step_dt) if self.phase_coverage is not None else None
+        return {'drawback_guidance_audit':dict(zip(('eligible_count','positive_samples','failed_reward_violations','ineligible_reward_violations','mirror_error_abs_sum_rad','wheel_target_distance_sum_m','reward_sum'),self.guidance_audit_sums.cpu().tolist())) if self.recovery_config.get('drawback_guidance') else None,
+            'support_record_audit':self.support_record.audit_summary() if self.support_record is not None else None,
+            'sampling_coverage':coverage(plan,self.initialization_summary(),phases),'sampling_plan':plan,
+            'time_scope':{'episode_duration':'existing completed-episode metric; not recovery-only control time',
+                'phase_transition_seconds':'transition count * policy dt; excludes initialization and evaluation',
+                'initialization_duration':'UNKNOWN unless independently recorded'},
+            'counts':dict(zip(names,self.rollout_events.cpu().tolist())),
+            'initialization_by_pose':self.initialization_summary(),
             'episode_summary_version':1,'episodes_by_pose':self.pose_episode_metrics.summary(),
             'effective_task_protocol':self.effective_task_protocol,
+            'family_phase_coverage':phases,
             'motion':dict(zip(('mean_height_m','mean_abs_height_error_m','mean_linear_speed_mps'),height)),
             'reverse_curriculum':self.reverse_curriculum.state() if self.reverse_curriculum else None,
             'leg_pair_projection_enabled':False,
@@ -555,7 +666,7 @@ class RecoveryEnv(CommandEnv):
             'success_mode':self.fsm.config.get('success_mode','handover'),
             'episode_mode':self.episode_mode,
             'teacher_forward_enabled':self.episode_mode!='continuous_holding' and not bool(self.recovery_config.get('rising_task')),
-            'required_stable_s':None if self.holding_episode is not None else self.fsm.config['verify_s'],
+            'required_stable_s':10. if self.rise_hold is not None else None if self.holding_episode is not None else self.fsm.config['verify_s'],
             'training_episode':({
                 'mode':'fixed_horizon','seconds':self.holding_episode.protocol['seconds'],
                 'steady_window_s':self.holding_episode.protocol['steady_window_s'],

@@ -12,7 +12,7 @@ REWARD_FIELDS=('lift','upright','effort','action_delta','joint_margin')
 
 def environment(cfg,spec,*,initialization_only=False):
     from native_stand.recovery.runtime import RecoveryEnv
-    from native_stand.command_v6.learning import model
+    from native_stand.command_v6.tools.model_factory import model
     from tensordict import TensorDict
     config=spec['recovery']
     from native_stand.recovery.task_protocol import resolve as task_protocol
@@ -31,23 +31,33 @@ def environment(cfg,spec,*,initialization_only=False):
         stand.load_state_dict(checkpoint['actor'],strict=True)
         stand.eval()
         for parameter in stand.parameters():parameter.requires_grad_(False)
-    return RecoveryEnv(cfg,recovery_config=config,
+    env=RecoveryEnv(cfg,recovery_config=config,
         initialization_only=initialization_only,
         pose_library=json.loads(Path(config['pose_library']).read_text()),stand_policy=stand,
         stage=spec['curriculum']['stages'][0],command_height=spec['control']['height_command_m'],
         reward_config=spec['reward'],schedule_s=spec['curriculum']['schedule_s'])
+    from native_stand.command_v6.runtime.execution_mode import apply
+    apply(env,getattr(cfg,'native_execution_mode','training'))
+    return env
 
 
 @isolated_evaluation
 def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,full_trace=False,
                    progress_callback=None,family=None,check_retained=True,target=(0.,0.),
                    scored_envs=8,target_window=None,standing_protocol=None,diagnostics=False,
-                   effective_protocol=None):
+                   effective_protocol=None,diagnostic_profile=None,input_recorder=None):
     """Fixed holdout first episodes, batched tensor evidence; no PPO optimizer."""
+    if standing_protocol is not None:
+        from native_stand.command_v6.domain.evaluation_config import scoring
+        standing_protocol=scoring(standing_protocol)
     from native_stand.recovery.domain import summarize_episodes,capture_terminal
     old_family,old_split=env.family,env.split
     old_training=env.curriculum_training
     standing=env.recovery_config.get('standing_task')
+    from native_stand.command_v6.domain.diagnostic_profiles import resolve as storage_profile
+    storage=storage_profile(diagnostic_profile,dt=env.step_dt)
+    if storage is not None:
+        full_trace=storage['full_trace'];diagnostics=storage['diagnostics']
     from native_stand.command_v6.domain.evidence import (effective_protocol as build_protocol,
         diagnostic_field,validate_effective_protocol,PROTOCOL_FIELDS,observed_protocol,tensor_field_validity)
     if tuple(target)!=(0.,0.):
@@ -76,7 +86,7 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
     if window[0]>=seconds:window=[0.,seconds]
     protocol=effective_protocol or build_protocol(scoring_protocol,requested_seconds=seconds,
         steady_window_s=window,sample_rate_hz=1/env.step_dt,scored_envs=scored_envs,
-        termination_semantics='first_episode_pre_reset; early termination fails continuous window')
+        termination_semantics=('first_episode_pre_reset; complete finite task_success terminal allowed; early terminal fails' if scoring_protocol.get('protocol_identity')=='autonomous_rise_min_height_v2' else 'first_episode_pre_reset; early termination fails continuous window'))
     validate_effective_protocol(protocol)
     if protocol['requested_seconds']!=seconds or protocol['scored_envs']!=scored_envs:
         raise ValueError('effective protocol differs from evaluator request')
@@ -91,7 +101,8 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
     if standing:
         env.continuous_evaluation=True
         env.fsm.config['timeout_s']=max(old_timeout,seconds+env.step_dt)
-    env.curriculum_training=False
+    from native_stand.command_v6.runtime.execution_mode import apply as apply_mode
+    apply_mode(env,'evaluation',family=family or old_family)
     if scored_envs>env.num_envs:raise ValueError('not enough scored environments')
     n=scored_envs
     cpu_rng=torch.get_rng_state()
@@ -121,7 +132,20 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
                 if stop_requested():
                     raise failure_evidence(TimeoutError('Recovery evaluation interrupted'),protocol,
                         valid,env.step_dt,env.recovery_snapshot[:n])
-                obs,_,done,_,_=env.step(actor(obs))
+                action=actor(obs)
+                if input_recorder is not None:
+                    data=env.robot.data
+                    input_recorder.before(observation=torch.cat((obs['policy'],obs['history']),-1),mean=action,
+                        root=data.root_state_w.torch,joint_pos=data.joint_pos.torch,joint_vel=data.joint_vel.torch,
+                        command=env.command,reference=env.reference,previous_action=env.action,
+                        contact=env.contact_force,metadata=torch.stack((env.initial_pose_index,env.reset_count,
+                            env.initialization_checked,env.fsm.mode,env.fsm.age,env.task_phase),-1),active=active)
+                obs,step_reward,done,_,_=env.step(action)
+                if input_recorder is not None:
+                    input_recorder.after(state=env.recovery_snapshot,control=env.recovery_control_snapshot,
+                        reward_total=step_reward,reward_raw=env.reward_raw,reward_weighted=env.reward_weighted,
+                        initializing=env.initializing_step,
+                        support_record=(env.support_record.snapshot if getattr(env,'support_record',None) is not None else None))
                 # This tensor was written by _get_dones, before any local reset.
                 rows[index].copy_(env.recovery_snapshot[:n]);valid[index].copy_(active)
                 if standing:posture_rows[index].copy_(env.standing_snapshot[:n])
@@ -191,7 +215,8 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
                         protocol={**scoring_protocol,'initial_xy':origins[i].tolist()},
                         runtime_fault=runtime,initial_valid=bool(last[29]),terminated=bool(end_mask[i]))
                     episode.update({key:gate[key] for key in ('recovery_s','post_rise_window_s',
-                        'post_rise_observed_s','height_peak_m','height_gain_m')})
+                        'post_rise_observed_s','height_peak_m','height_gain_m','post_rise_metrics',
+                        'standing_metrics_scope','post_rise_evidence_status')})
                 else:
                     gate=score_standing(series,posture_values[:,i][mask[:,i]],dt=env.step_dt,
                         requested_s=seconds,protocol={**scoring_protocol,
@@ -201,7 +226,20 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
                     standing_failed_checks=gate['failed_checks'],success=gate['accepted'],
                     outcome='runtime_fault' if runtime else 'success' if gate['accepted'] else
                             'task_failure' if end_mask[i] or len(series)==steps else 'incomplete')
-                episode['continuous_window_completed']=bool(len(series)==steps and not end_mask[i])
+                episode['continuous_window_completed']=(gate.get('post_rise_evidence_status')=='COMPLETE'
+                    if rising and rising['version']=='autonomous_rise_min_height_v2' else
+                    bool(len(series)==steps and not end_mask[i]))
+                if rising and rising['version']=='autonomous_rise_min_height_v2':
+                    for clock_field in ('entry_time_axis','observed_hold_time_axis','requested_hold_index_half_open'):
+                        episode[clock_field]=gate.get(clock_field)
+                    episode['diagnostic_hold_prefix_s']=gate.get('diagnostic_hold_prefix_s',0.)
+                    episode['entry_confirmation_index']=gate.get('entry_confirmation_index')
+                    if gate['accepted'] and end_mask[i]:episode['termination_reason']=['task_success']
+                    elif (gate.get('post_rise_evidence_status')=='COMPLETE' and end_mask[i]
+                          and not runtime and episode['termination_reason']==['recovery_timeout']):
+                        episode['termination_reason']=['hold_certificate_failed']
+                    episode['hold_window_complete']=gate.get('post_rise_evidence_status')=='COMPLETE'
+                    episode['hold_certificate_passed']=gate['accepted']
                 if geometry_values is not None:
                     from native_stand.recovery.standing import longitudinal_geometry
                     g=geometry_values[:,i][mask[:,i]]
@@ -216,27 +254,45 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
             if not full_trace and not episode['success']:
                 episode['failure_window_100hz']=series[-100:].tolist()
                 if standing:episode['failure_posture_window_100hz']=posture_values[:,i][mask[:,i]][-100:].tolist()
+            if storage is not None:
+                episode['diagnostic_storage']=storage
+                episode['diagnostic_profile_available_fields']=[field for field in storage['fields']
+                    if field not in ('posture','geometry') or
+                    field=='posture' and posture_values is not None or field=='geometry' and geometry_values is not None]
+                if diagnostic_profile=='summary':
+                    for name in ('gate_diagnostics_100hz','control_diagnostics_100hz','failure_window_100hz',
+                                 'failure_posture_window_100hz'):
+                        episode[name]=None
+                if diagnostic_profile=='failure_tail':
+                    if episode['success']:
+                        episode['gate_diagnostics_100hz']=None;episode['control_diagnostics_100hz']=None
+                    else:
+                        tail=max(1,round(1/env.step_dt))
+                        for name in ('gate_diagnostics_100hz','control_diagnostics_100hz'):
+                            if episode.get(name) is not None:episode[name]=episode[name][-tail:]
+                        if geometry_values is not None:
+                            episode['failure_geometry_window_100hz']=geometry_values[:,i][mask[:,i]][-tail:].tolist()
             episode['pose_evidence']={'offline_geometry_valid':bool(pose.get('offline_valid',False)),
                 'runtime_initialization_valid':episode['initial_valid'],
                 'policy_certificate_passed':episode['success'],
                 'scope':'this evaluation episode and its exact protocol; not a general pose capability'}
             episodes.append(episode)
         retained_results=[]
-        if rising and check_retained and evaluation_family not in rising['retained_families']:
-            for retained in rising['retained_families']:
+        from native_stand.recovery.sampling import retained_families
+        protected=retained_families(env.recovery_config,evaluation_family)
+        if rising and check_retained and evaluation_family not in protected:
+            for retained in protected:
                 retained_results.append(evaluate_actor(actor,wrapped,env,seconds=seconds,seed=seed,
-                    stop_requested=stop_requested,full_trace=False,family=retained,check_retained=False))
+                    stop_requested=stop_requested,full_trace=(full_trace if rising['version']=='autonomous_rise_min_height_v2' else False),family=retained,check_retained=False,diagnostics=diagnostics,diagnostic_profile=diagnostic_profile))
             if any(not result['accepted'] for result in retained_results):
                 for episode in episodes:
                     episode['success']=False
                     episode['standing_checks']['retained_family']=False
                     episode['standing_failed_checks'].append('retained_family')
                     if episode['outcome']!='runtime_fault':episode['outcome']='task_failure'
-        if (standing and standing['protocol'].get('objective')=='survival_level' and
+        if (standing and not rising and standing['protocol'].get('objective')=='survival_level' and
                 seconds>=10. and check_retained and env.reverse_curriculum is not None):
-            level=next(row for row in env.recovery_config['curriculum']['levels']
-                       if row['pose_family']==evaluation_family)
-            for retained in level.get('retained_families',[]):
+            for retained in protected:
                 result=evaluate_actor(actor,wrapped,env,seconds=10.,seed=seed,
                     stop_requested=stop_requested,full_trace=False,family=retained,check_retained=False)
                 retained_results.append(result)
@@ -298,7 +354,7 @@ def evaluate_actor(actor,wrapped,env,*,seconds,seed,stop_requested=lambda:False,
                 'episode_mode':episode_mode,
                 'legacy_fsm_mode':env.fsm.config.get('success_mode','handover'),
                 'certificate_mode':'full_window' if standing else 'fsm_success',
-                'required_stable_s':env.fsm.config['verify_s'],'teacher_control':not autonomous,
+                'required_stable_s':(rising['post_rise_hold_s'] if rising and rising['version']=='autonomous_rise_min_height_v2' else env.fsm.config['verify_s']),'teacher_control':not autonomous,
                 **({'standing_protocol':protocol,'effective_protocol':protocol,'continuous_seconds':seconds} if standing else {})},
             'incomplete_is_failure':False,'initialization':env.initialization_summary(),
             'runtime_initialization_certified':env.recovery_config['runtime_initialization_validated'],
