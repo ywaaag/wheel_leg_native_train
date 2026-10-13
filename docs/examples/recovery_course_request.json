@@ -1,0 +1,11 @@
+{
+  "purpose": "recovery_course_review",
+  "level_id": "Level3",
+  "current_family": "swing_candidate_from_historical_r1",
+  "retained_families": ["drawback_manual0001", "R0"],
+  "family_weights": {"swing_candidate_from_historical_r1": 0.4, "drawback_manual0001": 0.4, "R0": 0.2},
+  "smoke_updates": 10,
+  "formal_updates": 100,
+  "evaluation_updates": [25, 50, 100],
+  "wall_s": {"source_eval": 900, "smoke": 900, "formal": 7200}
+}

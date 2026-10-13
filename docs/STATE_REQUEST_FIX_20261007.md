@@ -1,6 +1,6 @@
 # 状态、任务请求与历史入口修复
 
-后续工程与当前总览见[ENGINEERING_STATUS](ENGINEERING_STATUS.md)。本文415项
+后续工程与当前总览见[ENGINEERING_STATUS](../STATUS.md)。本文415项
 测试及当时任务描述是阶段验证，不冒充当前GPU运行或最新全量验证结果。
 
 范围：当前共享源码、CPU回归及文档；不启动仿真/训练、不修改运行快照，

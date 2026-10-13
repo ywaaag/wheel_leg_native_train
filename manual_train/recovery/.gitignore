@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+models/*.pt
+experiments/
+last_experiment.json
+*_output.txt
+*_tests.txt
+*_plan.json
+plan_example.json
+editable/

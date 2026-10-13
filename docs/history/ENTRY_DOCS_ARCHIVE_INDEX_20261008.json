@@ -1,0 +1,50 @@
+{
+  "AGENTS.md": {
+    "sha256": "300cadb9676b95785db8ae9e90ad93f87ed19b7e0300a56291c67bbf06ee02e3",
+    "lines": 170
+  },
+  "README.md": {
+    "sha256": "46f12877ccd8b85d1c4af777f31d971b06ffe4163b299c7b2be9dc56bde2a139",
+    "lines": 168
+  },
+  "STATUS.md": {
+    "sha256": "fb167fb63b089ba21c39393affe27a5e7114e6a980121ad0f137efaeb48826d0",
+    "lines": 1335
+  },
+  "ARCHITECTURE.md": {
+    "sha256": "972123dd6a632736051c6de546060ef02bb3d5e295faae7b01a227a8704d78ed",
+    "lines": 443
+  },
+  "TOOL_INDEX.md": {
+    "sha256": "d0dd8eb5f45eb28f935bce0548ac6653a177e560f83f7eded18d155fe77ccc1c",
+    "lines": 126
+  },
+  "docs/CODEX_START_HERE.md": {
+    "sha256": "e5fa12b2e0ad3c75cb1e0249894948b7fce1324920edbea143a47910390b254e",
+    "lines": 134
+  },
+  "docs/ENGINEERING_STATUS.md": {
+    "sha256": "6b02df3947733cff243a6eb58b9b1137a13a7b9f65ac384eb199841b62d8affc",
+    "lines": 74
+  },
+  "docs/NEW_TOOLS_USAGE_20261008.md": {
+    "sha256": "fc980535852e791ae6a573a249de844be2bfaadedf5aec90bc7af553e1fb8fc9",
+    "lines": 149
+  },
+  "docs/DETACHED_TRAINING_POLICY.md": {
+    "sha256": "914f3757f3e4599cfa32a46ddee9428b5ccdf007acc24f9a6084e90f2c738559",
+    "lines": 67
+  },
+  "docs/EXPERIMENT_NAMING.md": {
+    "sha256": "147f261e9cbb52bfc8400fd48aad7162262940c6c31651dd5a7b3dd85cfac092",
+    "lines": 42
+  },
+  "docs/GIT_WORKFLOW.md": {
+    "sha256": "e21a1cd80af801572bee2253bd49c6836d76a4af37bd29b28297087f41318eda",
+    "lines": 121
+  },
+  "TOOL_INDEX_HISTORY.md": {
+    "sha256": "d228ad3fa6b1269d76dcad6bab5c49b1f8e895ec76ad40b5ebc069feb0eae602",
+    "lines": 515
+  }
+}

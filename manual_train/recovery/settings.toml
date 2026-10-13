@@ -1,0 +1,16 @@
+# 分步人工实验：改本文件与editable/src/native_stand/中的真实源码；freeze后冻结。
+# 奖励入口是editable/src/native_stand/students/manual_reward.py，根reward.py仅旧一键入口使用。
+purpose = "human_recovery"
+# swing：56 Swing + 8 normal；standing：64 normal；bridge：32/16/8/8动态后缀。
+mode = "swing"
+teacher_prefix_s = 1.80   # 仅bridge使用；按10ms对齐，0..1.80
+formal_updates = 100     # 6..300；另有固定smoke12，前5更新只训练新Critic
+learning_rate = 0.00003
+seed = 20261013
+chain_wall_s = 7200      # 2400..14400，包含source、smoke、formal和清理
+# 建新实验默认继承Actor；新reward、新Critic、新Adam，不是精确resume。
+source_checkpoint = "manual_train/recovery/models/recovery_source.pt"
+source_parent_spec = "runs/2026_10_12-13_29__recovery_course_b_prefix180_block0002/formal/source_snapshot/spec.json"
+# 物理GPU0共享；UUID/资源在真正提交前由公共supervisor重新核验。
+physical_gpu = 0
+resource_mode = "shared"

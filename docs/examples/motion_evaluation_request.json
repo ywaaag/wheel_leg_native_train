@@ -1,0 +1,6 @@
+{
+  "mode": "evaluation",
+  "commands": [[2.5, 0], [-2.5, 0]],
+  "wall_s": 1200,
+  "seed": 104
+}

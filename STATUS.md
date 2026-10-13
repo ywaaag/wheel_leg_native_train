@@ -1,1149 +1,411 @@
-# Status
-
-提交契约工程复验：[authorization/session 修复](docs/SUBMISSION_CONTRACT_FIX_20261007.md)，CPU 466 passed；未启动仿真、未查训练进度。本轮只提交文档，代码修复尚未提交。
-
-新会话操作入口：[CODEX_START_HERE](docs/CODEX_START_HERE.md)。本页各条运行状态属于记录时刻，最新事实以对应 run 的原始证据为准。
-
-工程摘要入口：[ENGINEERING_STATUS](docs/ENGINEERING_STATUS.md)。最近完整CPU验证为
-435项通过；下面415/423等数值属于对应阶段历史检查，不相互替代。
-本次仅文档/版本整理，未查看进程或轮询训练日志；下方启动记录不证明当前存活。
-
-## Episode / Identity / Recovery Engineering — 2026-10-07
-
-[本轮接口修复](docs/EPISODE_IDENTITY_RECOVERY_FIX_20261007.md)：EpisodeSummary v1、
-声明/执行源码身份分离、per-pose事件摘要、holding/rising身份及受限零写恢复plan。
-CPU435项通过，127个Python文件语法通过；真实冻结preflight子进程未导入Isaac。
-原15_58失败证书仅做一次离线plan，15项输入绑定、历史SHA未变，未发布新配置、
-未恢复PPO或追加预算。下方运行记录原样保留，本工程验证不判断当前任务存活。
-
-## Recovery自主低位起身 — 2026-10-07
-
-现行正式阶段根：`2026_10_7-16_18__recovery_rise_formal_from50`，
-[spec](configs/experiments/2026_10_7-16_18__recovery_rise_formal_from50/spec.json)。
-15_58链source与smoke均COMPLETED，smoke实际10更新，无runtime fault，R0回归8/8；
-但冻结证书读取completed_episodes而实际producer写completed，误报事件缺失并阻止formal。
-550个已完成episode、最长2.18秒的原始证据均保留；修复读取后phase owner在新目录
-生成corrected_smoke_certificate.json/PASSED，原FAILED证书不改写。
-新ledger完整导入source1/smoke10使用与原exact-ID记录，formal仍0/<=100，累计110不变；
-导入attempt按ID去重，不能跨账本重复累计。original failed证书仍阻止旧链再次formal。
-423 CPU passed；formal-only plan PASS，来源/smoke预算已耗尽与未起身属于既有事实，
-不是formal身份阻塞。已通过公共supervisor提交formal-only，首更新证据另记。
-
-formal单次握手已验证：RUNNING/actual_updates1、identity_verified=true、started=true；
-exact attempt `b6ae54f673d7480f93988c6511a79345`，trainer3359946、monitor3359944。
-握手文件runs/2026_10_7-16_18__recovery_rise_formal_from50/formal/handshake.json；
-此为当前argv/start/spec/output/attempt匹配的首更新证据，不能凭PID推断后续存活。
-后台monitor负责后续评估/结算/通知；不再会话轮询训练日志，不自动续训。
-
-当前提交根改为`2026_10_7-15_58__recovery_rise_low_from50`：原15_51链在AppLauncher
-之前被strict源码根检查拦住，原attempts空/used全0，保留FAILED证据，不修改旧链。
-合法冻结worker现在通过提交receipt逐文件SHA验证，未关闭strict身份检查。
-422 CPU passed，新source plan-only PASS/health无finding；新spec记录原失败证据SHA，
-原定总110更新上限不变。已通过supervisor提交，首更新证据另记；本段不代表已训练。
-
-新15_58链来源阶段已COMPLETED/PPO0/failure=null：低位8/8有效初始化、fault0，
-新起身证书0/8；retained R0在事件协议下8/8。smoke阶段已观察实际3更新、
-actor_parameters_changed=true。正式首更新与smoke持久证书仍待后台owner验证，
-不能据此称已学会起身或formal已经开始。
-
-用户批准[新起身方案](docs/RECOVERY_RISE_LOW_20261007.md)。新独立spec：
-configs/experiments/2026_10_7-15_51__recovery_rise_low_from50/spec.json；
-run根runs/2026_10_7-15_51__recovery_rise_low_from50。
-source50、低位family R1 60%+R0 40%，不自动晋级；10smoke+<=100formal，
-总<=110updates/901120samples。source<=600s、smoke<=600s、formal<=3600s。
-23秒事件对齐评估，起身<=11.5秒后完整保持10秒；不启用100秒durability。
-PPO0定位已COMPLETED：runs/2026_10_7-15_46__recovery_rise_source_locator，
-三个请求完成，零PPO；两个新中间姿态初始化被拒绝，未纳入训练；
-已有低位8/8有效，source约0.23m后倾角失败。未将定位standing gate当起身认证。
-CPU420项通过（后续增量检查与启动状态另记），source plan-only PASS/health无finding。
-运行事实以新run终态为准；本段准备状态不表示formal首更新已验证。
-
-Coverage A/B两组均COMPLETED：A100为0/8因roll；B100为8/8。
-两组best_new25、best_overall source50，durability NOT_RUN；不续训旧链。
-
-## State / Request Engineering -- 2026-10-07
-
-[本轮接口修复](docs/STATE_REQUEST_FIX_20261007.md)：共享链RunState、Motion/Recovery
-独立请求schema、历史CLI保护、集中命名及选定update覆盖诊断。
-CPU415项通过，Python语法121文件通过，plan-only零输出、输入spec/ledger SHA不变。
-未启动仿真/PPO，未改活动run冻结副本；旧独立A/B及Recovery历史链未追溯迁移。
-以下coverage任务状态属于另一任务，原记录保留，不从工程验证推断其终态。
-
-## Recovery Coverage A/B authorized -- 2026-10-07
-
-source_capability COMPLETED/exit0/PPO0/329.2028s，R0与R1(family R0_perturbed)
-seed104/205四项均8/8，总32/32、fault0。来源已具备本组R1初态能力。
-A_first/B_uniform detached提交已核验，submitted/submission_verified=true，
-current_stage=source_eval；formal首更新尚未在本启动记录中验证。
-worker3225689/3225690，独立冻结run与账本，后台owner负责后续训练/终态，
-不重复提交或自动追加系数实验。局部同输入离线报告：
-isolated/recovery_coverage_ab_20261007/source_completed/review.json。
-
-[新方案](docs/RECOVERY_COVERAGE_AB_20261007.md)：用户批准source50的R0/R1
-PPO0双seed平衡初态复核与BC样本覆盖A_first/B_uniform受控对照。
-配置根configs/experiments/recovery_coverage_ab_20261007，各独立spec/budget。
-各组10smoke+<=100formal，合计<=220updates/1802240samples，仅BC选择方式不同。
-CPU403passed、三项plan-only PASS；运行事实以新run终态为准。
-GPU0共享已获明确授权，不停止任何其他进程，不重启旧hold10、不启用R1 PPO。
-
-## Public Entry Consolidation -- 2026-10-07
-
-当前工具与历史命令已拆分：TOOL_INDEX.md / TOOL_INDEX_HISTORY.md。
-旧固定GPU/run/session的高速preparation runtime入口退役；三旧Motion
-声明生成器默认拒绝，显式历史复现仍不得覆盖已有目录。新提交只走supervisor。
-本轮仅工程修改与CPU核验，不生成新实验配方、不启动仿真或续训。
-当前Motion来源建议仍是B250；旧报告早期new250建议已被最终复核替代。
-全量CPU回归399项通过；详见docs/ENTRYPOINT_CONSOLIDATION_20261007.md。
-
-## Entry Semantics Engineering -- 2026-10-07
-
-[本轮局部修复与验证](docs/ENTRY_SEMANTICS_FIX_20261007.md)：明确资源共享授权、
-模型角色、episode结果、event-sized smoke和单一certificate owner；默认首阶段
-握手与formal首更新验证分开。只CPU检查，不启动/恢复/停止训练，不修改当前
-Recovery冻结执行副本、ledger或历史raw评估。下方任务状态以各run终态为准。
-CPU回归387项通过，113个Python文件语法检查通过；历史572项输入SHA未变化。
-plan-only正确拒绝已耗尽预算（BUDGET_EXHAUSTED），输出目录未创建。
-
-## Motion engineering/capability recheck -- 2026-10-07
-
-[Motion独立任务](docs/MOTION_ENGINEERING_RECHECK_20261007.md)：新absolute_v3协议及工程接线修复。
-本轮online/offline optimizer=0。GPU0被其他任务占用，未预留attempt；用户追加GPU1授权，
-一次PPO0评估COMPLETED：9项各8/8通过，1942.31s含清理，在线/离线更新0。
-来源B250的0/±1/±1.5/±2通过；new250的±1.5通过，B250误差更低。
-CPU387 passed。来源B250与new250/new500路径/SHA分别绑定。
-[机器结果](isolated/motion_recheck_20261007/final_gpu1/result.json)及逐项raw/terminal/ledger保留。
-建议B250起点、待学±2.5；prepared v4账本UNAUTHORIZED，plan READY_NEEDS_AUTH。
-不将旧trace重评分当作新训练收益，不续训；本任务评估已退出，未启动PPO。
-
-## Authorized Recovery R0 Holding Experiment -- 2026-10-07
-
-当前已完成复盘见[R0 hold10完成报告](docs/RECOVERY_R0_HOLD10_REVIEW_20261007.md)。
-该复盘记录source/smoke/formal均COMPLETED，formal100更新；新100为0/8，
-source仍优于新候选，不授权续训。以下RUNNING、PID与首更新内容仅为历史启动记录，
-不能用于判断当前进程存活或模型能力；原始run证据优先。
-
-Detached startup verified: source10s COMPLETED/PPO0/71.23455s,8/8 accepted,
-no runtime fault. Smoke COMPLETED10updates/81920samples/136.21032s,
-actor changed, wiring_certificate PASSED/errors[]. Smoke update8 recorded64
-normal10.0s timeouts,0physical failures;64window certificates failed separately.
-Formal single handshake RUNNING/actual1, identity_verified=true/started=true,
-trainer3168977, worker3164611, attempt43e96c5cc5d846779640bbc3edefd3c2.
-These are startup facts, not a completed100-update result. Shared GPU0 explicitly
-allowed by current user; no other process stopped. Background monitor owns full
-evaluations, terminal/accounting/report/current-session notification.
-CPU351passed; plan-only PASS/health OK before AppLauncher. Runtime source/spec/asset
-and frozen execution identities are in the new run. No conversational log polling
-after the formal handshake, no extra PPO/automatic continuation.
-
-Current user approved execution of [R0 continuous10s experiment](docs/RECOVERY_R0_HOLD10_20261007.md).
-[Spec](configs/experiments/recovery_r0_hold10_from50_20261007/spec.json), independent
-local budget.json; output runs/recovery_r0_hold10_from50_20261007.
-Source scissor50 unchanged; success_once0, no early success reset, normal10s
-time limit bootstraps via installed PPO. Full-window online certification,
-R0 cap0, all continuous rewards/physics/PPO/BC unchanged.
-source10s/PPO0 + smoke10 + formal<=100, total<=110updates/901120samples;
-full evaluation25/50/100, no final100s or R1. CPU/preflight/runtime startup
-are reported separately below or in the immutable run evidence. No automatic continuation.
-
-## Version Control Handoff -- 2026-10-07
-
-[Git workflow and submission scope](docs/GIT_WORKFLOW.md): the repository had no
-prior commit; the first versioned baseline captures current files, not a restored
-historical implementation. Source/tests/declaration configs, scripts and docs are
-committed separately. Dynamic budgets, submissions, runs, binary assets and isolated
-evidence stay local and unchanged. This handoff grants no simulator/PPO budget.
-Current CPU engineering evidence:315tests passed;75files passed py_compile.
-Actual runtime and capability still require the immutable run evidence below.
-
-## Interface/evidence engineering update -- 2026-10-07
-
-Followup [gap closure](docs/NATIVE_INTERFACE_EVIDENCE_FOLLOWUP_20261007.md): protocol
-duration/gate identity, read-only health, strict certificate/submission prerequisites,
-generic offline audit and default-off selected diagnostics completed CPU verification.
-No simulation/PPO or historical authorization changes. Runtime verification remains
-explicitly separate; current health findings do not authorize continuation.
-
-[Changes and CPU/offline validation](docs/NATIVE_INTERFACE_EVIDENCE_20261007.md).
-No simulation, online PPO, continuation or budget change. Historical run evidence
-remains unchanged. Frozen offline Recovery100s rescore confirms actual [2,100]
-posture scoring and8/8; its old serialized [2,10] description was incorrect.
-New effective protocol/gate/diagnostics interfaces disclose actual scopes and
-missing evidence. Old protocol results are not rewritten or newly authorized.
-
-## Survival/level chain reviewed and stopped -- 2026-10-07
-
-Current handoff: [Recovery context and evidence](docs/HANDOFF_RECOVERY_20261007.md).
-Event `f19e69d28f8650f3f6ef342d`; chain completed its bounded workflow.
-Formal stopped at200updates after two failed full evaluations, not10000updates.
-Smoke3/formal200, total203PPOupdates; chain3075.77s. R0 remains active, R1 not sampled.
-Source scissor update50 remains best:8/8 new survival/level10s acceptance.
-New100 fails roll8/8; new200 has5tilt terminations and0/8 full acceptance.
-Source100s result has8/8continuous survival; its posture gate still scores2-10s,
-so it is not a full100s posture certificate. Report shows `gate=None` because
-Recovery stores `recovery_gate`, while chain summary reads `standing_gate`.
-These report/protocol issues are diagnosed, not yet repaired; raw results unchanged.
-No new simulation/PPO authorized or started by this handoff. Historical startup below
-is superseded by terminal evidence in `runs/recovery_survival_level_from50_20261006`.
-
-## Survival/level R0 -> R1 running detached -- 2026-10-06
-
-[Task](docs/RECOVERY_SURVIVAL_LEVEL_20261006.md),
-[spec](configs/experiments/recovery_survival_level_from50_20261006/spec.json),
-[ledger](configs/experiments/recovery_survival_level_from50_20261006/budget.json).
-Source is GUI-approved scissor update50 SHA1fa4255a...; strict150D actor/critic/Adam,
-LR3e-5, same mechanical-stop USD/plane/PD/action/effort limits.
-10000totalupdates =3smoke+9997formal,81,920,000samples, conservative10h cap.
-Objective:survival and level posture; motion/drift/symmetry diagnostic-only.
-R0 confirmations then R1 near-standing with40% R0 retention; R2/R3 disabled.
-58focused CPU checks plus80general regression checks pass, fresh preflight PASS.
-Historical fixture failures are recorded in the task document, old outputs unchanged.
-Source10s physically completed8/8 new-protocol acceptance,0PPO,100.72s,
-height0.36667m/contact100%, no runtime fault; moving vx~0.704m/s remains diagnostic.
-Smoke3actualupdates/24,576samples COMPLETED35.33s, actor parameters changed.
-One formal startup handshake RUNNING/actual1, trainer2210972, worker2208166,
-attempt700a9368fe7b4a90885bd978b476d7ce. Manifest SHA/spec/asset/source agree.
-No post-handshake training-log polling or automatic new chain.
-TensorBoard http://127.0.0.1:6013 HTTP200; smoke/formal JSONL viewers detached.
-Process metadata: runs/recovery_survival_level_from50_20261006/tensorboard_processes.json.
-Output: `runs/recovery_survival_level_from50_20261006`.
-HAPI target6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1. See actual manifests/terminals.
-
-## User-approved next source and revised goal -- 2026-10-06
-
-User GUI accepts [scissor update50](runs/standing_scissor_20261006/formal/model_update_50.pt)
-for **survival and level body posture**, without zero-speed/drift requirements.
-SHA256 `1fa4255a90be6a9d43294a532a9f8cbf8c620d228ac6e7e5b2f6cc7301376d71`.
-Existing evidence:8/8continuous10s, no runtime fault, mean height0.36667m,
-dual support100%, mean abs pitch1.26deg/roll4.15deg. GUI approval is separate
-from the old automated0/8 strict result, which remains unchanged.
-Next: R1 enlarged near-standing perturbations with R0 retention; R2 is the
-captured low pose. [Current plan](docs/RECOVERY_STANDING_PLAN.md) supersedes
-the lower-weight comparison proposal below. New reward/success/promotion gates
-must share the revised objective in a fresh spec before submission. No run,
-spec, budget or physical configuration changed by this documentation update.
-
-## Wheel alignment probe completed and reviewed -- 2026-10-06
-
-Eventd5ef508a2c3c881de3e8c86b; [review](docs/STANDING_SCISSOR_EXPERIMENT_20261006.md#completion-review----2026-10-06).
-All phases COMPLETED/exit0,53updates/434176samples,529.56s(8.83min), ledger agrees.
-Source/final50 all8/8 continuous10s,0/8strict acceptance, no runtime fault.
-Wheel fore/aft offset0.16685->0.08081m(-51.6%); mirror0.54709->0.25806rad.
-Height0.36120->0.36667m, but abs vx0.06975->0.70411m/s,
-excursion0.60005->6.26157m, roll0.000001->0.07234rad,
-leg-length difference3.39->31.85mm. Final fails excursion/vx/yaw/roll/mirror/
-leg_length in all8. Dual support100%, pitch/height/closure/sampled saturation pass.
-Alignment improved at the expense of zero-motion and lateral posture; not accepted.
-Best-by-existing-ranking remains source1500, accepted=null; latest is new50.
-1140old unused updates remain unspent. No automatic continuation after review.
-Next proposal: lower only geometry weight4fold on same-source controlled test;
-do not raise it further or extend this branch unchanged. TensorBoard6012 history.
-Observed report serialization bloat noted in review; raw evaluations preserved.
-
-## Wheel-center alignment probe running -- 2026-10-06
-
-Historical startup only; completed terminal above supersedes RUNNING.
-
-User authorized [scissor probe](docs/STANDING_SCISSOR_EXPERIMENT_20261006.md).
-Source1500 strict actor/critic/Adam, LR3e-5, fixedBC0.02, same yaw recipe.
-Only added longitudinal wheel-center cost,3cm deadband;15cm ->-.03/step.
-PPO0 source10s/120s cap ->64runtime/FK samples<=2mm ->3smoke/300s ->50formal.
-53updates/434176samples transferred;1140unused old updates remain unspent.
-No extra actual budget; no100s durability in this controlled50-update probe.
-53focused CPU tests pass; source preflight PASS. Output runs/standing_scissor_20261006.
-Runtime geometry gate PASSED64samples, peak center mismatch0.235mm<=2mm.
-Source10s COMPLETED/exit0/PPO0/61.67s; actual source wheel offset mean0.16685m.
-Source0/8strict acceptance is a behavior baseline, not wiring failure.
-3smoke COMPLETED/exit0/26.71s. One formal handshake RUNNING/actual1,
-worker2148333, trainer2150267, attempt8e627a44c4d640ae846461564df56e5e.
-TensorBoard http://127.0.0.1:6012 HTTP200. No post-handshake log polling;
-background monitors settle/report/notify current confirmed HAPI session once.
-These are startup/readback facts, not learned alignment or acceptance claims.
-
-## Scissor geometry offline check -- 2026-10-06
-
-[Review](docs/STANDING_SCISSOR_REVIEW_20261006.md) and
-[raw reconstruction](runs/standing_bc_ab_20261006/scissor_geometry_review.json).
-96saved training input reconstructions using current USD closure all valid.
-Sampled A/B rollout100 wheel longitudinal offset means0.17549/0.17377m;
-sagittal leg-angle differences0.57208/0.56659rad. This supports observed
-scissor geometry; not a full holdout measurement or proof of static stability.
-R0 reset is near-symmetric; no large opposing-leg randomization found.
-Actual A100height/support/mirror weighted means +0.02989/+0.005/-0.00148.
-Next best single-variable candidate is wheel-center longitudinal geometry cost,
-after actual pre-reset runtime readback agrees with offline reconstruction.
-New standalone offline tool and4CPUfixtures pass; no new PPO or physics,
-no reward/spec/asset/budget changes. Existing1193unused allowance stays unspent.
-
-## BC A/B completed and reviewed -- 2026-10-06
-
-Event74c16b14abeaebf3e9155986; [review](docs/STANDING_BC_AB_20261006.md#completion-review----2026-10-06).
-Pair/all six phases COMPLETED/exit0,206updates/1,687,552samples,1890.95s(31.52min).
-Both arms source1/smoke3/formal100 charged exactly;1193old updates remain unused.
-Source,A50/A100,B50/B100 all8/8 continuous10s,0/8 full acceptance, no runtime fault.
-A100/B100: root0.35803/0.35821m, abs vx0.07369/0.08638m/s,
-abs yaw0.08020/0.04288rad/s, excursion0.65689/0.78844m,
-mirror0.56877/0.55992rad. All8fail excursion/vx/yaw/mirror; other gates pass.
-BC annealing improves yaw but worsens drift, not a symmetry/stability solution.
-A weighted BC/PPO first-minibatch norm average0.154%, leg contribution0.0254%;
-directional conflict observed but BC dominance unsupported. B51+actualBC=0.
-Next priority: offline mirror geometry/sign and reward-signal audit on saved
-states before full mirrored BC. Wheel-only BC is not automatically submitted.
-Callback sent once; this review starts no simulation/PPO, changes no recipe,
-and resets no budget. TensorBoard6011 retains A/B evidence.
-
-## BC gradient / annealing A/B running -- 2026-10-06 20:02 CST
-
-Historical startup facts; completed terminal above supersedes RUNNING.
-
-Current task: [BC A/B plan](docs/STANDING_BC_AB_20261006.md).
-Source/teacher update1500; same seed/Adam/LR3e-5 and yaw-only recipe.
-A_fixed BC0.02; B_annealed cosine to zero from formal51. Each arm source10s,
-3smoke+100formal;206updates/1,687,552samples transferred, no added allowance.
-Old ledger has1193unused updates.63focused CPU/fake-process checks pass;
-both source preflights PASS. Output `runs/standing_bc_ab_20261006`;
-manifest/handshake/terminal govern state. No automatic wheel-only/mirror BC.
-Source0/8 strict acceptance; gradient conflict awaits actual measurements.
-Estimated32-40min; formal strict update/sample cap, no wall cap.
-Detached one startup handshake confirmed A_fixed formal RUNNING/1actual update,
-trainer2046440, worker2044513, attempt8fb5cdf7891c4b30a6516e0708e384dc.
-A source10s/61.03s and3smoke/26.68s completed before formal, exit0.
-[Smoke gradient evidence](runs/standing_bc_ab_20261006/A_fixed/gradient_smoke_review.json):
-update1teacher=student gives zero BC gradient; update2/3 cosine-0.106/-0.302,
-but weighted BC norm is only0.0108%/0.0229% of clipped PPO actor norm.
-Leg/wheel directions both oppose in these probes; BC is not established as
-the principal cause. Scope is first minibatch, PPO+entropy composite.
-TensorBoard http://127.0.0.1:6011 HTTP200, readonly A/B smoke/formal viewers.
-No log polling after handshake. Background finishes both arms and notifies
-session6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1 once.
-
-## Yaw-only100-update test completed and reviewed -- 2026-10-06
-
-Eventa9a468f94c2254234fa81ea8; [report](runs/recovery_standing_yaw_20261006/completion_report.md)
-and [review](docs/STANDING_YAW_REVIEW_20261006.md#completion-review).
-Source/smoke/formal all COMPLETED/exit0, no terminal/accounting conflict.
-3smoke+100formal=103updates/843,776samples; chain971.83s(16.20min).
-Formal819,200samples,872.53s; no automatic continuation authorized.
-Source/yaw50/yaw100 all8/8 continuous10s,0/8 accepted, no runtime faults.
-Source->yaw100: abs yaw0.12165->0.08020rad/s(-34.1%), height0.36120->0.35803m,
-abs vx0.06975->0.07369m/s, excursion0.60005->0.65689m,
-mirror0.54709->0.56877rad. All8fail excursion/vx/yaw/mirror; level/contact/height/
-closure/saturation pass. Accepted=null; source1500 is automated best by existing
-drift-prioritized ranking, not uniformly best; yaw100 has better yaw/pitch.
-Latest yaw100 SHAbe0dc90b235e8ae95c8d37de8a42295b9ca8aef4818d195c764724dded6e53f4.
-Formal rollout748.20s/PPO4.88s/eval114.10s/write0.78s; eval13.1% of phase wall.
-Rollout1094.9samples/s, end-to-end938.9samples/s.
-New103-update quota consumed; old1399unused updates remain unspent, no resume.
-Next diagnostic priority: inspect symmetry objective versus frozen-source action
-retention on identical actual inputs; potential conflict is not a confirmed cause.
-No new simulation/PPO/model/reward changes during this completion review.
-
-## R0 yaw-only controlled continuation -- 2026-10-06
-
-Historical submission details; now completed, see reviewed terminal above.
-
-User agreed stopping the deteriorating branch, channel-level diagnosis and one
-yaw-only intervention. [Review](docs/STANDING_YAW_REVIEW_20261006.md),
-[new spec](configs/experiments/recovery_standing_yaw_20261006/spec.json),
-[new ledger](configs/experiments/recovery_standing_yaw_20261006/budget.json).
-Previous long run finalized STOPPED_BOUNDED/exit0 at498updates/4,079,616samples.
-Update400 PPO0 two-second diagnostic confirms right-wheel35.5% saturation,
-left-wheel0.5%, four leg channels0% in100Hz samples; no runtime fault.
-New task adds only canonical-Y yaw Pseudo-Huber(-0.8,scale0.35) to existing costs.
-Source remains update1500 with strict Adam/LR3e-5; update250 is comparison evidence.
-103remaining updates transferred:3smoke+100formal,843,776samples, no formal wall
-limit. Full10s at50/100, no100s durability or automatic extra training in this test.
-Output `runs/recovery_standing_yaw_20261006/`; manifest/progress/terminal govern
-actual state.55focused CPU checks pass; source preflight PASS before submission.
-Detached formal handshake confirmed RUNNING/1actual update, trainer1888487,
-worker1886759, formal attempt49452a90371940f1bae7c6509bf909e6. Source and3smoke
-completed before formal. Startup facts only; no post-start training polling.
-TensorBoard comparison: http://127.0.0.1:6010 (previous versus yaw_only).
-Old6009 retains stopped-run history; new events arrive after the first smoke update.
-
-## R0 height-independent long training authorized -- 2026-10-06
-
-Historical authorization: this run is now stopped at498updates; see above.
-
-User explicitly authorized2000formal updates, no wall-clock limit.
-[Current spec](configs/experiments/recovery_standing_level_v2_long_20261006/spec.json)
-and [exact ledger](configs/experiments/recovery_standing_level_v2_long_20261006/budget.json)
-permit16,384,000new samples (64env x128steps). Output:
-`runs/recovery_standing_level_v2_long_20261006/formal/`.
-Read that run's manifest/progress/terminal for actual runtime state.
-Source remains native update1500; target0.36m, R0 only. Height-independent
-pitch/roll/settling constraints and source-retention scope were verified in the
-completed bounded run below. Its immutable source/smoke evidence is referenced,
-not rewritten or charged a second time. Ordinary behavioral failure is not a
-formal-start blocker; runtime faults and frozen regression stops remain active.
-CPU:38focused tests passed; formal plan-only preflight PASS.
-Detached startup handshake confirmed RUNNING with1actual update,
-trainer PID1797484, monitor PID1797483, attempt48e363397d8a4728b67b9afd139f42ed.
-These are startup facts, not a continuously polled runtime status.
-Checkpoint every100; light evaluation every100; full10s every250 and final.
-TensorBoard for this run: http://127.0.0.1:6009 . Reports and one completion
-notification target current HAPI session6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1.
-No interaction polling or automatic continuation after completion.
-
-## Height-independent bounded verification completed — 2026-10-06
-
-Current report: [standing_level_v2_check_20261006_151025](runs/standing_level_v2_check_20261006_151025/completion_report.md).
-Authorized source10s +3smoke + candidate10s completed;3actual PPO updates,
-24,576samples,216.52s physical wall including cleanup of900s maximum.
-Source/candidate both8/8 continuous10s, no runtime fault, both0/8 strict acceptance.
-Source versus smoke3: height0.36120->0.36247m, mean abs vx0.06975->0.10333m/s,
-yaw0.12165->0.11361rad/s, mirror0.54709->0.53024rad,
-mean maximum excursion0.60005->0.90763m. Contact100%; sampled deterministic
-saturation0.1%. Both fail excursion/vx/yaw/mirror; pitch/roll and height pass.
-
-Finite loss, actor changed, actual LR3e-5,256retention samples/update verified.
-Training stochastic saturation33-35% is not the same statistic as deterministic
-evaluation saturation. No completed PPO episodes or128-episode curriculum window
-in3updates; no convergence claim. Source1500 remains best observed; accepted=null.
-[Ledger](configs/experiments/recovery_standing_level_v2_20261006/budget.json)
-used source1/evaluate1/smoke3/formal0; formal allowance0 blocks long training.
-The historical spec's500formal updates were a proposal at verification time.
-The separate authorization/spec above supersedes that pending decision.
-Next recommendation: separately authorized100-update controlled test with50/100
-independent comparisons, rather than immediately using thousands of updates.
-HAPI completion event4159bd535923366cb9939eee was sent once to the confirmed
-current session; notification does not authorize continuation.
-
-## Standing chain stopped; height-gate repair prepared — 2026-10-06
-
-User requested stopping [recovery_standing_balance_20261006_chain_1140](runs/recovery_standing_balance_20261006_chain_1140/).
-Formal terminal and exact ledger agree:1189updates/9,740,288samples,
-STOPPED_BOUNDED,exit0,stop_kind=user_signal. Smoke adds3updates/24,576samples;
-total1192updates/9,764,864samples. Chain wall11348.03s (~189.1min).
-8808formal updates remain in the old ledger; user stop is not authorization to reuse them.
-The historical wrapper labels its chain COMPLETED despite user stop; preserved
-as evidence, not a training/behavior success. No accepted continuous10s candidate.
-
-Current entry: [height-gate review](docs/STANDING_HEIGHT_GATE_REVIEW_20261006.md).
-Prepared [v2 spec](configs/experiments/recovery_standing_level_v2_20261006/spec.json)
-and [new ledger](configs/experiments/recovery_standing_level_v2_20261006/budget.json)
-were initially UNAUTHORIZED; the bounded verification authorization and final
-usage are recorded above. The new R0 recipe makes standing/settling/pitch/roll
-costs independent of height, zeros upright contribution, and widens source
-retention inputs to0.30-0.40m. Source remains update1500, not latest1189.
-Other weights, USD, plane, PD, limits, action, PPO and acceptance are unchanged.
-Preparation preflight was READY_NEEDS_AUTH/cpu_valid; bounded runtime is now complete.
-Detailed CPU results, reward probes and remaining runtime checks are in the review.
-Verification:81 focused CPU/fake-process tests pass; full suite183pass/10fail.
-Remaining failures depend on historical external YAML identities, a live occupied
-motion ledger, or snapshot-specific test entry/consumed authorization. They are
-listed in the review; full-suite green and runtime success are not claimed.
-
-TensorBoard6008 retains this stopped chain's history. Read terminal/ledger for
-state; neither old PIDs nor an open TensorBoard implies active training.
-
-## Symmetry continuation completed -- reviewed 2026-10-06
-
-[Review](runs/recovery_symmetry_from1500_20261006/REVIEW_20261006.md): formal
-COMPLETED, exit0, 500updates/4,096,000samples/61.96min; smoke3 additional
-updates. Independent new500 evaluation is0/8: all8env survive15s then
-recovery_timeout, no runtime fault. Last2s mean abs vx0.416m/s exceeds the
-0.30m/s gate; height0.3576m, contact99.90%, tilt~0.020rad remain good.
-Gated symmetry error improves temporarily then regresses. Do not replace
-the old accepted2s update1500 with new500; updates100-400 remain unreviewed.
-No automatic continuation authorized. The original run contains a preparation
-accounting discrepancy: requested500updates, submitted smoke3+formal500;
-total usage503updates/4,120,576samples is preserved and documented.
-
-Detached run `runs/recovery_symmetry_from1500_20261006` used
-`model_update_1500.pt` (SHA256
-`c82125438bc17cdb5f559dcad3ca40cc7dff654f2dcc9d5fae97ec700a69fc82`) and
-changes only the high-height-gated `leg_symmetry` reward from `-0.08` to
-`-0.20`. The USD, Plane, controller, action contract, limits, curriculum and
-learning rate were unchanged. The submitted ledger allocated3smoke and500formal
-updates; both completed. TensorBoard bridge output is under the run's
-`tensorboard/` directory. Old startup PIDs are historical identities only.
-
-## R0 standing at 0.36 m completed -- 2026-10-06 02:14 CST
-
-Latest review: [REVIEW_20261006.md](runs/recovery_stage0_stand_from1000_20261005_chain/REVIEW_20261006.md).
-Formal is STOPPED_BOUNDED, exit0:1954updates/16,007,168samples/~239.1min;
-smoke3updates. [Ledger](configs/experiments/recovery_stage0_stand_from1000_20261005/budget.json)
-settled exactly;46formalupdates remain, no automatic continuation authorized.
-[Frozen spec](runs/recovery_stage0_stand_from1000_20261005_chain/formal/source_snapshot/spec.json)
-uses command[0,0,0.36], R0 near-standing only, automatic promotion disabled.
-
-Offline checkpoint selection is recorded in
-[checkpoint_selection_20261006.json](runs/recovery_stage0_stand_from1000_20261005_chain/formal/checkpoint_selection_20261006.json).
-Among the independently evaluated checkpoints, update1500 is now the selected
-candidate: 8/8 pass the **autonomous2s hold protocol**, with approximately
-0.361 m final height, 0.022 rad peak tilt and 99.13% dual contact. The GUI
-preview command is documented in [TOOL_INDEX.md](TOOL_INDEX.md).
-Full saved evaluations1000 and1500 both8/8 pass the **autonomous2s hold protocol**;
-episodes end at~2.2-2.3s. They do NOT certify continuous10s/100s standing,
-low-pose Recovery or STAND handover. Update1500 has lower translation/tilt and
-update1000 lower yaw; a new authorized PPO0 continuous10s test is still needed
-before claiming long-duration standing. Latest1954 is unreviewed.
-Selected update1500 SHA:c82125438bc17cdb5f559dcad3ca40cc7dff654f2dcc9d5fae97ec700a69fc82.
-
-The horizontal-from900 run below is historical: ended1381updates at the3h bound;
-its best-reviewed1000 had0/8 successes, not an accepted standing model.
-
-## Horizontal stability continuation from update900 — 2026-10-05
-
-本轮已按用户授权启动独立长训：
-[`spec.json`](configs/experiments/recovery_horizontal_from900_20261005/spec.json)
-和独立账本
-[`budget.json`](configs/experiments/recovery_horizontal_from900_20261005/budget.json)。
-来源为 `recovery_dense_corrected_chain_20261004/formal/model_update_900.pt`，
-SHA256 `e61866d19946c10faaeff49fa6c457f2708f2e79400b425c9845b19faea51983`。
-
-变量：自主成功速度门改为 `0.30 m/s`；增加高度门控 pitch/roll 水平奖励（权重
-`-2`、scale `0.12 rad`）；settling linear/angular cost 加强为 `-0.15/-0.4`；
-倾角成功门为 `0.12 rad`。plane、USD、1 ms physics、5 ms PD、10 ms policy、
-40/5.5 Nm limits、25D/125D/150D 接口均保持不变。课程仍从 R0 零命令开始，
-两次不重叠的128 episode窗口、每窗成功率≥90%、无 runtime fault 后才升级。
-
-执行链：smoke 已完成 `3/3` 更新、`24,576` samples、finite loss、actor changed、
-无 runtime fault；formal 已 detached 启动，最多 `1,997` 更新，合计上限 `2,000`
-次 PPO 更新（总样本上限 `16,384,000`）。当前 formal 进程身份和账本以
-[`runs/recovery_horizontal_from900_20261005/`](runs/recovery_horizontal_from900_20261005/)
-为准。TensorBoard bridge 输出在该 run 的 `tensorboard/smoke` 与 `tensorboard/formal`。
-
-## update900 PPO0 physical evaluation — 2026-10-05
-
-独立评估已完成：
-[`failure_summary.md`](runs/recovery_eval_update900_20261005_170935/failure_summary.md)
-和逐环境原始结果
-[`update900_eval.json`](runs/recovery_eval_update900_20261005_170935/update900_eval.json)。
-原始 checkpoint
-`recovery_dense_corrected_chain_20261004/formal/model_update_900.pt` 的 SHA256 为
-`e61866d19946c10faaeff49fa6c457f2708f2e79400b425c9845b19faea51983`；PPO 更新为 0，
-8/8 scored env 均完整运行到 15 s 后 `recovery_timeout`，0 runtime fault，accepted=false。
-高度、倾角、双轮接触、闭链和底盘净空均通过对应安全门；已确认的主要失败项是末段
-`|vx|≈0.305 m/s`，无法满足自主成功的三维线速度 `≤0.05 m/s`，因此稳定保持计时为 0。
-旧快照未保存完整三维角速度范数，角速度门的独立判定仍为缺测。
-
-## Recovery checkpoint review — 2026-10-05
-
-离线筛选报告：[checkpoint_review.md](runs/recovery_checkpoint_review_20261005/checkpoint_review.md)。
-按每个 checkpoint 前 100 次更新的训练统计，诊断候选为
-`recovery_dense_corrected_chain_20261004/formal/model_update_900.pt`
-（SHA256 `e61866d...51983`）；它只出现过 3 次完整成功，仍不是验收通过模型。
-现有物理评估只有 update500/1000，均 0/8，故 `accepted_candidate=null`。旧产物没有
-128 个 episode 的逐条终止字段，本轮没有新增 PPO0 物理评估。
-
-## Recovery 训练链审计 — 2026-10-05
-
-针对其他运动训练的退化复盘，已完成 Recovery 代码对照和 CPU 修复；详见
-[RECOVERY_TRAINING_AUDIT_20261005.md](docs/RECOVERY_TRAINING_AUDIT_20261005.md)。
-修复了 warm-start RNG 被无条件覆盖、评估 RNG 污染 PPO、Recovery reverse
-curriculum checkpoint 不完整和 stage 指标静态报告四项问题。未启动新的仿真或 PPO，
-历史 `recovery_dense_corrected_chain_20261004` 不变。
-
-## Current outcome and offline review — 2026-10-04
-
-Corrected formal is STOPPED_BOUNDED, exit0,1418updates/11,616,256samples,
-10741.21s. It remained R0; no lower pose family was trained. Evaluated500/1000
-both0/8success,15s recovery_timeout,no runtime fault. Ledger totals remain
-smoke30/formal1692, remaining formal1308; no automatic resume authorized.
-
-[Offline gate/control/reward review](runs/recovery_dense_corrected_chain_20261004/formal/SETTLING_REVIEW_20261004.md)
-and its linked per-env JSON are the current diagnosis entry.1000 improves
-height/tilt but rolls at~0.81m/s and yaws~0.36rad/s in the last2s. Known gates
-coincide for at most0.01s, not2s. Terminal wheel targets remain15.07/10.88rad/s.
-Handover leg-angle gates are inactive in autonomous_hold and do not block success.
-Full velocity vectors/control sequences are missing: exact full-gate/reward
-offline recomputation remains UNKNOWN.10CPUregressions pass; this review used
-PPO0/simulation0. Proposed next single variable: multiplier on existing high
-height settling weights, not a granted new run or modification of current recipe.
-
-## Recovery correction in progress -- 2026-10-04
-
-Latest corrected continuation is submitted at
-`runs/recovery_dense_corrected_chain_20261004` using
-`configs/experiments/recovery_dense_curriculum_20261004/spec_corrected_direct.json`.
-39focusedCPUtests passed; one historical external-YAML identity test excluded.
-Runtime initialization passed all4families x2splits,64env layout. R0/R1 are
-direct zero-velocity resets, NOT passive stationary certificates; R2/R3 pass
-settling checks. The earlier static-hold diagnostic failed as task initialization
-and remains preserved. Source stays update1500, not the degrading274checkpoint.
-Remaining smoke7; formal2726 maximum, formal wall10800s; existing ledger shared.
-The corrected supervisor must complete smoke before formal; see phase progress
-and terminal JSON for actual state, not this submission snapshot.
-TensorBoard6007 run prefix: `recovery_dense_corrected_20261004/{smoke,formal}`.
-New scalars: `task_metrics/motion/mean_height_m`, `mean_abs_height_error_m`,
-`mean_linear_speed_mps`, and `task_metrics/reverse_curriculum/stage`.
-
-User requested stopping the degrading dense run and correcting the curriculum
-and reward scale before continuing. The stopped formal attempt completed274
-updates (2,244,608samples), STOPPED_BOUNDED, exit0, no runtime failure.
-Original smoke23 and formal274 charges remain in the same ledger; remaining
-allowances are smoke7 and formal2726. No completed attempt is rewritten.
-
-Corrected recipe: `configs/experiments/recovery_dense_curriculum_20261004/spec_corrected.json`.
-Its pose library has24 closure-consistent candidates and2 explicitly rejected
-candidates. These are offline candidates, NOT runtime-certified poses.
-Actual reverse curriculum is now wired to per-episode stage IDs, GPU terminal
-buffers and update-end statistics. Only128 completed episodes of the current
-stage form a window; two successful non-overlapping windows are required.
-Promotion affects subsequent resets only; evaluation cannot promote stages.
-
-Wheel-spin cost is normalized by100rad/s, retaining weight-0.02; a100rad/s
-state costs0.0002 per policy step rather than2. Unverified raw joint symmetry,
-nominal-target "support region", and unverified-sign slip rewards are removed
-from this corrected recipe, not retrospectively changed in old evidence.
-
-The first corrected candidate attempted static initial-target PD hold and failed
-R0 initialization. It is historical failed preparation, not the launched recipe.
-The launched direct-reset recipe removes that hold: R0/R1 start from valid zero
-velocity geometry; R2/R3 retain passive settling. See the latest entry above.
-36focusedCPU regressions passed; one historical external-YAML identity test
-is excluded and its original failure is preserved. Corrected CPU preflight passes.
-
-New initialization diagnostic: `runs/recovery_dense_corrected_initial_20261004`.
-PPO0, charged to the existing formal attempt budget rather than inventing a
-source-evaluation allowance. Formal training is not resumed before validation.
-
-## Dense reverse-curriculum Recovery — current submission
-
-Authorized source is the independently evaluated `model_update_1500.pt` from the
-knee-stop run. Budget is smoke30 plus formal3000 updates, with TensorBoard monitoring.
-The first submission failed before PPO because the supervisor output directory had
-already been created; evidence is retained in
-`runs/recovery_dense_curriculum_20261004_chain/` and charged updates remain zero.
-Fresh retry is `runs/recovery_dense_curriculum_20261004_chain_retry1/`; startup
-handshake confirmed smoke update1 (trainer PID2975014). The smoke TensorBoard bridge
-writes under `runs/recovery_r1_manual0001_retry_20261002/tensorboard/recovery_dense_curriculum_20261004_retry1/smoke`.
-Formal will start only after all30 smoke updates pass finite-loss and actor-change checks.
-
-## Current Recovery continuation — 2026-10-04
-
-User authorized at most10000 total PPO updates, no formal wall-clock cap, sharedGPU0.
-[Current spec](configs/experiments/recovery_knee_stop_pitch_20261004/spec.json),
-[independent ledger](configs/experiments/recovery_knee_stop_pitch_20261004/budget.json),
-[candidate comparison](configs/experiments/recovery_knee_stop_pitch_20261004/candidate_review_corrected.json).
-Historical20checkpoints compared over a common0–9.60s Recovery window;
-late7.60–9.60s elevated/contact states precede pitch ranking. Recommended1400 is
-an initialization candidate, not accepted standing: lateheight0.4079m, abs pitch
-0.3212rad, abs vx0.7079m/s. Old sweep16results used ORIGINAL asset/manual0001;
-they do not certify the new stop USD or captured pose.
-
-New isolatedUSD `assets/diagnostic/rmuc_robot_closed_loop_knee_stop_0233_v2.usd`
-preserves opposite-end2.5rad limits, left knee lower=-0.233rad/right upper=0.233rad.
-Old copy's untouched far limit had erroneous8207degrees; kept as historical evidence.
-Stops have finite solver compliance and are not a gas-spring force model.
-Captured224308pose was closure-resolved within the stops, initialvelocities zeroed.
-[New initial probe](runs/recovery_knee_stop_pitch_20261004_initial_retry/result.json)
-accepted64/64 after short passive settling and second velocity zero; residual
-about1.6e-6m and ideal ground gap about-1.6e-6m in env0 at acceptance.
-Initial attempt failed on missinglibrarygeometry; retained,4.07s/PPO0, fixed before retry.
-16focusedCPUtests passed. New reward adds only height-gated canonical pitch cost;
-existing upright/overshoot/settling, PD, action and limits retained.
-
-Execution: smoke3updates/300s then formal9997updates/no wall cap, one sequential
-chain `runs/recovery_knee_stop_pitch_20261004_chain_retry1`. Total samples≤81,920,000.
-Checkpoint100/full evaluation500; no motion curriculum or auto retry.
-Read phaseprogress/terminal for current facts; this is a submission snapshot.
-HAPI formal completion target6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1.
-Notifications request review and do not authorize another chain.
-First smoke attempt stopped before PPO because pitch reward was absent from rollout
-metric registration; retained in `runs/recovery_knee_stop_pitch_20261004_chain`.
-Corrected retry uses the SAME ledger with0previous PPO consumed, not a reset budget.
-Startup handshake confirmed retry smoke1actual update,trainerPID2653963.
-Smoke completed3/3updates; formal startup handshake confirmed1actual PPO update,
-trainerPID2654580,monitorPID2654579. This is a point-in-time startup snapshot.
-TensorBoard summaries bridge into existing dashboard logdir under
-`recovery_knee_stop_pitch_20261004/smoke` and `/formal`.
-17focusedCPUregressions passed. Background guard covers pre-formal supervisor failures;
-normal formal notifications remain owned by the existing monitor.
-
-## Dense Recovery follow-up — preparation only
-
-The knee-stop run was stopped after2315updates: all four independent evaluations
-(500/1000/1500/2000) had0/8 autonomous successes. A new preparation spec is at
-`configs/experiments/recovery_dense_curriculum_20261004/spec.json`; its ledger is
-explicitly `UNAUTHORIZED`, so no PPO has been submitted. It keeps the same isolated
-USD, captured pose, 150D policy and physical limits. The only reward additions are
-continuous allowed-support contact credit and a low-height wheel-spin cost gated
-out between0.20 and0.32m. This targets the observed low-lying wheel-scrubbing mode;
-it does not add hidden control, wheel locking, external forces or a new actor input.
-CPU dense-reward regressions pass6/6. Separate budget authorization is required
-before a smoke or formal run.
-The prepared spec now also records reverse levels R0 near-standing, R1 symmetric
-DrawBack approximation, R2 captured low pose and R3 expanded asymmetric poses;
-two clean128-episode windows at >=90% success are required before each next reset
-level. Dense diagnostics/rewards include leg-pair coordination, support imbalance,
-target support-region proxy and wheel/body slip proxy. These are explicit metrics,
-not left/right action equality or a hidden controller.
-Below are historical snapshots, not current status.
-
-## Level and overshoot Recovery training — 2026-10-03 startup snapshot
-
-User authorized2000updates from autonomous Recovery1000.
-[Current run](runs/recovery_level_from1000_20261003/),
-[spec](configs/experiments/recovery_level_from1000_20261003/spec.json),
-[ledger](configs/experiments/recovery_level_from1000_20261003/budget.json).
-Source SHA408e108ed54d31454470726a90a1dde469d7185397716271ea0790f91d941525,
-strict actor/critic/Adam,LR3e-5,new reset. Changes: upright weight0.5->2,
-one-sided height overshoot cost -((root_height-command_height)+/0.04)^2 per second.
-No PD/action/limit/asset/success2s changes.12focusedCPU tests passed and unified
-smoke preflight PASS. Startup confirmed2real smoke updates,PID2077117; no formal
-completion implied. Background sequential supervisor runs smoke3/300s then
-formal2000/28800s,stops on fault,no automatic retries. Same-source formal startup,
-smoke is wiring validation rather than a source checkpoint replacement.
-Check current phase progress,monitor_exit and terminal reports for live facts.
-TensorBoard6007 bridges configured under recovery_level_from1000_20261003/smoke
-and /formal. Formal completion sends report to explicit currentHAPI session.
-Old runs/ledgers unchanged.
-
-## Autonomous Recovery formal launch confirmed — 2026-10-03 startup snapshot
-
-[Current chain](runs/recovery_self_stand_from1500_20261003_chain/),
-[real PPO handshake](runs/recovery_self_stand_from1500_20261003_chain.submission.json),
-[baseline](runs/recovery_self_stand_from1500_20261003_baseline/result.json).
-Baseline completed92.09s,8valid initial episodes,0runtime faults,0successes and
-8ordinary Recovery timeouts; this allows learning under the approved protocol.
-Smoke completed3/3 updates,finite losses,actor changed; source/spec/effective LR3e-5,
-Adam state_count17. Chain advanced to formal and formal metrics/event file exists.
-This is a startup snapshot; read chain/phase progress and terminal JSON for current status.
-
-Budget caps: baseline300s,smoke3/300s,formal1000/14400s;64x128,formal8,192,000samples,
-smoke24,576samples. Outer supervisor14690s plus15s cleanup excludes already-completed
-baseline; combined total stays within15000s. FrozenSTAND remains unused for control;
-success requires Recovery autonomous2s hold. No domain randomization or wheel lock.
-
-TensorBoard HTTP200 and both event files verified at `http://127.0.0.1:6007`.
-Runs: `recovery_self_stand_from1500_20261003/smoke` and `/formal` under existing
-dashboard logdir. Read-only bridge logs/identities are in chain tensorboard files.
-Final chain report and one HAPI completion notification target the explicitly verified
-current session6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1; notification never authorizes continuation.
-Other isolated motion trainer was neither changed nor stopped.
-
-## Authorized autonomous Recovery chain — 2026-10-03
-
-User explicitly authorized baseline300s/PPO0 -> smoke3updates/300s -> formal
-1000updates/14400s. [Spec](configs/experiments/recovery_self_stand_from1500_20261003/spec.json)
-and [independent live ledger](configs/experiments/recovery_self_stand_from1500_20261003/budget.json).
-Source is Recovery1500 SHA cb5ccd4307a3b9c799bd8543b9c7b9f56eb239c1637534b81852f70b82fb06f5;
-no old quota was reset or transferred.32CPU tests passed,one historical preflight excluded.
-[Baseline output](runs/recovery_self_stand_from1500_20261003_baseline/) uses new
-autonomous2s success protocol,not legacy frozen-STAND5s handover. Ordinary baseline
-task failure permits learning; faults/invalid initialization/incomplete baseline stop.
-Startup progress here is a snapshot; read phase/chain terminal reports for later facts.
-Other isolated motion task is untouched and may affect sharedGPU0 throughput.
-
-## Recovery autonomous standing preparation — 2026-10-03 11:02 CST
-
-User requests Recovery itself to stand steadily. New [spec](configs/experiments/recovery_self_stand_from1500_20261003/spec.json)
-and [UNAUTHORIZED budget](configs/experiments/recovery_self_stand_from1500_20261003/budget.json)
-start strictly from best evaluated Recovery1500. [Design and commands](docs/RECOVERY_SELF_STAND_20261003.md).
-No new simulation/PPO submitted. CPU plan passes; smoke plan correctly requires budget authorization.
-Task changes: continuous2s autonomous hold vs old frozen-STAND5s takeover;
-height-gated uncapped pseudo-Huber linear/angular settling costs vs old saturated cost.
-Legacy handover remains default for all existing specs. No wheel lock, extra damping,
-raw symmetry/nominal-angle reward, PD/effort/asset change.31CPU regression tests passed,
-one historical preflight excluded. Runtime behavior remains unverified.
-
-## Update1500 wider handover request — 2026-10-03
-
-[Offline gate review](runs/recovery_settle_from433_formal_20261002b/HANDOVER_1500_REVIEW_20261003.md),
-[per-env evidence](runs/recovery_settle_from433_formal_20261002b/handover_1500_review_20261003.json).
-User requests STAND to finish balancing/straightening from a less-perfect Recovery
-state. Recorded1500 late state is upright(tilt≈0.015rad),but vx≈0.21m/s,yaw≈2.45rad/s;
-in original height band planar speed fails100%,yaw98.9–99.2%. Terminal right active
-angle≈-0.160rad is only≈0.010rad outside provisional gate; all8 terminal leg speeds
-pass. Per-step target jumps UNKNOWN. No handover occurred; no evidence of failed STAND
-takeover. Broader trigger is proposed for fixed-policy testing only,not activated.
-No new simulation/PPO or run/ledger mutation during review.
-
-## Fixed433 takeover-gate diagnostic prepared — 2026-10-02
-
-User confirmed gate-first priority; no reward-enabled/PPO run submitted.
-[Execution scope](docs/RECOVERY_433_GATE_DIAGNOSTIC.md),
-[diagnostic spec](configs/experiments/recovery_diagnostic433_20261002/spec.json),
-[new UNAUTHORIZED ledger](configs/experiments/recovery_diagnostic433_20261002/budget.json).
-Existing probe now supports checkpoint mode; same frozen STAND/Recovery433 and
-original reward/control,64env layout/8scored,first episodes only,max18s simulation.
-All11 gate masks/full root velocities/target jumps and54D physical control snapshot
-are captured before reset at100Hz; allocated tensor buffers transfer after evaluation.
-Plan-only checkpoint identity check passes,26CPU regressions pass,1historical
-preflight deselected. Installed actor default inference is deterministic.
-Proposed new physics wall300s includes initialization/cleanup,PPO0; awaiting explicit
-budget authorization (old wall exhausted). No STAND robustness or lowered gate.
-
-## Update433 offline analysis — 2026-10-02
-
-User selected433 for analysis. [Identity and training-window evidence](runs/recovery_r1_manual0001_retry_20261002/ANALYSIS_UPDATE433_20261002.json).
-433 remains UNREVIEWED by independent physical evaluation; no simulation/PPO here.
-401–433 aggregate lift0.9280,upright0.9397,tilt3/update,zero handover/success.
-Any-channel policy-sample saturation0.9030; not per-motor or PD-substep fraction.
-These are changing stochastic training policies, not a deterministic433 trace.
-Next priority is bounded fixed433 gate/velocity/effort diagnostic before further training.
-
-Prepared settling-reward draft at configs/experiments/recovery_r1_settle_from433_20261002
-is UNAUTHORIZED and NOT LAUNCH READY: existing Recovery schema rejects warmstart,
-and runtime settling reward has CPU fixtures only.26CPU tests passed,1historical
-preflight deselected. Do not use this draft to launch until schema distinguishes
-Recovery continuation from immutable STAND and physical433 evidence is available.
-
-## Recovery terminal review — 2026-10-02
-
-Current Recovery chain ended STOPPED_BOUNDED at formal wall limit, exit0, no
-reported runtime fault. Actual formal433updates/3,547,136samples plus smoke5/
-40,960samples. Formal child including cleanup7151.66s; corrected chain7250.57s.
-1000-update continuation is NOT_SUBMITTED; predecessor bounded stop prevented
-launch, and remaining formal wall is only48.34s. Do not automatically restart.
-
-[Quantitative review](runs/recovery_r1_manual0001_retry_20261002/TERMINAL_REVIEW_20261002.md)
-and [per-env compact analysis](runs/recovery_r1_manual0001_retry_20261002/review_quantitative_20261002.json).
-Best evaluated Recovery update400 accepted=false,0/8success,0handover frames;
-latest update433 is UNREVIEWED. Both differ from frozen accepted STAND update500.
-Ledger formal cap1000,used433: unused567updates (no wall allowance for another run).
-Old chain report remaining_updates67 uses obsolete505 total; preserve original,
-use live ledger for quota. No simulation/PPO was launched by this review.
-
-## Recovery 1000-update authorization and live TensorBoard — 2026-10-02
-
-User authorized1000 formal updates total (not1000 additional), plus existing5smoke.
-Current formal trainer retains its immutable500-update startup spec. Exact ledger
-cap extended1000 without resetting usage. A detached conditional continuation
-PID516959 waits for normal prior-chain completion, then strict-loads Recovery
-actor/critic/Adam into a fresh environment for the remaining500 updates; original
-7200s formal wall is shared, previous wall deducted. Failure does not trigger retry.
-CPU continuation fixture passed. No running source/spec was edited.
-
-TensorBoard HTTP200 verified at `http://127.0.0.1:6007`, event file exists under
-`runs/recovery_r1_manual0001_retry_20261002/tensorboard/formal_1_500`.
-Read-only metrics bridge PID516960, TensorBoard PID516961; existing6006 service untouched.
-Continuation output: `runs/recovery_r1_manual0001_extend_to1000_20261002`;
-its `.continuation.json` records WAITING/SUBMITTED/NOT_SUBMITTED, followed by
-normal progress, ledger and HAPI terminal callback if submitted.
-
-## Recovery corrected initialization retry — 2026-10-02 startup snapshot
-
-User authorized validation followed by training if wiring passes.
-[New chain](runs/recovery_r1_manual0001_retry_20261002/),
-[submission and one real handshake](runs/recovery_r1_manual0001_retry_20261002.submission.json).
-Handshake confirmed initial probe PID505923, one physical policy step/0.01s.
-Initial probe subsequently exited0/passed=true with64 validated envs and advanced
-to smoke (monitorPID506207). This is not yet formal training evidence.
-Read this chain's `chain_progress.json` / `chain_terminal_report.json` for subsequent state.
-
-Passed prior R0 is explicitly reused; previous child cleanup wall102.21s is deducted
-from600s diagnostics. Same ledger preserves all consumption and permits one corrected
-initial attempt (source_eval slot3), then smoke5/300s and formal500/7200s.
-No new PPO allowance.7CPU regressions and plan-only preflight passed.
-Background gates and final HAPI callback remain active; no automatic second retry.
-New probe stores all64 pre-reset state/control/cause snapshots for failure review.
-The shared chain/probe code and ledger authorization were updated before submission;
-no running trainer was modified. Frozen STAND SHA and physical protection unchanged.
-
-## Recovery initialization correction — 2026-10-02
-
-User requested a one-time second velocity zero after passive settle minimum,
-before static validation. Shared Recovery runtime now zeros root 6D velocity
-and all joint velocities only for initializing envs once per episode, then
-requires the full existing static dwell after that operation. Static joint-speed
-validation excludes only named `guide_wheel_*_spin` joints; passive linkage,
-main wheels and all-joint nonfinite/safety protection remain checked.
-This changes initialization semantics and is not spontaneous passive-settle evidence.
-CPU/fake-API regression passed; no new physics/PPO or chain restart performed.
-Next physical run must preserve this source snapshot and report this explicit
-initialization intervention; existing failed-chain evidence and ledger are unchanged.
-
-## Recovery chain terminal review — 2026-10-02 15:41 CST
-
-Current chain has **ended FAILED before PPO**; no automatic continuation is authorized
-by the completion notification. [Review](runs/recovery_r1_manual0001_chain_20261002_153110/FAILURE_REVIEW_20261002.md)
-and [terminal evidence](runs/recovery_r1_manual0001_chain_20261002_153110/chain_terminal_report.json)
-override the startup snapshots below.
-
-Frozen STAND R0 passed 8/8 continuous 10 s. R1 passive initialization accepted
-41/64 and rejected 23/64; smoke/formal were not reached, actual updates/samples=0/0.
-The 23 replacement allocations after auto-reset were pending, not another completed test.
-Whole chain wall=102.33 s, physical child wall including cleanup=102.21 s;
-ledger pre-cleanup wall=99.71 s. Both diagnostic attempt slots were consumed.
-
-Rejection causes and rejected env IDs are UNKNOWN: only the 8 passing scored envs
-have step records. Executed snapshot applies the settlement velocity threshold to
-all joints, including passive guide-wheel rotation; whether this caused rejection
-is a hypothesis. Next priority is reset-before evidence for all 64 envs: per-condition
-settlement/rejection masks, dwell and separate active/passive/guide joint velocities.
-Do not loosen protection or start PPO to bypass this gate. No new simulation was
-performed during this review; historical results and ledger remain unchanged.
-
-## Authorized Recovery R1 chain — 2026-10-02 15:31 CST startup snapshot
-
-[Real chain directory](runs/recovery_r1_manual0001_chain_20261002_153110/),
-[startup handshake](runs/recovery_r1_manual0001_chain_20261002_153110.startup_handshake.json),
-[submission command](runs/recovery_r1_manual0001_chain_20261002_153110.submission.json).
-One real handshake confirmed R0 physical progress:1policy step/0.01sim seconds,
-probePID482428 matched its command and output; outer supervisorPID482352.
-**PPO0 at handshake; this is R0 validation, not a claim that formal training started.**
-This is a timestamped snapshot; read `chain_progress.json` and terminal evidence for later state.
-
-User explicitly authorized diagnostics600s→smoke5updates/300s→formal500updates/7200s,
-total505updates/4,136,960samples. [Exact ledger](configs/experiments/recovery_r1_manual0001_20261002/budget.json)
-is now AUTHORIZED. SharedGPU0,64env×128, fixed STAND update500, only R1 manual0001.
-No R2 upgrade, retry, second chain or budget reset. Physical protection unchanged.
-
-Backend gates: complete10s R0 scored8 acceptance→all64initialization acceptance→
-5finite smoke updates with actor change→formal, save100/evaluate200,400,500.
-Only actual passing probe evidence publishes validated flags; no control/config
-changes occur while a child is running. Source/phase snapshots preserve identities.
-Outer timeout is8080s plus15s kill allowance (≤8095s), inside8100s authorization.
-Child limits independently include termination/cleanup margins. Background owns
-exact-attempt reconciliation, candidate report and **one final chain notification**
-to current explicit HAPI target `6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1`.
-
-Final entries: `chain_terminal_report.json`, `completion_report.md`,
-`formal/candidate_selection.json`, `formal/completion_report.md` when reached.
-No extra simulation is launched to fill missing results.27relatedCPU tests passed;
-historical external-YAML preflight intentionally not reused as new-spec evidence.
-
-## Recovery R1 manual0001 — 2026-10-02 current preparation snapshot
-
-User confirmed linkage support and requested training. [Launch readiness](docs/RECOVERY_MANUAL0001_START.md)
-uses [new manual0001 spec](configs/experiments/recovery_r1_manual0001_20261002/spec.json).
-Frozen STAND remains scratch update500. Manual low-pose closure/limits and new
-CPU preflight pass;25 relevant CPU tests pass. Source/old specs remain unchanged.
-No simulation/PPO launched. [Independent ledger](configs/experiments/recovery_r1_manual0001_20261002/budget.json)
-is UNAUTHORIZED/used0 pending explicit quantitative budget confirmation.
-Runtime initialization and measured takeover domain are not yet validated.
-Proposed conditional600s diagnostics→5smoke/300s→500formal/7200s; no R2 auto-upgrade.
-
-## Manual pose collection GUI — 2026-10-02 preparation snapshot
-
-[GUI instructions](docs/RECOVERY_POSE_CAPTURE.md), [capture config](configs/tools/recovery_capture.json).
-Implemented keyboard/sliders, explicit passive/PD modes, pause/reset and complete candidate JSON.
-CPU verified only; no simulation/PPO started. User requested this manual collection tool;
-Recovery training budget remains unauthorized. External YAML identity drift was detected:
-manual capture pins its current SHA separately; historical Recovery spec remains unchanged.
-
-## Current task — Recovery preparation (2026-10-02 13:55 CST snapshot)
-
-The fixed **STAND** policy is [native scratch model update500](runs/wide_leg_from_scratch_20261002_formal/model_update_500.pt),
-SHA `fc51370b5d02e3337f8c73af0cb4223e82635e6a36640a0977fd80a429e631e1`.
-[Raw 10s evaluation](runs/wide_leg_from_scratch_20261002_formal/evaluation_500_0_0.json)
-passed 8/8, steady root height about0.397873m. It is not certified locomotion or recovery.
-[Model handover report](runs/wide_leg_from_scratch_20261002_formal/MODEL_500_HANDOVER_20261002.md).
-
-The prior trainer is stopped (one command-identity check this session found no project trainer).
-[Original terminal](runs/wide_leg_from_scratch_20261002_formal/terminal_report.json)
-remains **FAILED**, exit0,511 actual formal updates: missing trainer terminal after user SIGTERM.
-The new handler fix does not rewrite that historical outcome or deny its independent model evaluation.
-
-Current work is [Recovery preparation](docs/RECOVERY_PREPARATION_20261002.md), with
-[task spec](configs/experiments/recovery_r1_20261002/spec.json),
-[pending independent budget](configs/experiments/recovery_r1_20261002/budget.json), and
-[explicit closed-chain pose candidates](configs/experiments/recovery_r1_20261002/poses.json).
-**No new simulation/PPO is authorized or running.** All current usage is0.
-
-Confirmed geometry limitation: chassis `robot` bottom is about0.10m above floor in
-guide-wheel-supported low poses. Do not initialize that body bottom onto the plane:
-the fixed undercarriage guides would penetrate it. The proposed passive-settle
-initialization is bounded and cannot remove that geometric difference.
-Pending: agreement on that low-pose definition, runtime initialization/penetration
-checks, and frozen-STAND takeover-domain verification. The current handover gate
-is a candidate, not a measured acceptance region. CPU validation alone cannot unlock PPO.
-
-All subsequent sections are historical snapshots, including their “current/running” wording.
-
-## Current authorized chain — height40 from update500
-
-Confirmed at 2026-10-02 00:49 CST: formal PPO RUNNING, trainer PID3703684,
-chain worker PID3701268, command/output identity checked after a real update.
-The single startup handshake confirmed update1; one follow-up identity check
-observed update6/49,152 formal samples. This is a snapshot, not permanent state.
-Authoritative live state:
-[chain progress](runs/height40_from500_20261002_night/chain_progress.json),
-[handshake](runs/height40_from500_20261002_night/startup_handshake.json),
-[formal progress](runs/height40_from500_20261002_night/formal/progress.json),
-[terminal report](runs/height40_from500_20261002_night/chain_terminal_report.json).
-
-- [Frozen spec](configs/experiments/height40_from500_20261002/spec.json),
-  [ledger](configs/experiments/height40_from500_20261002/budget.json).
-- Source is native update500, SHA `b3c04a08900644fd54faef2d45a5d8bbc64a73dc14b0292f5ae56b7834543473`;
-  strict150D loading, restored Adam and explicit actual LR3e-5. No B200 input expansion.
-- Wheel target scale100rad/s uses explicit output calibration6/100 and corresponding
-  previous-action input/Adam coordinate conversion. CPU regression preserves source
-  physical wheel targets in the old unsaturated action domain. Runtime regression is pending.
-  Physical torque limits remain40/5.5Nm; physics/PD/policy remain1/5/10ms.
-- First task is root height0.40m; height reward weight2, width0.06m.
-  Motion stages are gated by two full confirmations and retain40% zero samples.
-  High wheel target capability does not certify high-speed behavior.
-- Old unused2500 updates were transferred, not duplicated: smoke5 + formal2495,
-  total20,480,000 samples, whole chain maximum8h. Old formal500 usage remains recorded.
-- 73 CPU tests passed before submission. Source diagnostic completed8/8 continuous10s,
-  no runtime fault, contact1.0, saturation0, steady height≈0.35256m. It fails
-  only the new height checks, so no new0.40m acceptance is claimed.
-  [Raw source](runs/height40_from500_20261002_night/source_eval/evaluation_source.json),
-  [compact control analysis](runs/height40_from500_20261002_night/source_eval/control_diagnostic_summary.json).
-  Two leg normalized actions frequently reach clipping bounds; combination projection
-  occupancy0, sampled applied-vs-clipped effort difference0. This does not yet establish
-  a mechanical inability to reach0.40m. Smoke completed5 updates/40,960 samples,
-  finite loss and actual actor update. Formal actual LR3e-5 read back.
-- Background owns sequential source diagnostic, smoke, formal, candidate evaluation,
-  budget settlement and one completion notification to the captured HAPI target.
-  Ordinary failure to reach0.40m is task data, not an infrastructure stop.
-
-All sections below describe prior experiments and are historical snapshots.
-
-## Fixed height scan — 2026-10-02
-
-PPO=0. Frozen `update_2000` was evaluated at command heights 0.34, 0.355,
-0.363, 0.38, 0.40 and 0.42 m; `update_500` was evaluated at 0.40 m. All
-cases completed 8/8 ten-second episodes without runtime faults. `update_2000`
-settled at 0.35533–0.35552 m across the six commands; raw leg action channels
-were at their clip boundary about99.9%/100%. Target projection occupancy rose
-from about0.8% at0.34 to78.8% at0.42. This supports a height-input/native
-action-contract bottleneck, not a proof that the closed-chain plant cannot
-reach0.40 m. See [scan report](runs/height_scan_20261002/DIAGNOSTIC_REPORT.md)
-and [raw summary](runs/height_scan_20261002/diagnostic_summary.json).
-
-## Latest review — 2026-10-01 CST
-
-Formal chain FAILED after500 actual updates due to inference tensor reset at first evaluation. Training is not resumed. Minimal buffer and exit-code fixes passed66 CPU tests. Independent update500 evaluation completed8/8 continuous10s and passed8/8 frozen standing gates; steady height≈0.35270m, no continuing height decline within2–10s.100s durability is NOT_RUN.
-
-- [Review](runs/review_500_20261001_REPORT.md), [raw full trace](runs/review_500_20261001_eval10.json), [per-env comparison](runs/review_500_20261001_summary.json).
-- Latest model: `runs/stand_long_20261001_205100/formal/model_update_500.pt`; this is now independently10s accepted, but has larger yaw error and deeper initial dip than B200. The original chain candidate-selection/FAILED reports remain historical and unchanged.
-- Ledger: formal500, smoke3, evaluate1. No automatic continuation or extra evaluation budget.
-- Source snapshot: `runs/review_500_20261001_source_snapshot/`.
-
-The RUNNING text below is a historical snapshot, superseded by this review.
-
-## Current standing chain — 2026-10-01 20:54 CST
-
-**Formal PPO is RUNNING at this snapshot**, verified through a first-actual-update
-handshake and one evidence check. Trainer PID3444486, detached chain worker3441508.
-Do not launch a duplicate or treat this timestamped state as permanently current.
-
-- Current [spec](configs/experiments/stand_long_20261001/spec.json) and
-  [authorized independent ledger](configs/experiments/stand_long_20261001/budget.json).
-  Original stand_plane/old migration ledgers are unchanged.
-- Active [chain](runs/stand_long_20261001_205100/),
-  [handshake](runs/stand_long_20261001_205100/startup_handshake.json),
-  [formal progress](runs/stand_long_20261001_205100/formal/progress.json).
-- Source plane baseline COMPLETED in80.14s: 8/8 passed continuous10s;
-  drift0.0887–0.0908m, dual-contact1.0, steady height≈0.36309m,
-  mean abs vx0.00983–0.00994m/s, saturation0,
-  closure maximum≈0.0000251m. [Raw result](runs/stand_long_20261001_205100/source_eval/evaluation_source.json).
-- Smoke COMPLETED: 3updates/24,576samples,41.43s, finite loss and actor changed.
-  Effective optimizerLR3e-5 and17 restored states verified.
-- Formal snapshot: 4updates/32,768samples; 2,996 updates remain at this instant.
-  Current episode level0/6s; no128-episode complete window yet.
-- Native B200 warmstart, command[0,0,.363],25D+125D→150D, plane0.5/0.5/0,
-  1ms physics/5ms PD/10ms policy, legs40Nm/wheels5.5Nm remain fixed.
-- Adaptive episode6→10→20→30s: deadline assigned per-env only at reset.
-  Two consecutive non-overlapping128-completed-episode windows are required;
-  normal timeout fraction≥95% and per-episode metric-pass fraction≥95%.
-  Frozen per-episode gates: abs vx/yaw≤.03, excursion≤.20m, tilt≤.20rad,
-  dual contact≥.80, mean height[.34,.38], saturation≤.10, closure≤.005m.
-- Formal≤3000updates/24,576,000samples or36,000s; checkpoint100/full10s500,
-  no light evaluation. Final selected100s assessment has a separate600s/PPO0
-  budget; 10s candidate acceptance does not certify100s durability.
-- 63 CPU tests passed before launch, including reset isolation, exact window
-  boundaries, survival-only rejection and actual installed PPO timeout bootstrap.
-
-Current accepted **10s source baseline** is B200 on this plane. No trained formal
-candidate or100s result exists yet at this snapshot. Backend will select source,
-best/full-accepted/latest separately; ordinary falls are task results, faults
-stop the chain. No automatic new chain or additional budget.
-
-Backend writes chain_terminal_report/analysis/candidate_selection/completion_report,
-then sends one HAPI event to`6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1`.
-Per-phase monitors keep local reports and do not send duplicate notifications.
-The notification never authorizes continuation. Current chain was already
-submitted; see TOOL_INDEX for the exact command, not a resubmission instruction.
-
-The older preparation snapshots below are historical, not current authorization.
-
-## Automation snapshot — 2026-10-01 20:15 CST
-
-No simulation/PPO started. One process check found no trainer/monitor using this
-project. The budget is still `NOT_AUTHORIZED`, every counter zero. Original 28
-tests plus new coverage: **53 CPU tests pass**. Fake subprocess/transport tests
-do not prove actual Isaac or HAPI delivery.
-
-Pipeline: detached monitor → exact-attempt settlement → `analysis.json`,
-`candidate_selection.json`, `completion_report.md` → `report_ready.json` → one
-HAPI send. Reviewed requires explicit acknowledgement. See
-[tools](TOOL_INDEX.md) and [synthetic example](docs/automation_example/completion_report.md).
-The example contains invented fixture data, not a model result.
-
-Formal plan is unchanged: 200 updates/1,638,400 samples, 2 checkpoints, one
-2-second light evaluation at100 and one 10-second full evaluation at200.
-Plane runtime estimates are UNKNOWN. Formal wall limit3600s includes60s terminal
-reserve. Evaluation10–15% is a planning target, not permission to skip protocol.
-
-Current CLI session target verified from `HAPI_SESSION_ID`:
-`6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1`. Future submissions capture the explicit
-target once; background does not guess. No test message was sent. A fresh source
-baseline authorization is still required before runtime verification.
-
-Checked 2026-10-01 19:41 CST. This is a snapshot; recheck process command,
-run progress and terminal before claiming a live run. One process check found
-no native_stand/command_v6 trainer. An unrelated RMUC GUI playback was active
-and was not touched.
-
-**Current objective:** prepare a maintainable plane-ground, complete-command
-native standing project. The only active task command is `[0,0,0.363]`.
-Straight motion, yaw, combined motion, rise-from-fall and high-speed are not
-current training targets. The user accepts approximately 0.36 m posture.
-
-- Current experiment: [stand_plane.json](configs/experiments/stand_plane.json).
-  Plane z=0, Z up, explicit static/dynamic friction 0.5/0.5 and restitution 0.
-  Native 25D/125D/150D and 40/5.5 Nm limits are frozen there.
-- New run: **none**. New [budget](configs/experiments/budget.json) is
-  `NOT_AUTHORIZED`, all phase limits and usage zero. No current candidate has
-  passed a plane-ground evaluation. No simulation or PPO was run for this
-  preparation.
-- Source: [native B200](/home/kellen/wheel_leg_migration_audit/native_stand/stable_stand_v2/runs/chain_20260930_224452/B_formal/model_adapt_200.pt),
-  SHA `f440ef1999fd10886b74bf64bdff03bbdbe6c7e85c4a226e9d9428e5d4b05698`.
-  Actor, critic and Adam expansion are covered by CPU tests. A prior v6
-  source-only 8/8 10 s result is on its **mesh** scene, not evidence that
-  this new plane scene has passed: [evaluation](/home/kellen/wheel_leg_migration_audit/native_stand/command_v6/runs/source_eval_20261001_1210_retry2/evaluation_source.json).
-- Historical v6 Stage 1 [terminal](/home/kellen/wheel_leg_migration_audit/native_stand/command_v6/runs/formal_stage1_20261001_1300/terminal_report.json)
-  completed 500 updates/4,096,000 samples on its old scene. Its consumed
-  [ledger](/home/kellen/wheel_leg_migration_audit/native_stand/command_v6/budget.json)
-  stays separate and does not authorize this project.
-- Latest saved here: **none**. Best observed here: **none**. Accepted here:
-  **none**. A new B200 plane baseline is the first required physical check.
-
-**CPU status:** 28 CPU tests pass, source/asset/module/YAML SHA match, and
-preflight reports `READY_NEEDS_AUTH` without creating an output. See
-[TOOL_INDEX.md](TOOL_INDEX.md) for safe commands. No runtime scene/readback or
-GUI check has occurred in this new project. Its authored plane binding and
-runtime control ownership must be read back in the proposed source-only run.
-
-Review fixes now in code: B200 Adam moments are retained but the actual
-optimizer learning rate is checked against spec `3e-5`; a normal 2-second
-light evaluation is `evaluation_window` completed without pretending to be
-a full standing pass; source and formal 10-second results use one standing
-gate with per-env failed checks; formal terminal/progress include latest and
-best evaluated checkpoint plus `candidate_selection.json`. A closed startup
-handshake pipe cannot interrupt the trainer or exact-attempt settlement.
-These are CPU-proven wiring changes, not plane runtime verification.
-
-**Next permitted work:** review this spec and propose one explicit new budget
-for the conditional chain in [EXPERIMENT_PLAN.md](docs/EXPERIMENT_PLAN.md).
-Do not start AppLauncher or PPO until that budget is authorized and the CPU
-preflight becomes `PASS`. A source baseline that already passes standing does
-not require PPO merely to spend an allowance.
-
-## Fixed433 gate diagnostic result — 2026-10-02
-
-[Report](runs/recovery_diagnostic433_20261002/DIAGNOSTIC_REPORT.md) and [summary](runs/recovery_diagnostic433_20261002/gate_summary.json) are complete. PPO0; eight first episodes,18s each,all task failures,zero runtime faults. At target height band all environments had0s simultaneous gate pass: linear speed0.30–2.34m/s vs limit0.05, angular speed0.45–3.67rad/s vs0.3, net displacement1.17–1.50m. Active leg angle reached0.54–1.08rad, leg target jump0.54–1.00rad and wheel target jump89–133rad/s; these are secondary after the speed failure. Height overshot to≈0.611m. No handover/STAND_VERIFY occurred, so no evidence of STAND instability. Next change should target height-gated Recovery deceleration/target-rate settling; do not widen the0.15rad gate or add STAND robustness yet. Diagnostic ledger consumed one source_eval slot; no training budget consumed.
-
-## Settling chain preflight failure — 2026-10-02
-
-The settling chain ended FAILED before PPO. R0 and64/64 low-pose initialization passed;
-PPO0. Exact cause was source identity metadata: model_update_433.pt embeds spec SHA
-`799bf673b35feecb9421001f342695181af91ce98978ce2571510476b47bbb6b`, while the new spec
-retained stale `source_spec_sha256=c1b6...`. Corrected in
-`configs/experiments/recovery_r1_settle_from433_20261002/spec.json` for a future run.
-No restart was made after terminal notification; ledger records source_eval2, smoke0,
-formal0. See run `FAILURE_REVIEW_20261002.md`.
-
-## Retry2 smoke automation review — 2026-10-02
-
-Retry2 notification corresponds to automation failures, not Recovery behavior. First attempt failed before PPO due stale source_eval prerequisite. Second attempt completed the configured 3/3 smoke updates (24,576 samples, finite losses, actor changed), but stale chain logic required5 updates and incorrectly blocked formal. Live ledger: source_eval0, smoke3, formal0, formal limit10,000. No formal training process remains. See `runs/recovery_settle_from433_retry2_chain_20261002/RETRY2_FAILURE_REVIEW_20261002.md`. No continuation launched after the notification.
-
-## Settling formal terminal review — 2026-10-03
-
-Formal settling run stopped at the10h wall bound:3395 formal updates/27,811,840 samples, plus3 smoke updates; zero runtime faults. Six full evaluations all had0/8 Recovery successes. Best observed update1500 reached15s timeout, mean final height0.416m and mean peak tilt0.211rad, but no handover/5s STAND verification. Updates2000–3000 regressed in height/tilt; latest3395 is unreviewed. See `runs/recovery_settle_from433_formal_20261002b/TERMINAL_REVIEW_20261003.md`. No continuation authorized or started.
+# Codex 任务状态入口
+
+核对日期：2026-10-13。仅保留最新已知终态和输入入口；不轮询任务，不推断进程实时存活。
+操作命令见TOOL_INDEX，执行步骤见WORKFLOW，边界见AGENTS。任何表项均不授予续训权限。
+
+## Recovery
+
+- 0.34m站立对称专项已修复并按本轮并行指令重新提交：原23_25 run完成smoke12后把8环境工程评估错送formal24统计，FAILED/formal0；12更新、98304samples、57344有效Actor及249.1886秒均保留。新task `isolated/recovery_standing034_smoke_fix_resume_20261013/task`继承旧总账，源v7/v11/31D/物理/标准不变；新spec `2026_10_13-00_20__recovery_standing034_smoke_fix_block0001`。仅修复phase-aware统计，smoke不要求24或能力通过，formal仍严格24。GPU0/shared，30秒握手SOURCE_EVAL、worker身份OK、formal首更新未核验；新冻结源码与CPU逐模块SHA一致。CPU专项35/frozen48通过，全量943pass/8skip/22同基线。由既有owner自动续接，无个人轮询。
+
+
+- 用户明确0.34m＋站姿对称、不限累计PPO专项已首次public提交：v11仅改v7高度slot0为.34m Gaussian与无封顶镜像Huber（原91.1%封顶），源normal v7 update300 SHA2a587c…a9a，31D/40D/std/物理不变、BC0、新Critic/Adam/warmup5、64normal。task isolated/recovery_standing034_symmetry_20261012/task，首块23_25 smoke12/formal300/4h/2GiB，后续完整状态续块，不自动进入Swing；5000formal后有限停滞回退。正常高度MAE≤.02/峰≤.04、镜像MAE≤.05/P95≤.10及原完整物理保持联合证书，两次24＋末32通过才专项accepted。47冻结、65targeted/34factory/26接口，全CPU942pass/8skip/22逐ID同基线fixture（configure SHA不变）。source/teacher旧文件不改，补故障全q/dq/limits。GPU0 shared/UUID映射/资源READY；一次30秒握手source_eval，worker OK，formal首更新核验=False。真实运行冻结与CPU逐SHA一致，不轮询、不重试、notifications=false。见[配方与执行](docs/RECOVERY_STANDING034_SYMMETRY_20261012.md)。
+
+
+- 时间平滑A/B已终态复盘：A smoke12/formal100 COMPLETED；B smoke12/formal69，70次rollout第27interval/env53 normal组joint_outside保护触发FAILED；task ENGINEERING_STOP且无active_spec。非NaN/闭链/穿透/初始化错误，缺故障全q/限位无法确定关节；既有B50 normal膝q最近边界但不能当env53定位。两支新模型不采用，保留v10 update100：来源后缀入口24/窗口24/accepted0，A100和B50入口24/窗口0，保持前缀中位3.18→2.51/2.355s；B50共同首2秒轮RMS较A50低约15.6%，但全部先左轮合力不达标后倾角失败，无教师Swing仍0/8。实际本轮193完整更新/1581056samples/1222214有效Actor/4533.50秒；故障未完成采样另列，不记第70次PPO更新。只读CPU分析与2项回归，无新物理/PPO或重试。下一步补故障全关节取证，不继续增大平滑系数。见[终态复盘](docs/RECOVERY_TEMPORAL_AB_TERMINAL_REVIEW_20261012.md)。
+
+
+- 人工Recovery工作台已改成裸源码＋分步骤：editable/src/native_stand可直接修改奖励、环境、PPO、网络和训练循环；manual.sh逐个freeze/publish/validate/authorize，不自动串联；plan/check/launch由人直接调用公共supervisor。新22_12 human_recovery仅CPU发布，预算UNAUTHORIZED、零attempt、无run。31项冻结PORTABLE＋9项项目测试通过；真实内存Actor/Critic/Adam/RNG恢复、resume无重复smoke预算及失败/SHA拒绝覆盖，公共零写plan与GUI身份计划通过。新增同配方手动resume草稿/原证书核验，复用原bundle；真实续训/仿真/GUI本轮NOT_RUN。共享src SHA未变。见[详细手册](manual_train/recovery/README.md)、TOOL_INDEX分步命令及[本轮验证](manual_train/recovery/step_verification.json)。
+
+
+- 新计划第7节Actor时间平滑A/B已串行提交A：源v10 update100 SHA bc5245…be4d，保留v10 reward/1.80秒课程/物理，完整Actor/Critic/Adam/RNG恢复（实际恢复待smoke证据）；A系数0/B仅mean轮时间loss系数.01，独立pair RNG/双方梯度/不污染policy缓存。每臂smoke12/formal100/4h/2GiB，50/100评估后缀24＋normal24＋Swing8。CPU919pass/22同基线、两冻结各30pass，实际A冻结匹配；public READY/sharedGPU0，一次30秒握手SOURCE_EVAL，formal首更新未核验。owner A正常完成后核资源/身份首次提交B，故障不重试，B完先比较不自动长训。新final_task承接821历史更新；旧14_54 SOURCE_EVAL→FORMAL状态机错误已修且原FAILED保留。见[本次提交](docs/RECOVERY_ACTOR_TEMPORAL_AB_SUBMISSION_20261012.md)。
+
+- 动态课程候选独立Swing GUI已补齐CPU接线：13_29 update100/SHA bc5245…be4d，显式single-env autonomous_preview跳过教师和课程前缀，family正确选Swing，旧训练默认不变/活动冻结源码不改。22针对性＋6冻结通过，CLI身份计划VERIFIED；未启动GUI或新增PPO，不代表学生独立起身通过。见[播放修复](docs/STUDENT_AUTONOMOUS_SWING_PREVIEW_20261012.md)，准确命令TOOL_INDEX。
+
+- 13_29 B1.80动态课程v10已按新授权调用公共supervisor首次提交：一次600秒握手SMOKE/worker身份OK，formal首更新未核验（started=false）。源11_42 formal/update100 SHA cfb7e5…47cb（未accepted），新增入口后弱失触成本−.2分/秒，其他奖励/31D/物理保持；新Critic/Adam、warmup5、smoke12/formal≤300。新task承接509更新/4169728samples/3696930有效Actor历史用量，累计无上限、单块4h/2GiB、按原课程自动推进。旧B失败根因UNKNOWN（尾部仅前8环境），新全环境故障证据已接线、原保护不放宽、再次工程异常停止不自动重试。CPU909pass/22逐ID同基线，冻结36pass，check READY/sharedGPU0。见[本次恢复](docs/RECOVERY_CONTACT_SUFFIX_RESTART_20261012.md)。
+
+- 11_42 B级1.80秒恢复已按本次用户同意首次提交：一次600秒握手确认SMOKE/worker身份OK，formal首更新未核验；随后用户询问时一次快照source COMPLETED/完整教师8/8/学生后缀0/24，smoke已记12更新98304samples/有效Actor43852，尚无smoke终态及formal更新证据：修复续块必须使用新子spec.execution_source_root（不再父spec PYTHONPATH）；原11_17拒绝声明/零attempt账本和旧ENGINEERING_STOP任务只读。新recovered_task继承312更新/2555904samples累计消耗，从原B180状态和A model_update_0等权重源继续，不重跑A。新recipe首次smoke12/formal≤300/4h/2GiB，GPU0共享check READY。27相关/28冻结通过，全CPU901pass/22同基线fixture；不放宽SHA，不自动工程重试。见[修复与恢复](docs/RECOVERY_COURSE_SOURCE_BINDING_REPAIR_20261012.md)。
+
+- 09_56持续课程首块A已COMPLETED：smoke12/formal300、2555904samples、有效Actor2473984、3057.16秒（约51分钟）。新增轮平滑未改善完整站立：100主协议0/24，200/300均未完成10秒窗口，300保持前缀中位约5.225秒且倾角终止，Swing0/8；保留源00_12 update300 Actor（当前A formal/model_update_0为等权重副本）。owner按计划退出A并准备B前缀1.80秒，但B公共提交被execution_source_root与实际加载源码不匹配拒绝；B零attempt/零更新/无run，task ENGINEERING_STOP。累计授权未耗尽，工程故障按规则未重试；需修复自动子块源码绑定并验证后恢复，不可称B正在训练。原始证据task_ledger.json与A/next_block_submission.json。
+
+- 09_56 Recovery持续课程已按本次明确不限累计PPO授权启动：source COMPLETED（学生normal0/24、Swing0/8、教师normal8/8）；smoke COMPLETED/12更新98304samples/有效Actor57344/工程证书PASSED/行为0/8；一次有界握手确认FORMAL首更新1（Critic warmup）及冻结身份匹配：task manifest/累计账本isolated/recovery_continuous_course_20261012/task，源00_12 update300 SHA2a587c…a9a未accepted。A仅加入口后轮平滑、最多600formal后进入真实B50/B250动态后缀1.80→0秒；31D/40D/物理/std保持、BC0、学生控制样本才更新Actor和Critic。每块formal≤300/全块≤4h/2GiB，新配方smoke12；同配方完整恢复Actor/Critic/Adam/RNG/课程，不重复warmup，不借旧余额。62相关/32冻结通过，全CPU895pass/22同基线fixture错误，无新增失败；public check READY/sharedGPU0 UUID e704e7d4…bd72。用户停止/工程故障禁止下一块，有限停滞处理后NEEDS_DESIGN，最终32认证＋最多300巩固后自动停；无通知。见[持续课程](docs/RECOVERY_CONTINUOUS_SWING_COURSE_20261012.md)。
+
+- 00_12 v7站立零速Huber专项已首次提交：从22_43 update200（SHA34be922…4143/自身冻结parent）继承Actor，保留31D/40D、弱镜像、姿态与物理；仅将窄Gaussian零速tracking替换为高度门控Huber速度成本，新Critic/PPO Adam、BC0、std固定。16条既有轨迹离线重放；30专项、14来源/公共optimizer、24冻结通过，全CPU873pass/22项与867pass基线相同Motion configure.py迁移fixture错误。独立授权source40/900s、smoke12/900s、formal300/10800s，累计312updates2555904samples/12600s/2GiB。check READY、sharedGPU0 UUID e704e7d4…bd72、CUDA_VISIBLE_DEVICES=0；一次5秒握手SOURCE_EVAL/worker身份OK，formal首更新未核验。后台owner监督与结算，不轮询、重试或追加，notifications=false。见[配方与提交](docs/RECOVERY_STANDING_VELOCITY_HUBER_FROM200_20261012.md)。
+
+- 22_43 v6已COMPLETED：smoke12/formal300、2555904samples、3596.53秒（约60分钟），formal有效Actor2416640。update200正常站姿24/24完成10秒窗口、无倾角终止，但完整主协议0/24（平均倾角、触限、vx失败；部分接触/峰值失败）；vx均值约1.55m/s，非站稳。最佳实验候选update200，最终复核0/32，Swing0/8；镜像误差未明显改善，不采用latest300、不自动续训。prefix9.68秒只含瞬时姿态/接触等检查，不含累计速度/触限，不能称9.68秒完整合格保持。见原始完成报告与isolated/recovery_motion_mirror_execution_20261011/completed_summary.json。
+
+
+- 22_43 Motion反馈＋弱镜像v6已按用户明确要求从站立update50继续首次提交：源SHAd1db35…a92/自身formal冻结parent，31D/64normal/小yaw/物理不变、BC0、新Critic/PPO Adam。原站姿reward保留，新增联合零速tracking最大+4/秒、实际q镜像成本上限−.2/秒，不做teacher目标平均/动作锁定/Progress。24轨迹重放与30targeted/22冻结通过，全CPU867pass/22同基线fixture，configure SHA不变。check READY/sharedGPU0；单次握手SOURCE_EVAL/worker身份OK，formal首更新未核验。首段smoke12＋formal300/312updates2555904samples/12600秒/2GiB，25/50/100/200/300保留候选，normal保持与Swing回归分开；owner监督结算，不轮询、自动重试或无界追加。见[配方与提交](docs/RECOVERY_STANDING_MOTION_MIRROR_FROM50_20261011.md)。
+
+
+- Motion原地姿态镜像教学实验已COMPLETED：5000 BC steps（auto选GPU0，17.72秒）；22_28独立PPO0 32episode/76.92秒。teacher正常标签非严格镜像（hip/active误差.141/.107rad），新投影标签和原标签独立保存。新学生实际腿更齐（.026/.064rad），但normal约.56秒倾角终止、保持0/8，Swing0/8；B2508/8。新候选不采用，专项PPO50继续保留但未accepted。Progress只完成CPU候选定义/测试，32D/41D尚未接runtime，全部已执行模型仍31D；5相关/17冻结通过，全CPU860pass/22同基线fixture。见[镜像与Progress复盘](docs/RECOVERY_STATIONARY_MIRROR_PROGRESS_20261011.md)。
+
+
+- 20_46站立专项已COMPLETED：smoke12＋formal300、2555904samples、3181.27秒（约53分钟），formal有效Actor2416640。全部检查点normal入口24/24，但完整10秒0/24、均倾角终止；Swing回归0/8。专项最佳实验候选update50，accepted为空；最终normal复核0/32、Swing0/8。未自动续训，原始完成报告保留。机器摘要isolated/recovery_standing_ppo_execution_20261011/completed_summary.json。
+
+
+- 20_46 v5基本站立专项PPO已按本次明确授权首次提交：同一Recovery站立蒸馏Actor（SHA06c33c…e365）、64normal训练/小yaw±.01，BC0/新Critic和Adam/31D物理不变。source40＋smoke12＋formal300，总312updates2555904samples/12600秒/2GiB；25/50/100/200/300 normal三组主选模，Swing只回归，认证scope明确normal standing only。31相关/10公共与CPU optimizer/20冻结通过，全CPU856pass/22同基线fixture errors；check READY/sharedGPU0。单次握手SOURCE_EVAL/worker身份OK，formal首更新未核验；owner监督，不轮询或自动重试/追加。见[专项提交](docs/RECOVERY_STANDING_PPO_SUBMISSION_20261011.md)。
+
+
+- Recovery站立补教已完成两版CPU BC各5000步（总10000/33.59秒）与两次独立PPO0（64评分episode/234.66秒）。第一版normal0/8；第二版reset关键帧优先normal入口8/8、约1.17秒后倾角终止、10秒保持0/8；B250基线均8/8，学生Swing回归均0/8。最佳新站姿实验候选isolated/recovery_standing_reset_distilled_20261011/best_validation.pt（SHA06c33c…e365），尚非accepted，不替换原完整Recovery来源。已增加BC device auto短测速；本次小模型forward/backward CPU .636ms/GPU0共享1.188ms，因此CPU更快，非端到端或硬件部署认证。详见[补教与闭环复盘](docs/RECOVERY_STANDING_DISTILLATION_20261011.md)。
+
+
+- 17_12 standing_rehearsal_v4已COMPLETED：smoke12＋formal100、917504samples、1606.82秒。formal有效Actor533375，其中Swing144255、normal389120，Swing未达25万覆盖目标。Swing25/50/100入口/完整保持均0/32；normal入口从来源1/8增至各点8/8，但保持均0/8且倾角终止，训练完整成功事件0。完整任务选模仍保留原BC学生，accepted为空，无自动续训。原始[完成报告](runs/2026_10_11-17_12__recovery_mcu_v2_standing_rehearsal_from_bc/completion_report.md)，机器摘要isolated/student_standing_rehearsal_execution_20261011/completed_summary.json。
+
+
+- 17_12 standing_rehearsal_v4已按用户本次后续训练授权首次提交：同一31D Recovery BC学生，固定32Swing＋32原生normal站姿，normal reset身体XZ各±.25rad/s、小yaw±.01。Swing沿用v3 reward，normal补高度参考；BC0/物理/PPO不变，Swing主选模、normal诊断分开。36相关＋19工程边界＋19冻结通过，全CPU848pass/22同基线fixture errors。public检查READY/shared GPU0，单次握手SOURCE_EVAL/worker身份OK，formal首更新未核验。首段source48＋smoke12＋formal100，总112更新917504samples/7200s/2GiB；既有owner执行结算，不轮询、不自动重试或无限续训。见[课程与提交](docs/STUDENT_STANDING_REHEARSAL_SUBMISSION_20261011.md)。
+
+
+- 16_43 resetfix局部教学接管PPO0已COMPLETED：9组72评分episode、203.3126秒、PPO/optimizer0、产物19.64MiB。B250正常基线8/8、原B50 .50s组合8/8；学生new100 .30/.40/.45/.50/.55/.60/.65秒接管均0/8入口/保持，56个均已真实切换后倾角终止。9组离线重评分/输入/历史/物理目标缓存核验一致，无新checkpoint。尚未发现可用的B250局部补教状态；下一单一重点为学生抬升后的支撑构型与动态衔接，不自动续训/补采。见[终态复盘](docs/STUDENT_LOCAL_MOTION_PROBE_COMPLETED_20261011.md)。
+
+
+- 16_21局部接管PPO0尝试FAILED：正常Motion baseline reset时报Unknown evaluation family，尚无完整评分episode；5.3704秒、PPO/optimizer0、evaluate消耗1，其余8组NOT_RUN。已修复case级评估reset契约/public preflight并保留训练Swing-only语义，Kit失败退出码同步修正。31相关/20冻结通过；全CPU842pass/22项同基线configure.py fixture errors，逐项及SHA核准。16_43 resetfix新声明UNAUTHORIZED零attempt、无run，待新重试授权：9组72episode/1800s/512MiB/GPU0共享，失败不自动重试。见[复盘](docs/STUDENT_SUPPORT_LOSS_MOTION_PROBE_20261011.md)。
+
+
+- 15_25 lift_rate链已COMPLETED：12+100更新/917504samples/formal有效Actor546568/链1637.50s，全部候选入口/保持0/32。支撑事件复盘显示学生峰高.418m后回落，回到.30m时两腿.314/.368m，而成功教师约.223/.265m；教师也腾空/回落，不能将失触本身作唯一原因。已接通student_motion_probe_v1：学生31D/1.5rad前缀→冻结B250原生150D/.5rad，同一物理状态切换；教师救场不计独立学生成功。16_21当时准备9组72episode/PPO0/1800s/512MiB；其后授权尝试工程FAILED，当前状态见上一条；43相关/27冻结通过，全CPU840pass/同基线22fixture errors，源码/冻结SHA无漂移。见[支撑复盘与教学探测](docs/STUDENT_SUPPORT_LOSS_MOTION_PROBE_20261011.md)。
+
+
+- 15_25 lift_rate_v3已按本次明确授权首次public supervisor共享GPU0提交：204项冻结输入无漂移、资源/身份READY；来源COMPLETED学生0/32教师8/8；smoke COMPLETED/12更新98304samples/有效Actor41062/工程证书PASSED/行为0/8。单次握手确认FORMAL首更新1（Critic warmup）及冻结身份/CUDA映射。formal最多100，25/50/100评估由既有owner结算；worker不轮询、不重试追加或长训。总112更新917504samples/7200s/2GiB，notifications=false。只增入口前高度门控过大角速度成本，原BC独立开始、物理/失败终止/完整验收保持。见[提交与配方](docs/STUDENT_RECOVERY_FAILURE_ZERO_DYNAMICS_20261011.md)。
+
+
+- 14_32 failure_zero已COMPLETED：12+100更新/917504samples/formal有效Actor436553/链1655.58s；仍入口0/32。轨迹复盘：new25/50/100峰高均值.326/.346/.408m，均倾角终止；new100出现抬升后回落、pitch反向和轮目标反转。输入/缓存重建≤2.38e-7，额外短历史邻近标签检索未一致改善转腿/收稳，暂保留31D。下一15_25 lift_rate_v3只增加入口前高度平滑门控的过大水平角速度成本，从原BC开始；新spec/ledger UNAUTHORIZED零attempt，无新物理/PPO/BC。34相关/21冻结通过；全量828pass/同基线22fixture errors。见[动态证据与下一配方](docs/STUDENT_RECOVERY_FAILURE_ZERO_DYNAMICS_20261011.md)。
+
+
+- 学生GUI外观复用完成：legacy与学生play共享ground_visual.setup/camera_view，默认128m无碰撞网格、1m间距、1800强度dome light及原视角，每200policy步相机跟随。仅GUI外观，不改变Plane/PD/控制。21相关CPU回归与命令计划通过；未启动Isaac/GUI，实际渲染待用户观察。
+
+
+- 学生GUI发布校验修复：授权登记更新spec后，students/play原先核验发布前SHA而拒绝13_35。现复用verify_publication(authorized=True)严格receipt校验，且零写preview也执行该校验；篡改spec/receipt仍拒绝。13相关回归与原BC GUI命令CPU计划通过，未启动GUI，旧spec/ledger/marker/冻结代码未改。
+
+
+- 14_32失败事件消融已按本次新批准首次public supervisor共享GPU0提交：204项冻结输入无漂移，READY；来源评估COMPLETED/学生0/32/教师8/8；smoke COMPLETED/12更新98304samples/有效Actor36739/工程证书PASSED/行为0/8。单次600秒内事件握手确认formal首更新1（Critic warmup）且身份匹配；formal上限100、25/50/100评估由既有owner执行结算，worker不轮询。总112更新917504samples/7200s/2GiB、不自动重试/追加/长训，notifications=false。仅failure_once −1→0，失败终止/完整验收不变，从原BC独立开始。见[消融依据与提交](docs/STUDENT_RECOVERY_PPO100_REVIEW_20261011.md)。
+
+
+- 2026-10-11 [学生工程边界收口](docs/STUDENT_ENGINEERING_BOUNDARY_20261011.md)：真实共享parent/首步覆盖训练、评估与教师适配；准备器显式来源＋case_id；异常主因/RNG保留、checkpoint/rollout/fault NPZ原子保存、声明存储统一。新14_22学生声明UNAUTHORIZED零attempt，公共frozen提交准备包完成，相关18/冻结9通过；全量783pass/22历史Motion证书SHA fixture errors，不绕过生产校验。watcher退役纯拒绝、历史selector限定legacy150D，磁盘分类/精确验证复用完成。无仿真/训练/通知/重试/进度查询，不授权已有13_35任务变化。
+
+
+- 同一31D Recovery任务PPO 13_35链COMPLETED：smoke12/formal100，917504样本，formal有效Actor664895，链1770.30s；25/50/100入口/完整保持均0/32，选模保留原BC，最终复核0/32。已有轨迹复盘：BC平均.663s抬到峰高.303m后倾倒，PPO候选低位约.169m拖至2.5s期限；双侧收短保留、抬升丢失。输入重建误差≤2.38e-7，dt/事件/初始化mask无已测接线错误。失败−1在gamma.99下晚发生更划算，列为单变量假说；14_32 failure_zero候选从原BC重新开始，只将失败事件罚分−1→0，终止/验收不变。代码已消费新版本，独立spec/ledger UNAUTHORIZED零attempt，未启动新物理/PPO/BC。51相关/28冻结通过；全量820pass/同基线22fixture errors。见[离线证据、配方和预算](docs/STUDENT_RECOVERY_PPO100_REVIEW_20261011.md)。
+
+- MCU v2已完整执行：31D/40D、Actor14630参数，Recovery BC5000/15.32s、MotionZero BC4600/13.87s；ONNX误差2.00e-6/2.98e-7。11_36一次PPO0 COMPLETED/616.33s/37.85MiB/80评分episode/423872模拟env-step：Recovery双收短32/32但入口/保持0/32，约.64–.69s tilt；MotionZero入口8/8、保持0/8，约3.1s tilt；教师组合32/32/正常8/8。80重评分一致、输入误差≤2.38e-7/cache误差0。26相关/提交前26冻结/最终27冻结；全CPU788pass/同基线22configure SHA fixture errors。硬件未验证、在线PPO0/无重试。下一聚焦Recovery .00–.25s早期腿目标拟合。[完整交付](docs/MCU_V2_STUDENT_COMPLETED_REVIEW_20261011.md)。
+
+- 新学生独立PPO0已COMPLETED：437.48s/94.42MiB/80评分episode/PPO0与optimizer0，80项离线评分一致、所有初态有效/模型不变。Recovery四组0/32（31 tilt/1 deadline），已抬升峰高约.385m但未入口；教师四组32/32。Motion零命令学生入口8/8、完整保持0/8（tilt），教师正常8/8。提交前health显式学生metadata接口已CPU13/冻结29修复验证，未修改checkpoint。下一优先离线.7–1.2s抬升后偏离与零命令反馈，不自动PPO/重试。详见[终态复盘](docs/STUDENT_PPO0_COMPLETED_REVIEW_20261011.md)。
+
+- 新版学生CPU蒸馏已完成：multiskill_student_v1 Actor1182/Critic1191、51本体帧＋valid、1.5rad/100rad/s，legacy150D保持。31成功示教按15/8/8episode划分；Recovery BC5000/26.17s、Motion仅零命令BC2400/12.03s（best1400），验证/测试动作拟合全部达标，不代表自主起身。学生独立runtime/公共PPO0/播放及ControlledPPO装配接口CPU已接，未运行Isaac/GUI/GPU训练/在线PPO。最终00_55学生10组80episode/1800s/512MiB声明UNAUTHORIZED零attempt；39相关/29冻结通过，全CPU778pass/22已核验旧Motion证书configure SHA fixture errors。旧receiver本轮首次核对尚无chain terminal，不停止不重提。详见[具体学生、SHA、误差和待验证](docs/STUDENT_DISTILLATION_DELIVERY_20261011.md)。
+
+- Receiver窗口PPO0已COMPLETED：499.62s/67.99MiB/128评分episode，正常8/8；B50 .50s三个小yaw seed均8/8（24/24），.40/.45/.55/.60均0/8，成功窗口仍窄，模型更新0。128项离线重算一致、无工程故障。按本轮明确授权，22_19接管短训已public supervisor shared GPU0首次提交，单次握手SOURCE_EVAL/worker身份OK，formal首更新未核验；smoke20＋formal100≤983040samples/7200s，由既有owner结算，不轮询续训。通知enabled=false。详见[复盘与提交](docs/RECEIVER_STAGE1_WINDOW_REVIEW_SUBMISSION_20261010.md)。
+
+- 完整组合GUI实启复查成功：2026-10-10 20:50桌面DISPLAY=:1，B50 .50s→B250，单env共享GPU0。Kit环境创建完成/播放loop真实policy2/4/6秒，高度.358→.393→.394m、reset0。先前卡在驱动RTX shader编译，SIGKILL为用户结束；重启未更改渲染/物理/模型，无训练。日志/tmp/recovery_motion_gui_recheck_20261010.log；本次窗口保留供用户观察，GUI非8/8认证。
+
+- 接管22组PPO0全部COMPLETED：正常Motion原生初态基线8/8（strict零速8/8），直接Swing0/8；Recovery B50受控.50s→Motion B250组合7/8完整10s，其他19接管条件0/8，整组尚未accepted。env4在2s内roll未完成入口确认；365.464s/PPO0/optimizer0、176评分episode/44.17MiB。176项离线重算匹配，无续训。下一优先B50 .50s邻近窗口与env4复核，新诊断需独立授权。[完成复盘](docs/RECOVERY_MOTION_HANDOFF_COMPLETED_REVIEW_20261010.md)。
+
+- 接管PPO0重试16_34诊断COMPLETED/主协议0/8，但正常初态quat槽位准备错误，8/8首10ms tilt终止，不能判断B250新USD能力；其他21NOT_RUN，5.419593s/PPO0/optimizer0，原始压缩轨迹已保存。更正原生reset槽位后14CPU/冻结9通过，新16_44声明UNAUTHORIZED零attempt，未再次运行。[重试复盘](docs/RECOVERY_MOTION_HANDOFF_RETRY_REVIEW_20261010.md)。
+
+- Recovery→Motion22组PPO0接线完成并获授权执行16_28一次：正常baseline首interval后numpy.int64 JSON写盘FAILED，evaluate1/5.310s/PPO0/optimizer0，基线INCOMPLETE/其他21NOT_RUN，无能力结论。序列化/异常partial证据已CPU修复，38tests/新16_34冻结9通过，修复声明UNAUTHORIZED/public零写plan需授权；未重试。[实现与失败](docs/RECOVERY_MOTION_HANDOFF_IMPLEMENTATION_FAILURE_20261010.md)。
+
+- 用户目标改Recovery→MotionB250零速接管。B末2s低位但vx1.85–2.96m/s，非静止；早交接需实测。B250身份/PD核验、双观测物理target/历史CPU契约与22组identity计划完成，5tests通过。runtime direct-switch/public PPO0 adapter未接完，runnable=false/无运行授权；下一完成adapter后再独立声明。[接管契约](docs/RECOVERY_MOTION_HANDOFF_CPU_CONTRACT_20261010.md)。
+
+- Swing-only A/B均COMPLETED（各smoke10/formal100）：B初始化及25/50/100均8/8真实双腿≤.34m持续50ms，训练事件5182、有效actor777594；A事件0/有效420668。B缩腿新能力保留但峰高约.20m、无入口/通过0，deadline11.5s timeout；轮心仍未进入DrawBack目标。合计220更新/1802240/52.1分钟，无续训。下一离线对齐缩腿后的转腿/支撑/驻留reward。[最终复盘](docs/RECOVERY_SWING_ACTOR_AB_COMPLETED_REVIEW_20261010.md)。
+
+- 修复14_23 A已COMPLETED：smoke10/formal100、1378.72秒，formal有效actor420668达到25万目标、mask计数一致，但Swing25/50/100均0入口/0通过、双侧收短里程碑0，100失败前缀.84秒且两腿仍.376m。B按已有明确授权核验READY首次提交SOURCE_EVAL/worker身份OK、formal首更新未核验；不续A不追加。[A复盘/B提交](docs/RECOVERY_SWING_ACTOR_A_REVIEW_B_SUBMISSION_20261010.md)。
+
+- 用户失败后重新明确批准14_23修复A/B新账220updates/1802240/10800s（原A10/145.99s另账保留）。完整发布与冻结inputs SHA复核匹配；A已check READY/supervisor提交SOURCE_EVAL/worker身份OK、formal首更新未核验。B已AUTHORIZED无attempt，待A终态按本授权核验首次提交；失败不重试不追加。[提交](docs/RECOVERY_SWING_SMOKEFIX_AB_SUBMISSION_20261010.md)。
+
+- 14_18 Swing-only A链FAILED：source/smoke正常，10更新81920样本，formal0/145.99秒；旧smoke11.5s完整episode条件阻断，非物理故障。受控mask实测35840样本/160optimizer次。公共准备器修正为真实短completed Swing episode+valid事件，不改最终gate；28tests/新14_23两臂各冻结9通过，UNAUTHORIZED。原B未提交因同一已知阻塞；失败不自动重试，待明确新运行及累计预算。[复盘](docs/RECOVERY_SWING_SMOKE_FAILURE_REPAIR_20261010.md)。
+
+- Swing-only受控actor初始化A/B已完成并获明确运行授权：64Swing/空retained、valid-global actor loss、原reward21_58/谱系10_58。B校准.029990rad/旧锚.049990rad合格，方向解析44.3%非技能。最终两臂14_18声明，冻结各8通过；A已supervisor提交SOURCE_EVAL/worker身份OK，formal首更新未核验。B已授权未提交，A终态后核验按本授权首次提交，各smoke10/formal100，总220/1802240/10800s，不重试追加。[交付](docs/RECOVERY_SWING_CONTROLLED_ACTOR_AB_DELIVERY_20261010.md)。
+
+- 总500预算链已COMPLETED/formal STOPPED_BOUNDED：smoke10+formal100、901120样本/2167.31秒，剩余390不继续。25/50 contact-only失败已放行；100 DrawBack改为腿触限失败（env0右hip15.7%），保留保护停止，R08/8、Swing0/8。镜像.329→.133rad，但目标距仅.393→.386m/右腿仍.376m；不接受new100、不续latest。[完整复盘](docs/RECOVERY_CONTACT_DIAGNOSTIC500_COMPLETED_REVIEW_20261009.md)。
+
+- 用户批准总500在线更新，21_58 contact-only诊断新声明已授权提交：smoke10/formal490、4096000样本、chain≤23460s，sharedGPU0。来源10_58new25/reward/control保持，仅旧组完整hold接触单项退化不停止，其他保护/gate保留。冻结5通过/check READY，一次握手SOURCE_EVAL/worker身份OK、formal首更新未核验，不轮询。[提交](docs/RECOVERY_CONTACT_DIAGNOSTIC500_SUBMISSION_20261009.md)。
+
+- DrawBack奖励P/S离线分解完成：乘积保留位置信号约28–35%，目标只接近数mm。新2026_10_9-21_49__recovery_drawback_contact_diagnostic_total100仅将旧组完整hold且仅continuous_contact失败的退化停训改记录；原gate仍失败/其他保护保留。来源与reward不变，Recovery233/冻结5通过；总100候选UNAUTHORIZED，无新run，待明确预算批准。[准备](docs/RECOVERY_CONTACT_DIAGNOSTIC_PREPARATION_20261009.md)。
+
+- DrawBack镜像reward链COMPLETED/formal STOPPED_BOUNDED：smoke10+formal50，491520样本/2747.995秒，剩余40未使用。Swing各点0/8无入口；同前300ms镜像误差.3288→.2312rad，但轮心目标距离.3929→.3897m，右腿仍.37599m。旧组25/50均失触0/8，连续退化保护停止；reward接线通过，不接受新25/50、不续训。[终态复盘](docs/RECOVERY_DRAWBACK_GUIDANCE100_COMPLETED_REVIEW_20261009.md)。
+
+- 用户批准DrawBack镜像稠密reward总100次，按smoke10+formal≤90（819200样本/chain≤9060s）独立18_39声明已授权提交；冻结5通过/check READY，一次握手SOURCE_EVAL/worker身份OK、formal首更新未核验。formal10/25/50/90完整三组评价，sharedGPU0/旧退化保护保留，不轮询、不追加。旧18_34仍未授权。[提交](docs/RECOVERY_DRAWBACK_GUIDANCE100_SUBMISSION_20261009.md)。
+
+- DrawBack位置×镜像稠密引导接线与独立声明CPU完成：`2026_10_9-18_34__recovery_drawback_mirror_guidance_from_new25`，每秒1分上限、.22–.30m平滑退场，原奖励/std/control保持，腿中心aux关闭。Recovery238测试/冻结5通过；ledger UNAUTHORIZED/零消耗。低位腾空/驻留收益仍是实验风险，不能宣称已消除；建议单臂smoke10/formal25需明确新运行批准。[配方与边界](docs/RECOVERY_DRAWBACK_GUIDANCE_PREPARATION_20261009.md)。
+
+- 用户选择Swing→DrawBack镜像对称奖励实验（软奖励，无强制动作投影）。CPU目标轮心位置×镜像质量原型已核算、六项检查通过；Gaussian窄对称信号塌到1e−22，改缓衰减有理式。候选尚未runtime接线/发布可运行spec，DrawBack退场/驻留/腾空/量级检查待完成；无PPO。[设计](docs/RECOVERY_DRAWBACK_MIRROR_GUIDANCE_PROPOSAL_20261009.md)。
+
+- A/B冻结输入迁移及B25失触CPU对齐完成：B25固定早期loss下降6.63%但两hip仍偏离局部收短方向，右腿早期最短仍.37599m；旧组首失触DrawBack9.17–9.69s/R06.15–6.49s，env0发生于约8mm错位/近零roll，先有持续目标误差/轮差速与接触波动。未证明唯一原因；不续B/不自动增lambda。无仿真PPO。[诊断](docs/RECOVERY_LEG_CENTER_TRANSFER_REVIEW_20261009.md)。
+
+- 腿中心A/B均COMPLETED：合计70更新573440样本/1967.23秒。B aux真实560次应用、wiring SHA通过；Swing各点均0/8无入口，B25峰高.230576m。A旧组10/25均8/8；B10各8/8，B25各0/8（窗口完整但连续接触失败，DrawBack95.89%/R083.48%）。不接受B、不续训；下一现有冻结模型固定输入动作迁移/失触离线对照。[完整复盘](docs/RECOVERY_LEG_CENTER_AB_COMPLETED_REVIEW_20261009.md)。
+
+- 腿中心A已COMPLETED：smoke10/formal25，976.95秒；来源/new10/new25 Swing均0/8无入口，峰高.231973→.232035m，DrawBack/R0各8/8完整保持，无实质起身增益。按已批准两臂顺序，B核验READY后独立首次提交；一次握手SOURCE_EVAL/worker身份OK、formal首更新未核验，原预算不追加。下一B终态核实aux真实接线后同协议对照。[A复盘/B提交](docs/RECOVERY_LEG_CENTER_A_REVIEW_B_SUBMISSION_20261009.md)。
+
+- 用户已批准腿中心A/B全部预算并登记AUTHORIZED。A `2026_10_9-15_10__recovery_leg_center_a_from_new25`已supervisor提交，一次握手SOURCE_EVAL/worker身份OK，formal首更新未核验；B已授权/preflight PASS但未提交，待A终态唤醒后核验并顺序首次提交，不需重复批准。sharedGPU0、合计70更新573440样本/整链10920秒上限，不轮询、不重试追加。[授权与握手](docs/RECOVERY_LEG_CENTER_AB_SUBMISSION_20261009.md)。
+
+- 腿中心A/B默认关闭接线及正式声明CPU准备完成：同源10_58new25，B唯一增加lambda.1早期腿中心loss；两臂各冻结9项通过，全回归720pass/22 Motion历史configure身份ERROR。各smoke10/formal25，总70更新573440样本；账本UNAUTHORIZED、零消耗，无新仿真/PPO。下一需两臂独立明确运行批准，再经supervisor提交。[具体声明、预算与限制](docs/RECOVERY_LEG_CENTER_AB_PREPARATION_20261009.md)。
+
+- 早期腿中心loss CPU真实两batch梯度审核完成：lambda.1 aux/已clipPPOactor norm7.83%/3.61%，cos−.152/−.376，来源参数未变、mask外0、2tests通过。固定.1进入具体A/B草案准备，各smoke10/formal25，总70updates573440samples，DRAFT_NOT_SUBMITTABLE/未授权；下一实现默认关闭hook与mask/梯度接线CPU验证，不直接运行。[审核](docs/RECOVERY_LEG_CENTER_GRADIENT_AUDIT_20261009.md)。
+
+- 用户要求回到RL：暂停手写动态adapter扩展；已写具体下一交付草案，先CPU审核Swing前100ms腿actor局部中心辅助loss的梯度/PPO量级，非成功示教/hiddencontrol。通过才准备同源A/B各smoke10/formal25；当前loss未实现/预算未授权，无新运行。[草案](docs/RECOVERY_RL_NEXT_DELIVERY_20261009.md)。
+
+- 动态短时序CPU准备完成：六候选120/240ms×收缩延迟0/40/80ms，quintic实体target、命令点closure/limits/envelope通过；需root动态运动，非完整DrawBack。具名PD/contact/actionorigin契约已定义，2tests通过；substepcontact生产/隔离adapter未完成，runnable=false，无物理运行授权。[准备](docs/RECOVERY_DYNAMIC_TIMING_PREPARATION_20261009.md)。
+
+- 动态过渡CPU草案完成：9条收腿/转腿组合中6条闭链及原动作包络成立，最深双腿≈.211m但方向尚非DrawBack、固定root下穿地，须动态支撑运动。输出仅geometrydraft、runnable=false；建议诊断≤6候选×3s/900wall/128MiB尚未授权，下一准备时序与显式动作/接触测量adapter。无仿真PPO。[草案](docs/RECOVERY_DYNAMIC_TRANSITION_DRAFT_20261009.md)。
+
+- 用户确认动态过渡方向：DrawBack向Swing扰动不能沉降停在中间态，撤回静态沉降桥接优先建议。计划8.9规定Swing摆腿支撑/抬升空间＋及时双侧收腿转腿＋进入可恢复区域，允许重叠；下一CPU显式可达性诊断方案，未授权新runtime/PPO。
+
+- 显式腿双分量CPU候选完成但不提交：w.05局部盒覆盖约4.45e-4（std.05rad），旧DrawBack单步target峰差1.50rad，且固定localcenter远离原mean使baseactor学习responsibility极低。mixtureentropy/KL/params及deterministic接口未完成，2数学tests通过，无runtime/PPO。下一优先CPU逆向课程连续构型桥接审核，不伪造动态成功来源。[审核](docs/RECOVERY_LEG_MIXTURE_PROPOSAL_AUDIT_20261009.md)。
+
+- 腿探索CPU候选审核完成：起步两hip收短边界离mean约14–16std；std×2/4、alllegtanh、currentqresidual均不足，×8增加裁剪且局部盒覆盖仍低。旧任务目标迁移代价明确，不发布训练spec；下一审核显式多中心policy候选的覆盖/概率/旧能力，非env偏置/隐藏控制。1数学测试通过，无仿真PPO。[审核](docs/RECOVERY_LEG_EXPLORATION_PROPOSALS_20261009.md)。
+
+- 最新10_58new25随机腿PPO0诊断14_00COMPLETED：16384transition/NPZ16.62MiB/权重Adam不变，起步332samples两hip目标均偏离局部收短方向；受控2504sample无四通道该路径、无双侧明显收短，右最短.37542m。wheelclip15.65%/8.51%已改善，下一CPU腿探索中心/参数化与旧能力迁移候选审核，不翻符号/续训。[复盘](docs/RECOVERY_NEW25_LEG_ROLLOUT_REVIEW_20261009.md)。
+
+- 关节符号CPU核验完成：三组active name映射、frame_q与target公式误差0；left hip USD局部轴框架180°翻转，不是右通道接反。旧GaussianB25起步416样本两hip目标均偏离已找到收短方向、2496样本无四通道同时命中该路径；非收腿必要条件、非最新new25随机证据。下一准备新候选有界PPO0腿探索读回，未运行。[审核](docs/RECOVERY_JOINT_SIGN_COVERAGE_AUDIT_20261009.md)。
+
+- Swing闭链CPU局部扫描完成：实体收短方向左[+,+]、右[−,+]；双侧δ0→.15rad16点腿长约.376→.338m、closure≤3.28e-5m、关节limits通过、固定root理想planegap约非负。未达DrawBack/未验动力学或自碰撞，不发布reset/训练spec。当前右target方向与局部收短方向相反；下一CPU腿样本覆盖/advantage对照。[报告](docs/RECOVERY_SWING_GEOMETRY_SCAN_20261009.md)。
+
+- 用户GUI环境setup后退出：发现tools.play1env仍训练fixed64slot，reset配额不匹配；已关闭preview.curriculum_training并选择holdout，异常在Kit关闭前打印。6CPU测试及原命令身份plan通过，未自动启动GUI，视觉复验待用户。[修复](docs/RECOVERY_GUI_RESET_FIX_20261009.md)。
+
+- 腿执行CPU事件对齐完成：三候选各8env tilt>.18先在.05s、失触在.06s；首步三个腿通道达40Nm。右两个active q持续同向动、相对角差≈.268rad不变，wheel length≈.376m，无收短；关节target限位裁剪0，不能归因新USD挡目标。2tests通过，无runtime/PPO；下一CPU闭链原生目标方向/构型可达性扫描。[审核](docs/RECOVERY_LEG_EXECUTION_AUDIT_20261009.md)。
+
+- 10_58 boundedmean短训COMPLETED：smoke10/formal25、286720samples、994.29秒。实际轮sampleclip降至17.08%/8.76%，两旧组10/25各8/8；Swing仍0/8无入口，peak.23136→.23197m，右腿几乎不收短。new25仅实验候选未联合通过，保留B25、不自动续训。下一CPU腿动作/实际q/力矩/几何事件对齐。[复盘](docs/RECOVERY_BOUNDED_MEAN_TRAIN_COMPLETED_REVIEW_20261009.md)。
+
+- 用户授权轮meanbounded单变量短训10_58已提交：B25strictwarmstart，beta.3/std/腿/control固定，smoke10/formal≤25、10/25三组评估，35updates286720samples/chain≤5460s/sharedGPU0。冻结14pass，CPU694pass/22既知Motion源码证书identityerrors；一次握手SOURCE_EVAL，worker身份核验成功、formal首更新未核验。smoke新增实际两轮未全clip证据，后台通知、不轮询续训。[提交](docs/RECOVERY_BOUNDED_MEAN_TRAIN_SUBMISSION_20261009.md)。
+
+- 仅轮meanbounded版本接口及独立PPO0已完成：10_50三组150.16秒、PPO0，DrawBack/R0各8/8完整10秒，Swing0/8。真实mean/std重放通过，预计Swing轮目标随机std4.16/3.60rad/s（非实测随机采样）；旧能力迁移固定seed未立即丢失，下一独立短训准备。冻结7通过；全回归692pass/22Motion源码证书identityerrors，未绕过旧证书。无新checkpoint/训练。[交付与跨任务影响](docs/RECOVERY_BOUNDED_MEAN_MIGRATION_REVIEW_20261009.md)。
+
+- 动作分布CPU候选审核完成：首选准备仅轮mean=tanh(rawmean)、原Gaussian std/log_prob不变；源状态Swing有效轮探索std约4.18/3.62rad/s（原0/.082）。旧DrawBack轮目标峰差23.83/14.43rad/s，不能宣称无损，先接版本API再独立PPO0保护复验。四腿不变，入口腿动作偏差仍未解决；4tests通过，未接runtime/无新spec仿真PPO。[审核](docs/RECOVERY_ACTION_DISTRIBUTION_AUDIT_20261009.md)。
+
+- 100更新块09_53已COMPLETED，formal STOPPED_BOUNDED：smoke10/formal100、901120samples、2133.25秒；Swing10/25/50/100均0/8、无入口，峰高最终.23051m。旧DrawBack/R0在50/100各0/8（完整10秒但失触），连续退化保护生效。new25仅诊断best，不是Swing成功；保留B25、不续latest。100次无净收益，下一CPU动作分布/初态动作迁移候选审核。[终态复盘](docs/RECOVERY_RECORD100_COMPLETED_REVIEW_20261009.md)。
+
+- 用户批准时相配对后同配方100更新检验已提交：`2026_10_9-09_53__recovery_swing_support_record100_from_b25`，B25/β.3/std/control保持，smoke10/formal≤100，10/25/50/100完整三组检查；110更新/901120samples、链≤9060秒，sharedGPU0。CPU685/冻结14通过，一次握手SOURCE_EVAL、worker身份核验成功，formal首更新未核验。CPU时相内相关接近零，未见明显反向排序，但不保证可学习；终态自动通知、不轮询/追加。[交付](docs/RECOVERY_RECORD100_SUBMISSION_20261009.md)。
+
+- 09_40 frozenrollout guardfix已COMPLETED、28.67秒，累计含前次失败33.99秒；采16384transition、NPZ11.19MiB、PPO0，actor/critic/Adam不变。Swing受控2496/15.23%，轮clip100%/98.60%，无双侧收短；403正bonus样本normalizedadv正仅5.96%，固定轨迹bonus扣除不改rawadv正负号。输入reward/GAE读回通过；不证明长训无效，不自动续训。[真实读回复盘](docs/RECOVERY_FROZEN_ROLLOUT_COMPLETED_REVIEW_20261009.md)。
+
+- 冻结随机rollout诊断首run09_33 FAILED：标准Recovery profile读取None，采样前失败，PPO0/无NPZ，ledger5.33秒已结算。共享分支读取已修并补回归；CPU683/冻结5通过。独立09_40 guardfix声明UNAUTHORIZED，累计余594.67秒、2×64×128、NPZ64MiB，尚未重试。25更新不足仍是假说，无新长训授权。[修复交付](docs/RECOVERY_FROZEN_ROLLOUT_PROBE_GUARDFIX_20261009.md)。
+
+- 纪录奖励离线可学习性审核完成：8env共32个正奖事件只在受控.01–.04秒；几何分解显示length/腿方向贡献正、body rotation贡献负，未见这些事件靠翻转刷分。首步三腿通道目标误差约1.1–1.6rad，轮raw变化大但clipped目标基本同为−100rad/s，尚不证明唯一原因。2 CPU测试通过、无新runtime/PPO；下一准备冻结B25有界随机rollout reward/value/advantage读回，需独立授权。[审核](docs/RECOVERY_RECORD_LEARNABILITY_AUDIT_20261009.md)。
+
+- 支撑纪录短训`2026_10_9-08_59__recovery_swing_support_record_from_b25`已COMPLETED并结算：smoke10/formal25、286720样本、979.01秒；来源/new10/new25 Swing均0/8、无入口、tilt失败，峰高.231374→.231843m。DrawBack/R0各8/8完整10秒。formal25/25有真实新增reward，但轮实际sampleclip100%/98.48%，无明显双侧收腿；保留B25，不接latest/自动续训。下一CPU奖励可学习性与动作别名审核。[终态复盘](docs/RECOVERY_SUPPORT_RECORD_COMPLETED_REVIEW_20261009.md)。
+
+- 用户授权支撑纪录单变量短训已提交：`2026_10_9-08_59__recovery_swing_support_record_from_b25`，B25严格warmstart，smoke10/formal≤25、10/25三组完整评估，共35更新/286720样本、整链≤5460秒，sharedGPU0。CPU660/冻结13通过；一次握手SOURCE_EVAL、worker身份核验成功，formal首更新未验证。终态自动通知当前负责人，不轮询/续训。[交付](docs/RECOVERY_SUPPORT_RECORD_SUBMISSION_20261009.md)。
+
+- 2026-10-09支撑纪录reward接线及独立三组PPO0已COMPLETED：149.57秒、evaluate1/PPO0，657 CPU/10冻结测试通过；exact baseline/公式/失败和初始化0/旧组0/episodecap全部读回通过。Swing新增均值.005374但仍0/8，DrawBack/R0各8/8；无新checkpoint/训练。下一准备独立smoke10/formal≤25，仅geometryrecord变量，须新授权。[交付](docs/RECOVERY_SUPPORT_RECORD_WIRING_20261009.md)。
+
+- 2026-10-09平滑geometryrecord候选CPU完成：真实Swing Q约.237→.253，β.3新增回报约.00473；仅刷新纪录发奖、不重复驻留/震荡，无heightgate/terminal释放。7相关测试通过；存在150D未显式观测record的critic别名风险，runtime/PPO0未接/未运行。[交付](docs/RECOVERY_SMOOTH_SUPPORT_RECORD_20261009.md)。
+
+- 2026-10-09目标型几何reward CPU审核完成，9项测试通过。负cost有heightgate减免/早死权衡；双侧hardqualitybonus真实Swing全0且有驻留收益。候选未达设计要求，不发布可提交训练spec，无仿真/PPO。[完整核算](docs/RECOVERY_GEOMETRY_TARGET_AUDIT_20261009.md)。
+
+- 2026-10-09几何/PBRS CPU审核完成：全部8env几何支持Swing未有效收短；strictPBRS固定起点/吸收端点折扣和恒定，末步正释放不代表进展。相关16测试通过；不将该候选接PPO，下一准备目标型几何reward的早终止/门控/量级审核，无runtime授权。[交付](docs/RECOVERY_SUPPORT_GEOMETRY_AUDIT_20261009.md)。
+
+- 最新研究方向已改为浙江大学Recovery低位收腿/向下支点几何进展：原论坛标题/附件MD5/PDF章节已核验，约.375米Swing与.15米DrawBack起点几何差异已从真实轨迹读取。暂停继续lambda调参，先CPU势能/端点/量级设计；无新runtime/PPO。[方法与证据](docs/RECOVERY_ZJU_GEOMETRY_METHOD_20261008.md)。
+
+- 用户授权Recovery-only清理已完成：删除37个不再使用run，文件约15.18GiB；保留本日任务/B25及祖先/pose/STAND依赖、Motion引用路径，checkpoint SHA核验。config/ledger/源码/资产/Motion未动，无进程停止。删除后可用约24.78GiB。[清理索引及失效raw说明](docs/RECOVERY_STORAGE_CLEANUP_20261008.md)。
+
+- λ=.03块2026_10_8-20_39已COMPLETED（smoke10/formal25，1065.68秒）：10/25 Swing0/8、旧DrawBack/R0各8/8。auxnorm约.095仍轮sample clip≈100%/98.8%，未解除裁剪，不续训。
+- 原链收尾报告ENOSPC（completion_error.json），未形成report_ready/通知。独立恢复报告isolated/recovery_aux003_completion_recovery_20261008/completion_report.md及notification.json，原run保持只读；当前磁盘快照剩余9.8GiB，未清理文件。
+
+- λ=.03 v2新块`2026_10_8-20_39__recovery_swing_mean_aux003_from_b25`已提交，一次握手SOURCE_EVAL、worker身份核验通过；formal首更新未验证。B25严格warmstart，smoke10/formal≤25、full10/25，35更新/286720样本，chain≤5460秒，sharedGPU0。终态自动通知当前会话已启用，不轮询/自动续训。
+- [预算、通知、验证及回执](docs/RECOVERY_MEAN_AUX003_SUBMISSION_20261008.md)。
+
+- [mean系数CPU独立审核](docs/RECOVERY_MEAN_COEFFICIENT_AUDIT_20261008.md)完成，5个系数控制各1个CPU反事实Adamstep、仿真/在线PPO0、未导出checkpoint。建议.03作为新固定候选，smoke10/formal≤25独立预算尚未运行。旧组输出受共享参数影响，不能称无损；保留B25。
+
+- 方案A终态已复盘：10/25/50 Swing均0/8、峰高.23147→.23270；旧DrawBack/R0全部8/8。800次aux hook有真实梯度，但aux/incoming clipped actor norm平均.316%，两轮mean/采样裁剪仍接近100%；未解除越界、无起身净收益。认证fallback保留B25。
+- [终态行为与接线量级](docs/RECOVERY_WHEEL_MEAN_AUX_REVIEW_20261008.md)。下一先准备独立系数量级审核，不自动增加lambda/继续latest或叠方案B。
+
+- 方案A `2026_10_8-18_14__recovery_swing_wheel_mean_aux_from_b25`已COMPLETED，smoke10/formal50，1538.56秒；完整accepted为空，报告最佳新候选formal/update10。本次仅核对终态，未完成逐候选行为复盘。
+- 用户现明确授权完成后自动通知并唤醒当前负责人会话；本块已向session7bbabd67-183d-4185-b686-1aefcd55781b补发一次，transport返回sent/0，新回执isolated/recovery_mean_aux_notification_20261008/delivery.json。旧冻结禁通知及旧run记录未改；以后新运行在其新spec冻结通知目标。通知不授权续训。
+
+- 已提交方案A `2026_10_8-18_14__recovery_swing_wheel_mean_aux_from_b25`，一次握手SOURCE_EVAL，worker身份核验成功，formal首更新未验证。B25＋固定26/25/13，只加Swing/pre_entry轮rawmean辅助loss；smoke10/formal≤50、10/25/50完整三组评估，独立60更新/491520样本、chain≤7260秒。shared GPU0、不停止其他进程、不轮询。
+- [接线、量级、预算与提交回执](docs/RECOVERY_WHEEL_MEAN_AUX_SUBMISSION_20261008.md)。外部通知仍禁用，后台保留终态报告；未自动续训，方案B关闭。
+
+- 下一执行计划已明确：[RECOVERY_STANDING_PLAN第8.6节](docs/RECOVERY_STANDING_PLAN.md)。优先A接线＋CPU梯度量级审核，再准备未授权smoke10/formal≤50声明；10/25/50完整三组评估、旧能力保护。当前未接线、无可提交spec，本次只编辑文档；运行/通知需新明确授权。
+
+- 当前CPU准备：[控制先验独立候选](docs/RECOVERY_CONTROL_PRIOR_PROPOSALS_20261008.md)。优先Swing前段wheel rawmean辅助loss，低位轮effort reward为独立后备；2测试通过、实际旧轨迹反事实核算完成。未接trainer/runtime、runnable=false、无新spec/仿真/PPO；参考材料出处尚需原链接核验。
+
+- 最新真实150D联合诊断`2026_10_8-17_39__recovery_b25_input_action_reward_probe_ppo0`已COMPLETED，evaluate1/PPO0、147.458秒；Swing0/8、DrawBack/R0各8/8。输入/history接线核验未发现错误；Swing轮mean全程越界、解析clip100%/98.63%，低位水平/垂向gate0。96.7MiB新目录，无旧run修改。
+- [逐维方差、动作、reward与下一判断](docs/RECOVERY_INPUT_ACTION_REWARD_PROBE_20261008.md)；未启动新训练。
+
+- 用户要求的观测/奖励适用性诊断已写入计划第8.5节；CPU helper及后续实际runtime采集已完成，最新结果见上方联合诊断；PPO0，不代表优化梯度诊断。
+
+- 最新Swing支撑PPO0 `2026_10_8-16_53__recovery_b25_swing_support_probe_ppo0`已COMPLETED，evaluate1/PPO0，结算171.884秒。原DrawBack/R0各8/8；四个静态中间请求均未提供新能力：首个沉降回Swing后8/8初始化、0/8起身，后三个初始化0/8。
+- [动作范围、实际初态与下一决策](docs/RECOVERY_SWING_SUPPORT_PROBE_20261008.md)。未启动新PPO；保留认证B25，下一准备真实150D输入—动作—奖励联合诊断（观测/奖励与探索并列假说），动态restore仅可选，不再把沉降回原构型算桥接成功。
+- 固定分组块`2026_10_8-16_08__recovery_level3_swing_fixed_slots_from_b25`已COMPLETED：smoke10/formal75，旧组连续两次完整失触退化保护停止；Swing有效transition23.58%但仍0/8，峰高约.232米。new25旧组通过，new50/75旧组失败，不接latest。
+
+| 历史证据 | 已知结果／用途 |
+|---|---|
+| [B25冻结复验](docs/RECOVERY_B25_REVALIDATION_20261008.md) | DrawBack/R0六项完整10秒通过；范围内重复验证 |
+| [小扰动](docs/RECOVERY_B25_SMALL_PERTURBATION_20261008.md) | PPO0八项通过；不代表任意姿态泛化 |
+| [Swing桥接](docs/RECOVERY_B25_SWING_BRIDGE_20261008.md) | 原组通过，Swing起身未通过；Level3学习依据 |
+| [P2 B终态](docs/RECOVERY_P2_B_COMPLETED_REVIEW_20261008.md) | B25/B50两组通过；B100未联合通过，不接latest |
+| [P2 A/B历史提交](docs/RECOVERY_P2_WHEEL_STD_AB_PREPARATION_20261008.md) | 当时SOURCE_EVAL，不代表A现在存活 |
+| [P1终态](docs/RECOVERY_MIN_HEIGHT_P1_COMPLETED_REVIEW_20261008.md) | COMPLETED但accepted为空；诊断排序不等于认证 |
+
+## Motion
+
+- 25D学生优先补测12_47已COMPLETED：48episode/867.3554秒/31.74MiB/PPO0/optimizer0，学生0/40全1.38s tilt、命令尚在2s零速入口期，非零跟踪未达到；teacher−1新增8/8，结合上次四teacher历史同协议五命令40/40（跨attempt明确区分）。输入/action/previous/q对齐0、dq≤1.43e-7、参数不变；首动作接近但随后轮目标/倾角很快偏离。旧BC .40状态→.34query有反馈状态分布缺口，不能判25D必然不足。已登记真实.34成功teacher五命令40episodepreframe/mean/physicaltarget及SHA，下一只换教学数据重蒸馏同25D、先zero闭环，不加history/PD/量化。student不采用/实机NOT_RUN，完整峰高.39966仍未认证.36限高。见[完整学生结果](docs/MOTION_FRAME25_STUDENT_COMPLETED_REVIEW_20261013.md)。
+
+
+- 用户批准的25D学生测试重试12_15已STOPPED_BOUNDED/1331.9904秒/45.18MiB/PPO0/optimizer0：教师0/±.5/+1均8/8，保存正常/参数不变/输入cache对齐≤7.16e-8；teacher−1和student五组均NOT_RUN，学生未测。矩阵教师排前在共享慢速下触发下一项＋cleanup预算保护，不能称学生失败或成功。真实32评分episode/768000simenvstep，0.36实机峰高仍不通过。已完成学生优先新probe：student5先/teacher−1最后48episode/1800s/512MiB，其余teacher历史严格SHA参考；新12_47spec独立UNAUTHORIZED0attempt，7源码/7冻结/publicplanREADY_NEEDS_AUTH。未自动再提交，等用户新批准。见[终态与补测](docs/MOTION_FRAME25_RETRY_REVIEW_20261013.md)。
+
+
+- 25D蒸馏学生运动PPO0首次FAILED：12_04 run/exactattempt b4288a…15a7b6c6，412.3916秒/2.85MiB/PPO0/optimizer0。首teacherzero3000interval已执行，但保存相对导入错误导致完整评分缺失，teacher8INCOMPLETE、其余72NOT_RUN（student40未运行），不能判学生能力。原失败保留；另engine_writefix绝对导入atomicwriter，真实runpy无package文件入口写回归+其他边界6/冻结6通过。新12_15独立spec/ledger UNAUTHORIZED零attempt，publicplan READY_NEEDS_AUTH、10case/80episode/1800s/512MiB准备完成，未自动重试。首次30相关/5冻结，全shared943/8skip/22同baseline；source/control/identitySHA核验。见[失败复盘与修复](docs/MOTION_FRAME25_EVALUATION_FAILED_FIX_20261013.md)。
+
+
+- 用户要求尝试无历史Motion蒸馏已实际完成：新motion_frame25_distilled_v1 Actor25/128/64/32/6、13862参数，原.5rad/100rad/s/leftfirst；CPU4000BCsteps/12.21秒，best3000，新随机Actor/Adam。教师0.34站立旧05_39/u300冻结；16个正常成功.40状态episode按6/2/8拆分，在.34命令离线teacherquery标签，非真实.34轨迹证据，zeroonly。testearly腿.000765rad/轮.1854rad/s，hold腿.000263/轮.0561；4CPU通过，ONNXreference误差5.96e-8，TorchScript0。模型isolated/motion_frame25_zero_distilled_20261013，25D公共物理执行尚未接入，闭环/PPO/GPU/实机NOT_RUN，不修改当前训练或legacy电控协议。见[蒸馏与数据边界](docs/MOTION_FRAME25_DISTILLATION_20261013.md)。
+
+
+- 用户确认尝试启动Motion关节/轮位对齐v5：新task `manual_train/motion/tasks/standing034_alignment_final_20261013`，spec/run `2026_10_13-11_19__motion_standing034_alignment_block0000`，源旧05_39/update300 SHA4750ee…cafb，64zero/height.34/原物理；新增worstJoint与wheelForwardHuber，分别MAE/P95gate＋zero vx.05＋保持peakheight.36。42相关/18冻结通过，全943/8skip/22逐ID同baseline，公共planPASS/READY、GPU0shared；一次30秒握手SOURCE_EVAL，formal首更新未核验；实际221模块冻结一致。source+smoke25/formal300/4h/2GiB首块结束停止复盘，不自动续块/重试，owner监督。实际实机限高与启动仍未认证。见[配方与实际提交](docs/MOTION_ALIGNMENT_SUBMISSION_20261013.md)。
+
+
+- 用户要求停止并设计：standing034_symmetry_adamfix任务已STOPPED、active_spec=null，累计522PPO/formal472/smoke50、4276224samples、6801.65075秒、64episode。旧记录保留，Recovery未停止。新设计从旧05_39/update300零速基线恢复，保留Motion奖励，拆hip/active日志＋新增最差关节Huber与轮前后差Huber；关节MAE.05/P95.10、轮差MAE2cm/P953cm、zero vx.05及保持峰高≤.36联合新gate。5CPU原型测试与4完整窗口离线重放完成，新runtime/物理训练NOT_RUN，不伪称已发布可运行spec。见[设计与停止结算](docs/MOTION_ALIGNMENT_NEXT_DESIGN_20261013.md)。
+
+
+- 电控交接协议包已创建于根deployment_protocol：Motion legacy150D/0.34m命令，逐维输入、历史实际时序、实体输出/PD、CAD坐标与joint极性、USD限位读回、硬件MotorID/IMU/encoder标定模板。模型暂不选择、无ONNX/真机执行；20组NumPy与实际Motion contract对照全部误差0，reset与重复step验证通过。0.36m实机峰高仍未认证，仿真初始化.40不当作实机启动方案。入口[协议说明](deployment_protocol/README.md)。
+
+
+- 用户明确修复并继续后，Motion镜像专项v4已一次public提交：原08_29 source_eval完成8episode/253.6715秒，smoke新Adam转换KeyError(exp_avg)、PPO0，task ENGINEERING_STOP。修复转换用state.get，不制造空moment，已恢复moment保留原转换、残缺状态提前拒绝；奖励/gate/源/物理不变，旧FAILED不改。新task `manual_train/motion/tasks/standing034_symmetry_adamfix_20261013`，新run `2026_10_13-09_07__motion_standing034_symmetry_block0000`。54相关/18冻结/旧v2课程16通过；943shared/8skip/22逐ID同基线。GPU0/shared/UUID映射READY，单次30秒握手SOURCE_EVAL，formal首更新未确认，实际220冻结SHA一致；owner监督，不轮询/重试，旧历史消耗另列。见[修复与提交](docs/MOTION_SYMMETRY_ADAM_FIX_SUBMISSION_20261013.md)。
+
+
+- 用户同意优先对称且不强求初始化0.34m：旧Motion任务正常STOPPED，1488更新/formal1363/12189696samples/27695.02秒，历史保留。新零命令站立＋实际关节mirror专项已public提交：64zero，高度命令.34、合法root.40初始化不变；源旧block3 update300 SHA4750ee…cafb（7个零速8/8完整候选中mirror误差最小，仍约.31rad）。新增无封顶Huber实际q镜像成本，联合gate MAE≤.05/P95≤.10，原物理不变；新Critic/Adam/warmup5，续块完整状态恢复。task `manual_train/motion/tasks/standing034_symmetry_selected_20261013`，首块`2026_10_13-08_29__motion_standing034_symmetry_block0000`；GPU0/shared，单次30秒握手SOURCE_EVAL，formal首更新未核验。81相关/9冻结通过，943全CPU/8skip/22逐ID同基线，实际220冻结SHA一致；owner监督续块，不轮询/通知/重试。仅零速专项，±2及Swing不宣称通过。见[具体配方、来源与验证](docs/MOTION_STANDING_SYMMETRY_SUBMISSION_20261013.md)。
+
+
+- 用户授权旧Motion并行不限累计训练0.34m站立与前后±2m/s，已公开提交：B250 SHA5d3389…b89e，保持legacy150D、.5rad/100rad/s、原USD/PD/限矩；26zero/19forward/19backward固定槽位，height command=.34，联合0/+2/-2各8环境、30秒流程中的10秒保持。任务 `manual_train/motion/tasks/standing034_pm2_fixed_20261013` 总额度null，子块smoke25/formal300/4h/2GiB；normal续训恢复Actor/Critic/Adam/std/Torch+CUDA/Python+NumPy RNG，owner公开提交，不使用watcher。新spec `2026_10_13-00_16__motion_standing034_pm2_block0000`，GPU0共享，30秒握手SOURCE_EVAL、worker身份OK、formal首更新未核验。v1首次启动STOP局部变量错误FAILED，PPO0/6.9366秒，原run与消耗保留；v2真正main异常收尾回归通过。专项99/frozenPORTABLE16，通过实际冻结SHA核验；共享全量22证书fixture错误逐ID同基线、不放宽SHA。Motion仍用原USD，与Recovery限位USD的联合部署未认证。[源码导航](manual_train/motion/README.md)，[本轮证据](docs/MOTION_STANDING034_PM2_SUBMISSION_20261013.md)。
+
+
+- 2026-10-09 [GUI/分布/证据接口修复](docs/GUI_MODE_DISTRIBUTION_STORAGE_FIX_20261009.md)：共享training/evaluation/preview模式及两任务GPU/renderer接线，完整CPU模型身份与holdout预检，Recovery分布隔离，可选NPZ＋摘要JSON和目录一致性检查完成。专项85通过；全量680 passed, 2 warnings, 22 errors in 29.14s。22项历史Motion证书fixture因当前runtime/configure SHA变化拒绝，原证书未绕过/重写；10_14声明当前须重新审核相关变更，不能沿用当时READY提交。Motion共享learning两文件与旧冻结SHA一致。真实GUI/Kit关闭未验证，无仿真/训练/进程控制。
+
+
+- 2026-10-09[update50±2 PPO0补评与报告修复](docs/MOTION_POSTURE_ENDPOINT_COMPLETION_20261009.md)已完成：两项8/8连续30秒，MAE+.29046/-.08197、接触1，无runtime；PPO0/耗426.31秒。原累计余585.51秒（9.76分钟），训练更新额度用完。update50九命令诊断cost下降20.13%，但update25失败、两次完整重复通过未成立，补测跨执行版本不授严格合并认证。独立corrected report已生成，旧故障/registry/ledger不改，未重发通知、不续训。
+
+- 2026-10-09[B250姿态formal复盘](docs/MOTION_POSTURE_FORMAL_REVIEW_20261009.md)：formal50/409600，STOPPED_BOUNDED。update25九命令中+2 MAE.3413导致0/8，其余通过；update50七命令8/8但+2预算中断、-2未评，不能接受。共同七命令姿态成本改善33.3%，局部腿长差/roll改善，剪刀腿未消除。累计余1011.83秒，更新额度用完。收尾报告因当前共享config.py SHA漂移失败，notify未执行；未续训或重发通知。
+
+- 2026-10-09用户批准[B250姿态formal恢复](docs/MOTION_POSTURE_FORMAL_RECOVERY_SUBMISSION_20261009.md)，已提交GPU1独占。恢复spec `2026_10_9-10_14__motion_posture_engineering_recovery`，授权后SHA `e2fec82cefc4dbe8f288af87cdfeb8e5b8c312344fed2caadf5c3ab9ce043e6c`。一次握手RUNNING/identity_verified、formal实际首更新1已完成；trainer1017417/monitor1017415、exact attempt c80ded162b1444c5a2656aef831fe7a7。source/smoke不重跑，formal最多50、25/50验收、墙钟4013.33秒，累计预算不重置。未认证姿态改善；后台结算/通知，不轮询或自动再试。
+
+- 2026-10-09 [Motion工程恢复认证](docs/MOTION_ENGINEERING_RECOVERY_CERTIFICATION_20261009.md)已完成：新声明`2026_10_9-10_14__motion_posture_engineering_recovery`为UNAUTHORIZED；原失败smoke＋独立light PPO0＋原九命令source＋逐文件审核形成READY工程证书。公共supervisor零写plan为READY_NEEDS_AUTH、cpu_valid=true，唯一阻断为未授权；不是缺少新PPO0。累计剩4965.170556秒，smoke新额度0/formal最多50；不改旧FAILED，不启动训练。专项76/全量676 passed。
+
+
+- 2026-10-09独立[PPO0轻评估验证](docs/MOTION_POSTURE_PPO0_LIGHT_VERIFICATION_20261009.md)COMPLETED：run `2026_10_9-09_11__motion_posture_smoke_light_ppo0`，原smoke checkpoint的0/±.5各8env连续4秒，姿态短窗口151valid样本，None异常未复现。online0，耗88.41秒；累计余4965.17秒/82.75分钟，smoke1已用、formal0。能力gate NOT_RUN，不改旧FAILED证书；formal仍需合法工程恢复证据及明确授权。CPU663 passed。
+
+- 2026-10-09姿态轻评估None窗口已修：[修复与恢复资格](docs/MOTION_POSTURE_LIGHT_WINDOW_FIX_20261009.md)。共享窗口解析、closed时间轴完整性和runtime接线CPU验证通过，全量662 passed。旧smoke证书仍FAILED、源码变化下source复用CONFLICTING；离线actor确有更新不冒充证书。没有仿真/重试或追加smoke，下一步先独立PPO0工程验证并建立合法证据迁移，formal仍从B250。
+
+- 事件3bb21a4b40e4f8cbdeeca999：storage姿态重试FAILED，[轻评估故障复盘](docs/MOTION_POSTURE_LIGHT_WINDOW_FAILURE_20261009.md)。来源九命令完整30秒各8/8；smoke真实更新1次/8192样本并保存checkpoint，姿态轻评估非零command引用None窗口崩溃，formal未运行，无候选。累计5746.42秒，原预算余5053.58秒；smoke1额度已消耗，不能自动补跑或续训。本次无磁盘错误，不等于姿态优化失败。
+
+- 2026-10-09用户明确批准姿态storage重试，已通过supervisor detached提交GPU1独占。配置`2026_10_8-22_51__motion_b250_posture_storage_retry`授权后spec SHA `1951dc1e27a3c11498bdd0542d338df56308564c345784b41906c0f1862b2d0d`；worker931944，chain attempt `c18f058434b94ec39efb6e36aa828796`。一次5秒握手submission_verified=true、SOURCE_EVAL、formal_first_update_verified=false；不是正式PPO或能力通过。累计余6993.33秒、smoke1/formal50，source重新评估。终态通知本会话`191bacc3-e5c7-4b8f-ae3d-5677eada837b`；不升速、不自动再试、不轮询。
+
+- 2026-10-09存储修复后姿态实验准备完成：[准备核验](docs/MOTION_POSTURE_STORAGE_PREPARATION_20261009.md)。新配置`2026_10_8-22_51__motion_b250_posture_storage_retry`仍UNAUTHORIZED，B250/原配方不变；累计剩6993.33秒，smoke1/formal最多50，25/50验收。空间门槛PASS；九命令旧source完整但代码/元数据身份CONFLICTING，不绕过复用、不使用半写-2。尚未创建run、reserve或启动仿真/PPO。
+
+- 2026-10-08用户授权退役历史Motion run清理：删除50个旧目录约4.025GiB，保留B250完整来源链和近期姿态/sim2sim记录；配置ledger未动，Recovery未动。详见[清理索引](docs/MOTION_STORAGE_CLEANUP_20261008.md)。旧文档指向已删除run的链接仅是历史索引，原始证据已不可用，不得冒充可复核结果。
+
+- 事件987abea1ae3b69622d957f9f：姿态metrics重试链FAILED，
+  [磁盘故障复盘](docs/MOTION_POSTURE_DISK_FAILURE_20261008.md)。source最后-2 JSON写入ENOSPC；
+  已存8项各8/8，-2只有部分tmp，完整9命令不成立。smoke/formal未运行、PPO0；ledger已结算。
+  一次磁盘快照根分区100%/仅2.2MiB，inode正常；两次累计墙钟3806.67s，原额度剩6993.33s。
+  未删除/迁移证据、未自动重跑，下一步先解决空间与产物预算。下方启动记录是历史快照。
+
+- 2026-10-08姿态metrics工程错误已修，用户批准的新独立重试已提交GPU1：
+  [交付](docs/MOTION_POSTURE_METRICS_RETRY_20261008.md)，
+  [spec](configs/experiments/2026_10_8-20_29__motion_b250_posture_metrics_retry/spec.json)。
+  原配方不调参，累计旧墙钟1927.08s扣除，新链8872.92s上限，PPO累计仍51。
+  CPU635/frozen7通过，plan PASS/health OK；一次握手worker462853，SOURCE_EVAL，formal首更新未验证。
+  新run同名；后台结算/通知，交互不轮询、不再自动重试，旧失败证据保留。
+
+- 事件a800778e8d785c11dbc4dd24：姿态v2链FAILED，
+  [复盘](docs/MOTION_POSTURE_FAILED_REVIEW_20261008.md)。source9命令各8/8，
+  Isaac真实zero错位4.95cm、+2腿长差14.20cm/roll.307rad、-2差8.12cm/roll.168rad。
+  smoke首rollout因新增posture_balance未接入RolloutMetrics字段声明失败，PPO0，formal未运行。
+  已结算无RUNNING，整链1927.08秒，无候选；属新增统计接线错误，不是姿态训练失败证据。
+  未自动修复/重试/续训；下方启动状态是历史握手。
+
+- 2026-10-08用户授权B250姿态优化已提交GPU1独占，
+  [配方与交接](docs/MOTION_POSTURE_BALANCE_20261008.md)，
+  [spec](configs/experiments/2026_10_8-18_03__motion_b250_posture_balance_v2/spec.json)。
+  新增有界轮心/腿长差/roll成本，保留B250原0/±.5/±1训练分布，保护0至±2九命令。
+  smoke1/formal50、51updates/417792samples，整链10800s上限；25/50运动+姿态重复确认。
+  CPU630 passed、冻结6tests/严格初始化审核通过，plan PASS/health OK。
+  一次握手worker332739，SOURCE_EVAL，submission_verified=true，formal首更新尚未验证。
+  后台owner自动完成评估/保护/结算/通知，交互不轮询。18_02首版未授权不执行。
+
+- 事件8cb50f802e7871b821859052已只读复盘：[rehearsal终态](docs/MOTION_REHEARSAL_COMPLETED_REVIEW_20261008.md)。
+  链COMPLETED，formal50达预算，smoke1合计51/417792samples，约7200.96秒，账本已结算。
+  accepted=null；new50 +2恢复8/8，-2及±2.5仍0/8，不能升±3或三seed认证。
+  actual类别样本zero28.98/old55.88/new15.14%，新正负10.97/4.17%，固定配额未实现。
+  比例调整有部分改善但没有完整能力保留；B250仍为已验证来源，不从new50续训。
+  未自动启动或准备下一实验；下方启动/未授权段落为当时快照。
+
+- 2026-10-08MuJoCo首轮适配错误已确认并修正：native actor用CAD重力[0,-1,0]，
+  不是Fudan canonical[0,0,-1]。[配对复盘](docs/MOTION_SIM2SIM_FRAME_PARITY_20261008.md)，
+  验证区[sim2sim](sim2sim/README.md)。8env真实Isaac首动作最大差1.49e-7，38joint轴对应。
+  corrected run `sim2sim/2026_10_8-17_10__motion_b250_corrected_mujoco/`：11命令各30秒，
+  330000physics/33000policy samples、PPO0，双轮接触1.0；zero持续后滑约-.208m/s，
+  -1.5/-2/-2.5误差超门槛，roll/轮心错位已量化，非完整sim2sim认证。
+  上轮0.18秒失败属错误观测输入，不判B250能力失败；旧证据保留。GPU1被占用，不抢占，无新Isaac。
+
+- 2026-10-08用户授权MuJoCo迁移诊断已完成，未通过：
+  [复盘](docs/MOTION_MUJOCO_SIM2SIM_20261008.md)，run为
+  `runs/2026_10_8-16_58__motion_b250_mujoco/`。B250直接实体关节/150D/原PD与40/5.5Nm，
+  只读参考MJCF；零命令准备0.18秒JOINT_SAFETY终止，11目标重复同一起点失败，保持/停车UNKNOWN。
+  轮饱和各1.0、tilt.522rad、闭链最大1.26mm，实际输出与PD请求一致；
+  有摩擦/阻尼/碰撞/solver差异，运行观测parity未认证，不判native能力失效。
+  MuJoCo CPU1980physics steps/198policy samples，PPO0；未触及后台训练。
+
+- 2026-10-08用户授权的旧端点rehearsal已提交GPU1独占：
+  `runs/2026_10_8-14_56__motion_old_endpoint_rehearsal/`。独立授权登记51总更新
+  （smoke1/formal50，417792samples），source/smoke/formal墙钟2500/600/9000秒。
+  43项针对性CPU通过，授权后plan PASS、health OK零写；仅一次5秒握手，
+  worker145263、chain attempt4f1cfbdbbfd3438fabebbdd107f8595f，argv/start/spec/output/GPU/session核验通过。
+  当时SOURCE_EVAL，submission_verified=true、formal_first_update_verified=false；
+  不能称正式PPO已开始或能力通过。后台owner负责25/50评估、旧能力保护、结算与当前会话通知；
+  不升±3/yaw、不自动重试、不轮询。下方UNAUTHORIZED是准备时快照，实际授权/用量看新ledger。
+
+- 2026-10-08已完成B250/formal25/50同协议逐环境复盘及唯一rehearsal准备，
+  [报告](docs/MOTION_REHEARSAL_PREPARATION_20261008.md)。±2增益1.083→1.200→1.288；
+  formal50 -2.5为joint_safety早终止，不是完整保持结果。用户roll/约5cm轮心错位
+  已记录，现有raw缺对应几何字段，未量化。新[spec](configs/experiments/2026_10_8-14_56__motion_old_endpoint_rehearsal/spec.json)
+  从B250恢复，只改reset采样权重，名义64槽16/旧各4/新各8，保持随机采样；
+  smoke1/formal50，ledger UNAUTHORIZED/used0，preflight仅缺运行授权，run未创建。
+  CPU559 passed，未仿真/训练/通知；不升±3、不从失败候选续训。
+
+- 2026-10-08键盘预览兼容已补齐：play_motion_keyboard.py转调当前共享tools.play，
+  B250身份CPU计划无警告、零模拟/零文件/零PPO。默认GPU1、±2m/s、yaw关闭；
+  按键/回零/最新history命令同步3项通过，全量CPU546 passed（23.07s）、五文件AST及diff检查通过。
+  只完成CPU核验，未启动GUI/训练、未查资源；实际桌面键盘和GPU运动尚待运行验证，命令见TOOL_INDEX。
+
+- 来源身份：`runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt`，SHA `5d3389d5b8e33b7915d12d21308702f3105248485741b27ec91d0aaf4b90b89e`。
+- 最新短链：`runs/2026_10_7-20_29__motion_b250_2p5_short/`。
+- [Spec](configs/experiments/2026_10_7-20_29__motion_b250_2p5_short/spec.json)；budget.json在同目录。
+- [链终态](runs/2026_10_7-20_29__motion_b250_2p5_short/chain_terminal_report.json)：链COMPLETED；formal STOPPED_BOUNDED/50更新，旧能力连续失败停止；smoke1，总新增51。accepted=null。
+- [来源与提交记录](docs/2026_10_7-20_29__motion_b250_2p5_short_REPORT.md)是历史启动记录；最新结论用上述terminal及formal原始评估。
+- [来源PPO0复核](runs/2026_10_7-20_18__motion_b250_endpoint2p5/baseline/baseline_review.json)：±2.5双向超速，MAE约.402/.343，未通过.3门槛。
+- 本次通知接收不代表负责人接管；复盘或新尝试按实际任务归属和用户授权进行。
+
+## 工程证据
+
+- 2026-10-09工程恢复接口：执行依赖／全快照双身份、行为／预算／storage分离，独立checkpoint actor更新证明、显式batch group继续策略、Motion诊断准备和受限失败＋补测计划当时已补齐；当前完整认证见Motion最新入口。680项全量阶段、最终14项专项通过，原FAILED/账本不改。
+- 产物artifacts/engineering_recovery_interfaces_20261009/；未执行物理、未提交恢复链。真实失败＋补测READY证书尚未核验，轻诊断不能替代完整能力或smoke。
+
+
+- 2026-10-09发布/Recovery字段/历史存储工程：单臂＋多臂完整性公共校验，support-record准备器只传request，reward字段集中、smoke轻量reset/baseline/违规计数接通。真实B25零写准备通过；668项全量阶段、最终39项专项通过，不模拟／不查后台。
+- 旧已结束Swing链只读盘点derived约6.64GiB，三个主要报告各约974MiB；仅输出压缩审核计划，未删除／改写旧文件。证据artifacts/publication_storage_recovery_20261009/。
+
+
+- 存储工程：preflight/reserve容量门槛、递归摘要去轨迹、严格来源复用证书已接入；未删旧产物／运行仿真。专项37项通过。全量637通过、3项因历史模型/spec已缺失失败，非新增逻辑失败；证据artifacts/storage_evidence_engineering_20261008/。
+
+
+- sim2sim工程升级：CAD/COM显式contract、具名轴trace loader、通用静态parity、可选paired_state记录及独立诊断结算schema已接入。旧sim2sim/audit_native_parity.py已移除，仅保留共享tools.audit_native_parity入口；旧运行和更正证据不改。
+- 624项全量阶段、最终11项专项、独立冻结4项/schema/零写plan通过；已有B250首动作差1.49e-7复核。新配对样本0、physics step0，动力学严格parity与GUI仍未知，产物`artifacts/sim2sim_semantic_cpu_20261008/`。
+
+
+- Recovery采样/事件工程补齐：公共config/preflight固定槽位总数校验与env→family映射；槽位、累计初始化（可能含评估reset）、有效transition分开。
+- 共享registry事件审计与薄脚本包装已运行在已结束Swing链，实际占比1.567%复算；未读取活动任务进度。604项CPU、最终独立冻结11项/schema/零写plan通过，产物`artifacts/recovery_event_interfaces_20261008/`。
+- 未启动仿真/PPO；历史未保存阶段时钟的训练均值仍不能拆成精确初始化/恢复/保持时间。
+
+
+- Motion窗口/身份/比较工程已补齐：通用compare_motion、冻结submission_summary、共享GUI设备映射和显式采样语义。历史formal50 −2.5早终止识别为诊断窗口，未改旧结论。
+- 本轮最终专项30项通过；全量阶段592项通过，最终回归见本地`artifacts/motion_engineering_interfaces_20261008/`。未访问后台进度、未模拟/PPO；实际GUI渲染仍未认证。
+
+
+- Recovery课程准备已参数化；Swing为薄包装，姿态库加入同事务发布，标记最后绑定四文件SHA。工具注册/旧准备器分类/GUI身份计划已同步。
+- 本轮570项全量CPU回归通过（26.64s），最终26项专项通过；真实B25零写计划核验actor/critic/std不变、17个Adam状态及RNG字段。未启动仿真、未查询训练进度。
+- 采样/协议解耦已完成：新声明为sampling.family_weights＋assessment评估/保护组＋纯评分rising_task；runtime reset和retention统一接公共解析器。旧字段仅在集中只读适配层保留，不改历史spec；混用拒绝。
+- 本轮584项CPU全量通过（29.37s）；真实B25零写计划通过，新旧评分一致、40/40/20质量一致、初始化不变。证据`artifacts/recovery_sampling_decoupling_20261008/`；尚未新物理验证，未查活动进度。
+
+
+- 多臂工程优化：受限子目录publish＋完整标记、统一授权登记、纯域std换算、冻结CPU初始化审核、版本trace与结束后compare_arms已补齐；命令只维护TOOL_INDEX。
+- 本轮CPU541项阶段回归与真实checkpoint初始化审核；产物`artifacts/multiarm_engineering_20261008/`。未读取P2训练进度、未授权/重提活动臂、未模拟/PPO或通知。
+
+- [公共流程补齐](docs/ENGINEERING_WORKFLOW_COMPLETION_20261008.md)：528项CPU阶段验证、冻结CPU25项、raw审计；不是GPU行为认证。
+- [通知/证据修复](docs/NOTIFICATION_EVIDENCE_FIX_20261008.md)：路由、评分边界、raw loader、完整窗口语义。
+- [整合前状态与入口原文](docs/history/ENTRY_DOCS_BEFORE_CONSOLIDATION_20261008.md)归档保留；无需在新会话中默认加载。

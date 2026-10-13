@@ -32,3 +32,54 @@ runs/*
 !.env.example
 .vscode/
 .idea/
+
+# Local CPU evidence, authorization receipts and immutable copies (keep on disk).
+/artifacts/
+/configs/experiments/.engineering_recovery_submissions/
+/configs/**/authorization_receipt.json
+/configs/**/approval_request.json
+/configs/**/publication_complete.json
+/configs/**/engineering_recovery_certificate.json
+/configs/**/preparation*.json
+/configs/**/wiring_certificate.json
+/configs/**/task_ledger.json
+
+# New workstation-specific experiment declarations are provisioned locally.
+# Already tracked historical declarations remain unchanged for traceability.
+/configs/experiments/*/
+
+# Manual workbenches: commit interfaces, not local frozen engine replicas/results.
+/manual_train/**/editable/
+/manual_train/**/*engine*/
+/manual_train/**/experiments/
+/manual_train/**/tasks/
+/manual_train/**/*verification*/
+/manual_train/**/frame25_evaluation_*/
+/manual_train/**/models/
+/manual_train/**/step_env_plan.txt
+/manual_train/**/step_verification.json
+/manual_train/**/verification.json
+/manual_train/**/codex_training_reference.json
+
+# sim2sim data folders contain raw evaluations and separate runtime ledgers.
+/sim2sim/*/
+/deployment_protocol/**/verification.json
+
+# Local third-party excerpts are not original project source.
+/开源文档.md
+
+# Build and development outputs.
+/build/
+/dist/
+/coverage.xml
+/.coverage
+/htmlcov/
+*.tmp
+*.swp
+
+# Motion manual subfolders are local engine/evidence workspaces; expose only code fixtures.
+/manual_train/motion/*/
+!/manual_train/motion/tests/
+!/manual_train/motion/frame25_distillation/
+/manual_train/motion/frame25_distillation/*.json
+/manual_train/recovery/step_test_verification.json

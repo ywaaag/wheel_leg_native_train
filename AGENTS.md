@@ -1,163 +1,67 @@
-# Native closed-chain project rules
+# Codex 执行约束
 
-Before submission-interface changes, read `docs/SUBMISSION_CONTRACT_FIX_20261007.md`. A preflight PASS is not submission readiness; current-session/GPU/authorization checks are separate. That documentation-only commit leaves its implementation in the working tree, so verify the local CLI before use.
+本项目 `/home/kellen/wheel_leg_native_train`。以正确性、可追溯性和最小变更为先；中文简洁交付。
 
-New Codex sessions must also read `docs/CODEX_START_HERE.md` for current entrypoints, command usage, authorization boundaries, and the no-polling policy. This handoff does not grant simulation or training authorization.
+## 最短阅读链
 
-This project is `/home/kellen/wheel_leg_native_train`. Read `README.md`,
-`STATUS.md`, `ARCHITECTURE.md`, the current spec linked by STATUS, then
-`TOOL_INDEX.md` before running a command. A run's manifest, progress, terminal
-report and evaluation JSON override a Markdown status snapshot.
+1. 本文件：授权和不可变边界。
+2. `README.md`：导航；`STATUS.md`：选择本次 Motion 或 Recovery 的证据入口。
+3. 当前任务的 spec、ledger、manifest、冻结代码、terminal、原始 evaluation。
+4. 按任务需要读 `TOOL_INDEX.md`（命令）、`WORKFLOW.md`（步骤）或 `ARCHITECTURE.md`（接线）。
 
-Before designing or changing rewards, curricula, training experiments,
-candidate selection, or acceptance, read `TRAINING_EXPERIENCE_REUSE.md`;
-actual runs follow their spec, manifest, and raw evaluations.
-For the prepared autonomous-standing task, also read
-`docs/RECOVERY_STANDING_PLAN.md`; it is a handoff contract and does not grant
-a runtime or PPO budget.
+设计/改变 reward、课程、选模或验收前读 `TRAINING_EXPERIENCE_REUSE.md`。
+只有自主起身任务需要读 `docs/RECOVERY_STANDING_PLAN.md`。日期报告按证据需要读取，不作为必读链。
+Markdown状态是导航快照；run原始证据优先。当前源码描述下一次执行，不解释旧run行为。
 
-Only this project may be edited for its experiments. Keep the colleague USD and
-source project, `/home/kellen/fudan_train`, `/home/kellen/wheel_leg_sim2sim`,
-`/home/kellen/wheel_leg_training`, and all old audit runs read-only. Do not
-move or overwrite checkpoints, raw evaluations, or ledgers. Record source and
-asset SHA in every run. Current code describes the next run, not an old run.
+## 授权与文件边界
 
-The frozen native interface is in the experiment spec and `ARCHITECTURE.md`:
-25D physical-joint frame, five oldest-to-newest frames, 150D actor/critic
-input, six left-first position/velocity targets, 1 ms physics, 5 ms PD, 10 ms
-policy, 40/5.5 Nm physical limits. Training, independent evaluation and GUI
-playback use the same `CommandEnv` and plane scene. No Gym virtual-leg mapping,
-Jacobian lookup, LQR, gravity compensation, static trim, hidden gating, or
-effort-limit increase.
+- 仅编辑本项目；保留dirty changes，不reset/clean。外部同事项目、Fudan、sim2sim、wheel_leg_training只读。
+- 旧run/checkpoint/raw evaluation/spec/ledger和活动任务的冻结代码只读；不停止或改动其他任务。
+- CPU/文档工作不授予仿真、GUI、采样、PPO、通知或续训权限。PPO0也是仿真，仍需明确授权。
+- 新配方/课程/gate使用新spec、新run、独立ledger；exact-ID预留和结算，保留历史实际消耗。
+- 旧授权、余额、已通过smoke、commit和终态通知均不能授权新运行。状态不明先核验，不重复提交。
+- 物理GPU、UUID、逻辑CUDA映射和共享授权显式记录；不自动换GPU或抢占其他任务。
+- 通知须有明确授权和实际负责人目标。接收事件不表示任务归属或接管授权。
 
-Run CPU tests and plan-only preflight before any AppLauncher. Plan mode writes
-nothing. Each experiment spec directory owns an independent budget.json.
-Only explicit user authorization permits simulation/PPO; follow STATUS to the
-corresponding ledger, preserve all previous usage and reject duplicate chains. An
-authorized attempt needs a fresh output path, exact-ID ledger reservation and
-terminal accounting. Never infer an active trainer from an old PID. Do not
-stop or change another task. A new reward, physical contract, command stage,
-or acceptance gate requires a new experiment spec and run directory, while
-the shared code stays in this one project.
+## 冻结接口与代码规则
 
-Use `/home/kellen/anaconda3/envs/issaclab/bin/python`. The package is imported
-from this project's `src/`; the colleague asset module root is supplied at
-the CLI boundary after identity checks. Pure domain modules must not read
-files, environment variables or Isaac runtime state.
+legacy150D保持25D frame＋5帧oldest-to-newest history；新版学生仅按显式版本 `multiskill_student_v1`／`multiskill_mcu_v2` 的固定字段/维数/尺度分派，不接受任意接口漂移。6D left-first实体腿位置/轮速目标；
+Plane；physics/PD/policy为1/5/10ms；腿/轮40/5.5Nm。各实验动作尺度等以冻结spec为准。
+训练、评估、播放共享CommandEnv；不加虚拟腿映射、LQR、补偿、static trim、隐藏控制或限矩增量。
+纯domain只接收显式数据，不读文件/env/Isaac状态；CLI负责身份与文件读写。
+AppLauncher先于Isaac runtime导入；资产模块根在依赖导入前核验并设置。
 
-## Detached Training and Terminal Wake-up
+评估配置拆成scoring/schedule/storage；requested/effective/runtime读回分开。
+缺字段或UNKNOWN不能通过gate/晋级；提前失败不缩短要求窗口。完整窗口与证书通过分别记录。
+评估setup/reset/清理异常仍恢复actor模式、临时状态和RNG；清理错误不覆盖原始错误。
+诊断默认关闭，只在显式更新启用，不改变采样RNG、分布缓存、梯度或optimizer。
+来源/latest/best_new/best_overall/accepted分开；同一模型完整能力，不拼成功点。
 
-Submit authorized training through the detached supervisor/monitor chain. The
-interactive Codex worker may perform one resource snapshot and one bounded startup
-handshake, then must end the interaction. A submission receipt alone does not prove
-formal training started; report the exact verified stage and missing evidence.
+## 提交与后台
 
-Do not personally poll training logs, progress.json, metrics, checkpoint files,
-processes or GPU state to wait for training. No repeated tail/ps/nvidia-smi, shell
-while loops, periodic sleep/wait, or repeated tool calls that keep the conversation
-alive. Do not move that polling into a newly created watcher or sub-agent. Existing
-owned monitors may enforce process/budget deadlines and evaluate frozen milestones.
-Foreground bounded CPU tests or diagnostic evaluations are separate from long training.
+解释器固定 `/home/kellen/anaconda3/envs/issaclab/bin/python`，共享源码为项目 `src/`。
+先CPU测试、零写plan；公开提交只用supervisor。配置PASS不等于submit_ready；
+当前session、GPU资源、身份、输出、账本和前置证书在reserve前再次核验。
+formal须身份匹配的wiring_certificate，或经公共校验消费的版本化受限工程恢复证书。
+恢复流程见WORKFLOW；证书不授予运行权限或新能力通过，不重置smoke额度或修改原FAILED。
+事件型smoke必须覆盖真实事件，不能仅凭更新数。
+source/smoke阶段提交不等于formal首更新；UNKNOWN握手报告started=false。
 
-The background owner waits for its own child exit, reconciles the exact attempt,
-writes a compact terminal report and report_ready event, then invokes the existing
-completion.notify hook to wake the execution worker's current HAPI session. Validate
-the current session before submission; never inherit a session from a historical
-spec or example. Notification requires a hash-matched ready report, event-ID dedup,
-and no automatic continuation. A failed/unknown delivery is not a training failure
-and must not trigger restart, duplicate submission or an unlimited send retry.
+长训detached只做一次有界启动握手，然后结束交互。Codex不得循环查log/progress/metrics/PID/GPU，
+也不得用sleep/wait、新watcher或子agent守候长训。既有monitor管预算、保存、评估、退出和结算。
+明确授权的前台有界CPU验证/物理诊断评估可等待其自身完成，不属于长训轮询。
+后台owner写hash匹配报告、report_ready并按at-most-once通知冻结负责人；未知投递不自动重发。
+终态复盘只读一次；续训须新用户授权。旧PID或一次资源快照不证明当前存活/持续可用。
 
-On terminal wake-up, read the report once, review immutable evidence and acknowledge
-the event. Do not automatically resume training from a notification. Only explicit
-new user input permits a one-shot status inspection or diagnosed engineering repair;
-do not use that exception to resume polling. See docs/DETACHED_TRAINING_POLICY.md.
+## 版本与交付
 
-## Evidence and Interface Changes
-
-Use docs/ENGINEERING_STATUS.md as the current engineering index. Dated test counts,
-startup PIDs and protocol statements remain historical; verify exact frozen run
-evidence before claiming current process state or learned capability. A documentation
-or Git task never authorizes simulation, polling, notification sending or resumption.
-
-Use domain.episode_summary for completed-episode producer/reader contracts.
-Conflicting legacy aliases must fail. Read docs/EPISODE_IDENTITY_RECOVERY_FIX_20261007.md
-before correcting an engineering certificate. Never use aggregate episode counts
-to prove a new family/pose path was observed. Declared source identity and actual
-frozen location are separate; relocation still needs the submission receipt and
-exact module hashes. Engineering recovery defaults to a zero-write plan and never
-grants budget/launch authorization, even when publication is explicitly requested.
-
-Read `docs/NATIVE_INTERFACE_EVIDENCE_FOLLOWUP_20261007.md` before changing
-evaluation, gate aggregation, diagnostics, preflight or submission interfaces.
-These engineering changes do not authorize simulator use or a training budget.
-Keep requested scoring windows separate from observed per-environment duration;
-early termination must never shorten the acceptance requirement. Reject unknown
-protocol fields, invalid SHA, contradictory gate decisions and missing scored
-environments. Normalize gates by task; UNKNOWN or missing evidence cannot pass
-or unlock a curriculum stage. Never treat uncollected diagnostics as measured zero.
-
-Evaluation must restore actor mode, runtime switches and Torch RNG even after
-setup, reset or cleanup failure. Restore RNG after all cleanup resets. Optional
-diagnostics default to disabled, run only at explicitly selected updates and
-must not change action sampling, gradients, optimizer updates or the recipe.
-Label full-rollout probes, actual optimizer-step probes and offline replay
-separately; unavailable historical gradients remain UNKNOWN.
-
-Use the shared supervisor for new source -> smoke -> formal submissions. Formal
-requires a persisted, identity-matched `wiring_certificate.json`, source identity,
-active-phase health and exact ledger prerequisites. Require an explicit physical
-GPU and the current HAPI session; never reuse a historical session ID. Verify
-process command, start time, spec, output and attempt ID rather than PID alone.
-An UNKNOWN handshake must report `started=false`. A commit, old quota, historical
-AUTHORIZED field or terminal notification never grants new simulation permission.
-
-## Git and Documentation
-
-For every newly created experiment, prefix its root directory and experiment
-name with the creation date/time in Asia/Shanghai: YYYY_M_D-HH_MM__<purpose>,
-for example 2026_10_7-14_27__motion_width_ab. Use the same name for the config
-root, run root, spec.experiment and artifacts.run_name where present. If the
-minute/name already exists, append a collision suffix or use seconds; never
-overwrite. Phase/arm children (source_eval/smoke/formal/A/B) keep their semantic
-names. Do not rename existing/prepared/frozen experiments or historical evidence.
-See docs/EXPERIMENT_NAMING.md; naming never grants runtime authorization.
-New public preparers must use domain.experiment_naming rather than hardcoded names.
-Read docs/STATE_REQUEST_FIX_20261007.md for canonical chain RunState and distinct
-Motion/Recovery batch request schemas. Legacy handshake fields are evidence, not
-a second lifecycle. Do not migrate or edit an active task's frozen execution code.
-
-Use TOOL_INDEX.md for current public entries and TOOL_INDEX_HISTORY.md only for
-historical reproduction. Only supervisor is the public submission CLI; launcher,
-monitor and stand_chain remain internal components. Recipe-specific preparers are
-not generic configuration tools. Historical replay acknowledgment never grants
-simulation authorization; retired fixed-GPU/run/session drivers cannot launch.
-
-New submission interfaces are documented in `docs/ENTRY_SEMANTICS_FIX_20261007.md`.
-Default GPU ownership is exclusive; shared mode requires a recorded explicit user
-authorization note. Never exempt owners merely by process name or treat sharing as
-training authorization. Distinguish submitted/current stage from verified formal
-first update. Certificate readers validate only; the phase owner writes evidence.
-Use canonical model roles; a source may be best overall but never best new.
-Episode certificate failure, physical termination, time-limit truncation and
-runtime fault are separate facts. Required smoke duration comes from the frozen
-event declaration; insufficient sampling cannot be fixed by silently raising budget.
-
-Follow `docs/GIT_WORKFLOW.md`. Version current source, tests, scripts, declaration
-configs and documentation. Keep `runs/`, `isolated/`, USD/assets, checkpoint
-binaries, mutable ledgers/budgets, submission records and frozen execution copies
-local and read-only; do not force-add ignored evidence. Stage explicit paths,
-review staged contents and preserve unrelated dirty changes. Do not reconstruct
-an imaginary historical baseline from current files. Use detailed Chinese commit
-messages when requested; do not push without an explicit request.
-
-Update README, STATUS, ARCHITECTURE and TOOL_INDEX when public interfaces change.
-Preserve dated historical statements and add explicit corrections/current entry
-notes. List exact changed files, CPU checks, missing runtime evidence and known
-compatibility limits. Do not describe a test or report repair as learned capability.
-
-CPU regression, without AppLauncher:
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src \
-/home/kellen/anaconda3/envs/issaclab/bin/python -m pytest -q --tb=short
-```
+新实验名由domain.experiment_naming生成 `YYYY_M_D-HH_MM__purpose`（Asia/Shanghai），
+config/run/spec名称一致，阶段子目录保留source_eval/smoke/formal；旧实验不重命名。
+Git只处理明确本轮源码/测试/声明/文档；不force-add运行数据、资产、checkpoint或mutable ledger。
+按明确路径stage，不git add .；commit/push仅按用户指令，提交不能重置预算或冒充历史源码。
+公共工具命令只维护TOOL_INDEX，流程只维护WORKFLOW，结构只维护ARCHITECTURE，任务状态只维护STATUS。
+新Recovery课程复用公共准备器；sampling/assessment与评分协议分开，新旧采样字段混用拒绝。
+多文件声明含姿态库时核验完整发布标记和逐文件SHA后再授权。
+固定family配额在config/preflight核验；冻结CPU仅执行PORTABLE测试，源码定位从实际导入模块出发。
+sim2sim必须绑定actor坐标与COM测量语义；轨迹消费具名轴/schema，尺寸相同不能替代语义验证。
+交付具体改动、验证、剩余证据与副作用；工程通过不代表行为通过。

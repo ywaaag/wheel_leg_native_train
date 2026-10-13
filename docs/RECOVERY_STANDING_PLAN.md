@@ -1,435 +1,896 @@
-# Recovery: Stable, Level, Symmetric Standing
 
-## 当前交接决定：转向自主起身 — 2026-10-07
+# 本md文档之前的内容已经被移动至/home/kellen/wheel_leg_native_train/docs/history/历史的recovery_standing_plan.md 可以按需查看
+# Recovery 训练策略与执行规范
 
-用户现在的优先目标是**尽快学会自主起身，并在起身后不摔、基本水平**。
+> 2026-10-12时间平滑A/B已结束：A100完成、B69因normal env53实际关节越界保护工程停止。两支未改善完整保持，不晋级、不采用新模型；局部动作更平滑但接触更早失效。按第24节“动作平滑但姿态倒了”回退保留v10 update100，先补全关节越界取证，保护不放宽；随后独立研究入口后侧向姿态/支撑，不再加大平滑系数。本轮只读复盘，未新运行。详情见[终态复盘](RECOVERY_TEMPORAL_AB_TERMINAL_REVIEW_20261012.md)。
 
-执行更新：用户随后明确批准实行本计划。现行配方与独立预算见
-[首次低位起身](RECOVERY_RISE_LOW_20261007.md)，当前根为
-`2026_10_7-16_18__recovery_rise_formal_from50`（正式阶段）；已完成的来源/smoke
-证据在`2026_10_7-15_58__recovery_rise_low_from50`。PPO0定位已证明两个新中间姿态
-被动沉降后初始化无效，暂不训练；已有低姿态8/8有效，故首轮直接采用此低位组。
-训练期限定为11.5秒，独立观测23秒含初始化与起身后完整10秒保持；
-下文15秒仍为历史提案，不是当前运行值。首个15_51提交在AppLauncher前失败，
-消耗0；修复冻结身份接线后使用新根，旧证据保留。运行事实以新run优先。
-15_58的10次smoke完成后又被completed字段接线误报阻止formal；仅在新目录
-更正证书、导入已有使用和身份记录后执行formal-only，未重复smoke或增加总预算。
+> 2026-10-12用户最新决策：优先正常站姿0.34m站稳并满足左右对称，授权不限累计PPO（例如5000更新）。新v11专项回退v7 update300，仅改目标高度跟踪与无封顶Huber镜像成本，64normal；不续退化B、不再加时间平滑、不自动晋级Swing。每块300/4h/2GiB，同配方全Actor/Critic/Adam/RNG续训；normal高度/物理/对称两次24＋32认证后停止，5000formal后有限停滞回退，故障停止不重试。完整Recovery最终目标不变。见[本轮配方与执行](RECOVERY_STANDING034_SYMMETRY_20261012.md)。
 
-本节取代下文历史段落的“下一步”、入口和预算建议；历史内容保留以追溯来源。
-最初计划编辑阶段不授权 AppLauncher、PPO或额外评估；后续用户执行授权
-仅限上方新声明与独立预算，仍不允许旧链续训。
-执行时仍按 AGENTS → STATUS → 新 spec → 实际 manifest/ledger/raw evaluation 核验。
+## 1. 最终目标与当前优先级
 
-### 已有证据与默认来源
+### 最终目标
+同一个 Recovery 学生，从合法 Swing 开始，自主完成必要的收腿、转腿、支点迁移、抬升、落地和收稳，并连续稳定保持 **10秒**，随后能够真实交接给 Motion 策略。
 
-默认起点仍是 `runs/standing_scissor_20261006/formal/model_update_50.pt`，SHA256
-`1fa4255a90be6a9d43294a532a9f8cbf8c620d228ac6e7e5b2f6cc7301376d71`。
-这是当前 survival/level 协议下保留的来源，不是已认证的任意倒地起身策略。
+**学生可以学出不同于教师的动作：**
+*   不要求复制 B50 的 0.50 秒准备过程。
+*   不要求经过静止 DrawBack。
+*   不要求先跳起来。
+*   不要求关节逐帧跟踪教师。
+*   允许必要的短暂腾空、单轮支撑和动态倾斜。
+*   **不允许**靠教师中途救场完成最终认证。
 
-| 原始证据 | 当前可作出的判断 |
-| --- | --- |
-| [source_capability 终态](../runs/recovery_coverage_ab_20261007/source_capability/terminal_report.json)：R0、R0_perturbed，各 seed104/205，各8环境×10秒，总32/32，PPO0 | 来源已覆盖本组近站立扰动；不再为已通过的这组初态单独安排 R1 PPO。不能外推到更大扰动或低姿态。 |
-| [A_first 正式结果](../runs/recovery_coverage_ab_20261007/A_first/formal/analysis.json)：100更新/819200样本；25、50各8/8，100为0/8 | update100 全部因 roll 超限失败，均完成10秒且无 runtime fault；这是水平退化，不是本轮跌倒。 |
-| [B_uniform 正式结果](../runs/recovery_coverage_ab_20261007/B_uniform/formal/analysis.json)：同预算；25、50、100各8/8 | 全 rollout 有效样本均匀选择支持减轻 roll 退化；只有一组训练随机流，不能保证长期无遗忘。 |
-| 两组 candidate_selection：best_new=update25，best_overall/accepted=source50 | 不从最新100继续训练；B 的通过不等于净收益，mean abs vx由来源约0.704升至1.105m/s。漂移仍仅为诊断。 |
-| 本轮两组 durability=NOT_RUN | 本轮没有100秒新认证。已有历史100秒评估/重评分需按其模型与协议身份单独引用，不能套给本轮候选。 |
+### 当前优先级固定为：
 
-课程名与 pose family 必须区分：课程 R1 是 `R0_perturbed`；family `R1`
-是历史低位姿态，属于课程 R2。不按字符串“R1”直接判定难度。
-两组完成事件分别为 A `250b545a9918a358c91f6cf0`、B `f865405426068218aa206370`。
-通知中的 accepted=True 指来源回退，不代表最新模型通过。
+```text
+稳定控制
+→ 稳态左右对称
+→ 动态状态下的收稳
+→ 更早的转腿、抬升和落地
+→ 无教师 Swing 完整起身
+→ 缩短时间、减少位移
+→ 交接 Motion
+→ 鲁棒性与部署验证
+```
 
-### 最短推进路线
-
-1. **先做 CPU 证据整理与起身接线检查。** 定位已有低位自主 Recovery 的 checkpoint、
-   原始逐环境轨迹与 pose 身份，确认是否有可复用的自主抬升片段。旧模型只进入候选清单；
-   旧2秒、teacher handover 或不同高度协议不等于当前自主起身认证。已有
-   [manual0001](RECOVERY_MANUAL0001_START.md)记录约0.168m低位姿态，但历史几何检查
-   不替代下一轮的初始化回读。
-2. **准备一次有界 PPO0 能力定位。** 在新声明中明确一组闭链一致、可实际落地的
-   中间低姿态和 captured0001，比较 source50 与有证据的历史自主 Recovery 候选；
-   数量、seed、起身期限和墙钟先冻结，不做无限 checkpoint sweep。
-   测初始高度、最大抬升、首次到达站立区、连续保持、倾角、接触及失败原因。
-   普通起身失败是能力边界，不是训练前必须通过的 gate；非法初态/闭链故障才阻断。
-3. **从最近的能力边界训练。** 如果来源在某组低姿态已经能起身，保留该能力并向
-   更低一级扩展；如果完全不能抬升，先选择更近的中间姿态。按实测 root height、
-   腿构型、方向和接触分组，不凭空指定0.15/0.20m为可行 reset。
-   本轮只启用一个新难度组；不重新花主要预算训练已通过的近站立扰动。
-4. **固定任务配方，分段保留候选。** 建议首轮 smoke10+formal最多100更新，
-   formal评估25/50/100；64×128下总110更新/901120样本。这是待定预算提案，
-   尚未创建 spec/账本或分配墙钟；PPO0基线与评估/清理须各有有限墙钟。
-   smoke必须覆盖实际起身/超时事件及真实参数更新，不能仅证明程序启动。
-   不能覆盖完整事件时报告证据不足，不静默增加更新额度。
-5. **按新增起身成功与旧能力保持选模。** 保留来源和早期 checkpoint；失败分支
-   不成为下一阶段默认起点。当前新组获得独立多seed起身结果且旧R0无回归后，
-   才另行考虑下一难度。100秒耐久是所选候选的后续独立验收，不把它当作
-   首轮低位探索的前置条件，也不宣称10秒通过已经耐久。
-
-### 起身奖励、终止与成功必须重新对齐
-
-当前 coverage 配方是近站立保持：`lift=0`、`upright=0`，height正项3，
-pitch/roll平方成本各-4且 unconditional，failure_once=-1；连续项乘dt一次。
-不能原样用于低位起身，也不能先凭感觉提高惩罚权重。
-
-- **恢复阶段信号：** 恢复显式、有限的抬升与直立信号；检查低高度下的有效量级。
-  现有 lift 是相对初高的高度进度，不是相邻状态势差，不称为有最优策略不变保证的 PBRS。
-  精细水平和减速成本在接近站立时平滑增强；记录 gate 覆盖，避免低位必要运动
-  被终态成本压制。具体权重/高度门槛在新 spec 冻结前以实测状态离线对比。
-- **保留项：** uniform_rollout 作为优先候选，coefficient先保留0.02；仅约束
-  来源已认证的近站立有效输入，不对低位输入强行模仿未知来源行为。
-  reset 初始建议旧任务40%、新组60%，属待检验提案；另测实际样本占比，
-  episode 长短不同会使 reset 比例与 rollout 占比不同。记录 family/pose/episode/
-  时间覆盖；不同时改变环境数、LR、网络或 advantage normalization。
-- **快速失败 reset：** 当前 `minimum_up_cos=0.5` 即总倾角约60°以上可立即终止
-  对应环境 episode；不是停止整个 trainer。当前代码还检测禁止接触、初始化拒绝
-  和 runtime fault。站立 gate 的均值0.10rad/峰值0.15rad不是当前全程立即终止门槛。
-  低姿态需要独立核验60°是否排除了合法初态/恢复路径；不要把站立的小角门槛
-  直接施加于恢复全程。接近站立后可以另声明带连续超限时间的倾角失败规则，
-  但不能在本轮历史 run 中追溯应用。
-- **接触规则：** 起身允许已确认的支撑接触。当前允许模式包括 robot、轮和多种连杆；
-  因此不能声称“任意机身触地就失败”。逐个核对实际 body 分类与传感器，
-  弱组件未建模仍为UNKNOWN。不为了易通过而禁用闭链、穿透、非有限或关节安全保护。
-- **成功事件：** Recovery actor 自主从声明低位到达0.34–0.38m站立区，
-  以现 survival/level 高度、水平、接触标准连续保持2秒作为拟议训练成功；
-  期间无 teacher 接管。建议最多15秒起身期限，超时失败仍属任务数据。
-  在线事件奖励只发一次；成功 episode 的bootstrap/终止语义在新 spec明确。
-  独立验收记录完整恢复过程，随后同一episode连续保持10秒，保持指标窗口从
-  达到站立条件起计算，不能把固定[2,10]直接当作低位起身后的稳态窗口。
-  总时长必须足以容纳起身期限与10秒保持，早终不能缩短要求；所有初始环境
-  进入分母，禁止只评分已成功的子集。这是拟议新协议，尚无运行认证。
-
-最少诊断：每pose有效初始化数/尝试数/成功数、起身耗时、峰值抬升、
-连续保持时间、首次失败原因、姿态/高度/接触/力矩限幅/闭链，分阶段reward
-raw与dt后量级、return/value/advantage，以及retention eligible/selected覆盖。
-runtime fault、物理失败、超时和保持证书失败分开统计；未知历史梯度不补零。
-新 evaluator 若尚不支持事件对齐保持窗口，应先补纯CPU fixtures与plan-only，
-不能用错误窗口启动训练。
-
-### 两份参考材料如何使用
-
-[TRAINING_EXPERIENCE_REUSE](../TRAINING_EXPERIENCE_REUSE.md)提供证据优先级、
-真实事件接线、奖励单位/量级、旧能力回归、同源对照和候选筛选规则；其历史
-“当前未运行/固定站立”描述不代表今天状态。
-[参考文献](../参考文献.md)可借鉴逆向初态课程、支撑几何排查和分阶段奖励，
-但没有可追溯论文来源或本项目干预证据。短腿一定更容易起身、两腿必须完全同步、
-门控消除局部最优等只是假说；先核对原生机构与轨迹，不将其写成根因。
-
-不引入硬状态机代替策略起身、残差轨迹控制、虚拟腿映射、WBC/LQR、重力补偿、
-限矩增加或无限力矩“解冻”；不硬锁轮/左右动作，不修改USD。
-合法滚动不等于滑移，不因轮转就盲目加入强轮速/对称惩罚。
-本任务不训练速度跟踪，不能把“趴地偷速度reward”当作已确认机制。
-
-### 实施边界与下一位执行者
-
-只通过 `native_stand.command_v6.supervisor` 提交；下文旧 launcher/train_stages
-命令仅历史说明。新配置/run根使用Asia/Shanghai的
-`YYYY_M_D-HH_MM__purpose`，独立ledger，记录来源/资产/代码/协议SHA。
-先CPU回归和零写入plan-only，再按明确授权预留exact attempt。
-用户此前允许共享GPU0且禁止停止其他进程；资源同意不等于新的PPO或评估预算。
-当前两组已COMPLETED，不重启、合并账本或使用剩余额度；当前会话身份需重新记录。
-
-最初计划编辑阶段仅改本文，未新增spec、预算、模拟、训练或历史重评分；
-后续执行阶段的新增声明与实际使用见本节顶部执行更新及对应run。
+> **注意**：“稳定控制”和“动态状态下的收稳”需要互相验证，不能只在理想正常站姿上反复优化。不能因为累计 PPO 预算不限量，就长期重复没有进展的训练配方。
 
 ---
 
-以下为历史决策，所有“当前/下一步/授权”仅属于所注明日期和run。
+## 2. 目前已经知道什么
 
-## Current Decision: User-Approved Survival and Level Posture -- 2026-10-06
+以下为截至 **2026-10-12** 已核对的证据快照。后续执行必须读取相应 run 的原始终态和评估，不根据本文推断当前进程是否存活。
 
-New authorized implementation supersedes the preparation paragraphs below:
-[survival/level R0 -> R1](RECOVERY_SURVIVAL_LEVEL_20261006.md), fresh10000total
-updates3smoke+9997formal. Read STATUS for actual detached startup and runtime.
-New frozen protocol removes motion/symmetry gates consistently across reward,
-online success, curriculum, evaluation and selection. Old experiments stay intact.
+### 2.1 已证明的能力
+*   Motion B250 在当前资产上的正常站姿有通过证据。
+*   B50 准备后交给 B250，已有真实完整恢复成功轨迹。
+*   新学生确实接受了两位教师的完整动作教学。
+*   31D 学生已经能收腿、转腿和产生明显抬升。
+*   最新站立专项曾完成全部正常站姿 10 秒观察窗口。
+*   有效 reward、PPO、控制归属、后台续训链已经实际运行。
 
-The user accepts `runs/standing_scissor_20261006/formal/model_update_50.pt`
-by GUI and changes the current objective to **avoid falling and keep the body
-level**. Zero-speed regulation, bounded planar drift and strict leg symmetry
-are no longer promotion requirements for this next task; retain them as
-diagnostics. This is a changed task, not an improvement of the old acceptance
-score. Original specs, evaluations, ledgers and automated selections stay intact.
+### 2.2 仍未证明的能力
+*   同一个 31D 学生从 Swing 完整自主恢复。
+*   学生平稳、低触限地保持 10 秒。
+*   满足用户要求的稳态左右对称。
+*   新 Recovery 与 Motion 的可靠交接。
+*   STM32H723 上 100Hz 的真实控制链性能。
 
-Next source SHA256:
-`1fa4255a90be6a9d43294a532a9f8cbf8c620d228ac6e7e5b2f6cc7301376d71`.
-Its existing full evaluation records 8/8 continuous10s, no runtime fault,
-mean root height0.36667m, dual support100%, mean absolute pitch1.26deg and
-roll4.15deg. Mean absolute vx0.70411m/s is a diagnostic, not a rejection under
-the user's new goal. The model is GUI-approved for this goal; it is not certified
-under a new machine-readable protocol or the old stationary-standing protocol.
+### 2.3 当前三个主要问题
 
-Proceed next to **R1 enlarged near-standing perturbations**, keeping R0 samples.
-R1 does not mean the captured bottom-down pose: that is curriculum stage R2.
-In code, R1 uses pose family `R0_perturbed`; pose family `R1` is the low-pose
-family and must not be selected by confusing family names with stage IDs.
-Do not require the newly harder R1 cases to succeed before starting R1 learning.
-Validate their initialization, closure and control path first.
+| 问题 | 直接证据 | 当前解释边界 |
+| :--- | :--- | :--- |
+| **轮控制抖动** | 确定性评估中轮目标快速变化、频繁力矩变号、较高触限 | 已证明控制质量有问题，尚未证明单一成因 |
+| **稳态不对称** | hip 与主动连杆镜像误差较大，镜像成本大量封顶 | 当前奖励对大误差区分不足，但不能直接锁左右动作 |
+| **动态衔接失败** | 学生可抬升，但俯仰过大、支撑未建立或回落后失稳 | 高度不足不是唯一或主要解释 |
 
-Before submission, create a new spec with matching reward, success/FSM,
-curriculum and evaluation semantics. Do not leave old speed/drift/symmetry
-conditions silently active after removing them from the report. Retain height,
-support, pitch/roll, continuous survival and all physical runtime protections.
-A proposed level tolerance consistent with the accepted GUI is mean absolute
-pitch/roll<=0.10rad each and peak<=0.15rad; these are proposed new values,
-not retroactive thresholds or a completed new acceptance test. Promotion to
-R2 should still require two non-overlapping128-episode windows and two full
-evaluations under the frozen new protocol. Only subsequent resets change stage.
+**必须分别处理这些问题。不要把“起身失败”当成一个没有内部结构的总指标。**
 
-This update records task intent and the next source. It starts no simulation/PPO,
-allocates no budget and does not enable stages in a historical spec.
+---
 
-## Previous Decision -- 2026-10-06
+## 3. 对之前路线的明确修正
 
-Wheel alignment probe is COMPLETED/reviewed:53updates, offset16.69->8.08cm,
-but vx0.704m/s and roll/leg-length gates fail. Not a stable/symmetric solution.
-No continuation; lower-weight same-source comparison is the next proposal.
-See root STATUS and STANDING_SCISSOR_EXPERIMENT_20261006 completion review.
+### 3.1 保留的判断
+以下判断仍成立：
+*   采用一个 Recovery 学生学习完整过程。
+*   复用 B50 和 B250 的有效能力。
+*   通过真实动态前缀产生训练状态。
+*   不用静态姿态插值伪造动态桥接。
+*   最终独立 Swing 验收不能包含教师帮助。
+*   31D 小网络值得继续作为基线。
+*   PPO 可以从未成功学生继续学习，不必先通过完整任务。
 
-Current task supersedes BC test: [wheel alignment probe](STANDING_SCISSOR_EXPERIMENT_20261006.md).
-Source1500 unchanged, fixedBC0.02, only wheel-center geometry reward added;
-53updates transferred,1140old remaining unspent. Runtime/FK64samples passed,
-3smoke complete, formal startup actual1. No automatic extension. Read STATUS.
+### 3.2 需要修正的判断
 
-Current authorized next experiment: [BC gradient / annealing A/B](STANDING_BC_AB_20261006.md).
-Yaw-only chain is completed at103updates,0/8 strict acceptance. Two new arms
-transfer206updates (3smoke+100formal each), leaving1193 old updates unspent.
-Same source1500, seed/Adam/LR/reward/physics; only full-channel BC schedule differs.
-No automatic wheel-only/mirror experiment or long continuation. Read root STATUS
-and pair run manifest/terminal for actual state; paragraphs below are history.
+**第一，不再因为正常站姿“记录满 10 秒”就认为稳定基础足够。**
+轮抖动、持续滑行和触限属于真实控制问题，不是仅仅文档门槛太严。
 
-Superseding entry: [yaw-only review](STANDING_YAW_REVIEW_20261006.md).
-The separately authorized2000-update v2 long run stopped at498updates;103remaining
-updates are transferred to source1500 yaw-only smoke3/formal100. Remaining1399
-old updates are not automatically resumed. Original metadata below is historical.
+**第二，不再规定站立专项达到固定更新数后，无论结果如何都推进更难课程。**
+阶段推进依据能力，不依据“已经训练很久”。但这不意味着无限 normal 训练。若 normal 和动态后缀存在相同的控制缺陷，应做针对性实验，而不是只增加正常站姿样本。
 
-Bounded v2 source10s/smoke3/candidate10s verification is now complete;
-[report](../runs/standing_level_v2_check_20261006_151025/completion_report.md).
-3updates/24,576samples,216.52s. Both models survive10s but fail drift/vx/yaw/mirror;
-source remains best observed, accepted=null. No long continuation authorized;
-the new ledger's formal limit is0. Earlier UNAUTHORIZED statements below describe
-preparation history, not permission to restart or reset usage.
+**第三，不继续把每个失败项都解决为新增一个弱 reward。**
+先判断：
+*   原有信号是否处于封顶或衰减区。
+*   奖励是否被门控关闭。
+*   控制质量是否适合直接 Actor 正则。
+*   是否缺少必要状态覆盖。
+*   是否存在观测混淆。
 
-The user stopped the chain after1189formal+3smoke updates. Do not resume it or
-reuse its remaining8808updates automatically. Formal STOPPED_BOUNDED and
-wrapper COMPLETED conflict is preserved in original evidence.
-See [height-gate review](STANDING_HEIGHT_GATE_REVIEW_20261006.md) and the
-[new CPU-only v2 spec](../configs/experiments/recovery_standing_level_v2_20261006/spec.json).
-The ledger was UNAUTHORIZED during preparation; its bounded verification is now
-consumed and formal remains0. R0 settling, pitch/roll and geometry costs are
-unconditional; upright weight0; source retention0.30-0.40m, same coefficient.
-Original source1500, physics and acceptance stay fixed. These are mechanism
-repairs, not demonstrated convergence improvements. The short physical verification
-above is complete; no long run was launched.
+**第四，教师是可行解，不是最优动作模板。**
+学生可以缩短准备、重排动作和减少移动。不能以“偏离教师动作”本身认定策略变差。
 
-## Historical Authorization — 2026-10-06
+---
 
-The user has now authorized this complete detached chain: at most10000
-actual PPO updates,10h cumulative wall,3smoke+9997formal,81920000samples.
-Baseline300s,smoke300s,formal34740s,durability600s and60s cleanup reserve.
-Ledger is AUTHORIZED and starts with zero usage. The execution uses the
-experiment's independent `execution_snapshot/src/native_stand` so a concurrent
-motion trainer keeps its own code/config. Snapshot CPU/fake-process checks:
-81 passed. The older500-update budget proposal below is superseded.
-Run: `runs/recovery_standing_balance_20261006_chain_1140`.
-HAPI target: `6cc03979-87e5-4f7b-a7e7-e48ebf85d4c1`.
-One startup handshake; no conversational log polling after submission.
-No other control, reward, protocol or enabled-stage changes accompany the
-budget increase. R0 remains the only enabled stage.
+## 4. 授权、运行与证据边界
 
-Updated: 2026-10-06. This is the handoff and context-recovery entry, not a new
-simulation/PPO authorization. Start from AGENTS -> STATUS -> this document ->
-the current spec -> the actual run manifest. Check the ledger and process
-identity before submission; never resume from a historical PID.
+用户已经授权本 Recovery 任务累计 PPO 更新数不限量，计划内可连续学习，不需要每 100 或 300 次更新重新申请额度。
 
-## Current Evidence
+**执行采用：**
 
-- Frozen source: `runs/recovery_stage0_stand_from1000_20261005_chain/formal/model_update_1500.pt`.
-  SHA256: `c82125438bc17cdb5f559dcad3ca40cc7dff654f2dcc9d5fae97ec700a69fc82`.
-- It passed 8/8 autonomous **2-second** hold. It has no continuous10s/100s
-  standing certificate and no bottom-down Recovery certificate.
-- The subsequent symmetry-only500 run survived15s but achieved0/8 holds;
-  last2s mean abs vx0.416m/s exceeded0.30m/s. Height/contact/tilt remained good.
-  Stronger symmetry penalty is not a demonstrated improvement.
-- Source, latest, accepted and GUI-approved models are separate identities.
-  Do not substitute B200, old500 or Gym47250.
-
-## Historical v1 Recipe
-
-[spec](../configs/experiments/recovery_standing_balance_20261006/spec.json),
-[budget](../configs/experiments/recovery_standing_balance_20261006/budget.json).
-This recipe was authorized and subsequently stopped by the user. Its original
-spec, ledger and source snapshot are historical evidence; do not edit them.
-
-Target: command `[0,0,0.36]`, autonomous stable standing by Recovery itself.
-No handover/teacher control is used to obtain success. Physical configuration
-remains the knee-stop USD copy, plane0.5/0.5/0, physics1ms, PD5ms, policy10ms,
-leg40Nm/wheel5.5Nm, action leg1.6rad/wheel100rad/s and no pair projection.
-25D physical-joint frame +125D oldest-to-newest history =150D actor/critic.
-
-This is a multi-term standing adaptation, not a single-variable reward ablation:
-
-| Term | Definition / Frozen Value |
-| --- | --- |
-| Height | Gaussian around0.36m, width0.04m, weight3; saturated lift weight becomes0 for this R0 recipe |
-| Pitch/roll | Existing canonical squared costs, weight-4 each, scale0.12rad; full gate now0.36m |
-| Linear settling | Existing full-speed Pseudo-Huber, scale0.1m/s, weight-0.6 |
-| Angular settling | Existing Pseudo-Huber, scale0.35rad/s, weight-0.4 |
-| Vertical motion | Squared vz/0.1, weight-0.1 |
-| Level angular motion | Body x/z angular speed squared, scale0.3rad/s, weight-0.1 |
-| Mirror posture | Hip sum and active-link difference, deadband0.03rad, scale0.2rad, weight-0.02 |
-| Leg-length balance | Hip-anchor to main-wheel-center length difference, scale0.02m, weight-0.02 |
-| Wheel differential | Left/right wheel-speed difference, scale10rad/s, weight-0.01; same authored wheel-axis signs |
-| Source retention | Auxiliary actor-mean MSE, coefficient0.02, <=256 real pre-action inputs/rollout; only zero command and height0.34–0.38m |
-
-The six new costs use a0.30–0.36m height gate except Gaussian height.
-Continuous terms are multiplied by policy dt exactly once; success/failure
-bonuses remain once-only. Existing effort/action/contact penalties are retained.
-Retention teacher is frozen **source1500**, with the same1.6/100 action semantics;
-it is not the older0.5rad STAND network. Retention adds an explicit gradient
-through PyTorch's public optimizer pre-step hook; no optimizer method replacement.
-It may inhibit necessary adaptation, so log its loss and selected input count.
-Coefficient0.02 is a proposed recipe value, not a proven optimum.
-Real pre-action observations/masks are copied in fixed-size batches; eligible
-inputs are selected once at the first optimizer step, not by per-policy-step
-GPU boolean indexing. At64x128x150 this cache is about4.7MiB plus masks.
-
-## Course and Promotion
-
-1. R0: nominal near-standing pose70%, small closure-consistent leg perturbations30%.
-2. R1: enlarged near-standing leg and orientation perturbations.
-3. R2: captured bottom-down low pose.
-4. R3: enlarged asymmetric low-pose distribution.
-
-Only R0 is enabled in this500-update recipe (`max_enabled_stage=0`). No motion
-commands or automatic jump to low poses. The other stages are explicit future
-interfaces, with offline candidates that still require runtime validation.
-Before enabling each stage, validate its initialization and retain >=40% of
-previously mastered tasks in a separately versioned recipe; the present recipe
-does not claim that future rehearsal mix has been tested or enabled.
-
-The curriculum manager requires two non-overlapping128-completed-episode windows,
-each success rate>=90% and runtime faults0, **plus two consecutive full10s
-evaluations**. Success includes low-speed/height/tilt/contact and geometry gates,
-not reward alone. A short2s screen cannot promote a stage. Failed full evaluation
-resets its confirmation streak. Stage changes affect subsequent resets only.
-
-## Independent Acceptance
-
-Training may end a successful episode after2s. Independent standing evaluation
-suppresses that success-only reset and continues the **same episode**; true faults
-and falls still end it. All terminal data come from pre-reset snapshots.
-
-| Criterion | Required Value |
-| --- | --- |
-| Continuity | 8/8 complete10s, no reset/fault; final selected candidate100s separately |
-| Height | 2–10s mean0.34–0.38m; >=90% samples in range; initial minimum reported |
-| Speed | Mean abs vx/vy<=0.03m/s; yaw<=0.03rad/s |
-| Drift | Whole-episode maximum planar excursion<=0.20m from pre-physics origin |
-| Level | Mean abs pitch/roll<=0.05rad each; peak<=0.10rad; peak tilt<=0.12rad |
-| Symmetry | Mean mirrored joint error<=0.10rad; mean leg-length difference<=0.01m |
-| Support | Dual contact>2N in >=95% steady samples; mean normalized force difference<=0.30 |
-| Safety | Closure<=5mm; sampled saturation<=5%; existing fault protections intact |
-
-These symmetry/support values are proposed v1 thresholds pending physical
-feasibility checks. Contact force is sensor resultant magnitude, not verified
-normal load. Policy-sampled saturation is not every-PD saturation certification.
-Body COM offsets may require a small persistent load difference. Never lower
-thresholds in a running experiment; record infeasibility and create a new spec.
-Never require raw left/right actions to be identical or lock the wheels.
-
-## Execution and Budget Proposal
-
-New baseline<=300s/PPO0 -> smoke3updates/300s -> formal<=500updates/7200s ->
-selected candidate100s/600s. Total proposed actual PPO<=503updates,
-samples<=4,120,576; formal alone4,096,000samples. No old budget is reused.
-Source10s may fail the new behavioral gates; that is not a runtime fault.
-Before PPO, require8 continuous source episodes, valid initialization and no
-runtime fault under this exact spec. If the source cannot survive10s, diagnose
-the reset/control path first.
-
-Formal checkpoint every100;2s screening every100;full10s every250/final.
-For500updates this means6 checkpoint identities (including evaluated250),
-4 light screens and2 full evaluations. Light screens never certify standing.
-Final100s uses only an already10s-accepted candidate; otherwise report no accepted
-candidate. The durability phase must remain independently budgeted.
-Ordinary full milestones retain summaries and bounded failure windows; source,
-final and selected durability evaluations retain compact trajectories. Candidate
-registries exclude these arrays so repeated summaries do not rewrite trajectories.
-
-CPU-only plan (no Isaac/output/ledger mutation):
-
-```bash
-cd /home/kellen/wheel_leg_native_train
-PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python \
-  src/native_stand/command_v6/tools/preflight.py \
-  --spec configs/experiments/recovery_standing_balance_20261006/spec.json \
-  --phase source_eval --output-dir runs/standing_balance_source_NEW
+```text
+任务级累计 PPO：无固定上限
+单块 formal：最多 300 更新
+单块墙钟：最多 4 小时，含评估与清理
+单块产物：默认不超过 2GiB
 ```
 
-After explicit runtime budget approval, use the existing launcher for source_eval,
-then the existing sequential Recovery train_stages for smoke/formal; supply the
-confirmed HAPI target explicitly. Do not call the older Recovery chain: its
-autonomous baseline validator targets the historical2s protocol.
-The source-only trainer builds actor only, writes evaluation_source and a source
-candidate registry; smoke preflight checks exact baseline spec/checkpoint identity.
+块大小是调度和复盘单位，不是总预算。
 
-Actual runtime CLI (verified against `--help`; **not executed**):
+**继续使用公共 supervisor 和既有 owner：**
+*   worker 只做一次有界启动握手。
+*   后台 owner 负责保存、评估、结算和计划内续块。
+*   不另写 watcher，不让 worker 轮询。
+*   同时只推进一条 Recovery 实验链。
+*   修改配方必须创建新 spec、run 和 ledger。
+*   活动 run 的冻结代码、历史 checkpoint 和评估只读。
+*   不自动停止其他任务。
+*   工程异常不得无限自动重试。
+*   用户停止后，owner 不得自动启动下一块。
 
-```bash
-CUDA_VISIBLE_DEVICES=0 PYTHONPATH=src \
-/home/kellen/anaconda3/envs/issaclab/bin/python \
-  src/native_stand/command_v6/launcher.py \
-  --spec configs/experiments/recovery_standing_balance_20261006/spec.json \
-  --phase source_eval --output-dir runs/standing_balance_source_NEW --launch
+> **注意**：不限量 PPO 授权不自动授权改变机械限位、提高力矩、替换 USD、增加隐藏控制或真机执行。本文中的观测扩展和控制接口备选应单独声明版本与授权范围，不能通过“继续训练”偷偷实施。
+
+---
+
+## 5. 模型与物理契约
+
+**主线保持：**
+
+```text
+接口：multiskill_mcu_v2
+Actor：
+31 → 128 → 64 → 32 → 6
+Critic：
+40 → 256 → 128 → 64 → 1
+隐藏层：ELU
+Actor 确定性 mean：tanh
 ```
 
-After that exact baseline completes and is validated, the existing detached
-smoke/formal supervisor can be submitted with the confirmed HAPI ID. Do not
-submit both commands concurrently or manually turn the ledger into AUTHORIZED
-without an explicit runtime budget. The `train_stages` CLI takes `--spec`,
-`--output-dir`, `--hapi-session`, and optional `--tensorboard-logdir`.
+**Actor 只读取部署可获得的信息：**
+*   身体角速度。
+*   身体坐标重力方向。
+*   主动关节位置与速度。
+*   上一实际执行目标。
+*   当前命令和技能标识。
 
-## CPU Verification (2026-10-06)
+**Critic 可读取已声明的真实高度、线速度、接触与计时信息。**
 
-Focused regression: **78 passed**. Full suite: **159 passed, 7 failed**;
-the seven failures concern historical configs referencing an outdated colleague
-YAML SHA. The capture CLI's actual error is `colleague_config identity differs`.
-Historical configs and evidence were not rewritten to hide the drift. The new
-recipe freezes the current dependency identity and records the old/new hashes.
+**保持：**
 
-Coverage includes the actual source1500 actor/critic and all17 Adam states,
-strict150D loading, exact parameter/moment equality and effective LR3e-5;
-inference-mode inputs followed by real Adam retention backward; CPU fake
-environments that reset their live state after falling; complete10s scoring,
-0.4m final drift, sign-alternating velocity, missing/nonfinite diagnostics;
-stage caps,128-episode windows, two full confirmations and regression stops.
-The new source-only plan returns `READY_NEEDS_AUTH`, CPU-valid, zero files
-written. Smoke preflight accepts a physically valid10s source baseline even
-when it fails the new behavioral gates, but rejects a2s or mismatched baseline.
-
-```bash
-PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python -m pytest -q \
-  tests/test_recovery_standing_balance.py tests/test_recovery_autonomous.py \
-  tests/test_recovery_dense_reward.py tests/test_recovery_settling.py \
-  tests/test_completion.py src/native_stand/command_v6/tests/test_domain.py
+```text
+腿目标尺度：1.5rad
+轮目标尺度：100rad/s
+physics / PD / policy：1 / 5 / 10ms
+腿 / 轮限矩：40 / 5.5Nm
+原闭链 USD、Plane、PD 与机械限位
 ```
 
-CPU evidence does not establish that R0 can pass these thresholds in PhysX.
-No new runtime baseline, smoke, formal, or100s durability result exists.
+**动作顺序：**
 
-## Required Review / Do Not Drift
+```text
+left_hip
+left_active_link
+left_wheel
+right_hip
+right_active_link
+right_wheel
+```
 
-- First decide whether source1500 retains standing for10s; don't silently call2s10s.
-- Compare matched-duration source/candidate windows and all checkpoint identities.
-- Track retention cost, level angles, mirror/leg lengths, vx/yaw, dual contact,
-  saturation, closure, per-pose acceptance and complete success counts.
-- Rank full acceptance, survival, passed-env count, drift, level and symmetry;
-  never rank early-death/low-drift or reward-only as best.
-- If two consecutive full zero-command evaluations regress, stop escalation and
-  preserve earlier candidates. Do not automatically add updates or change STAND.
-- R0 success is standing from near-standing reset, not successful low-pose recovery.
-- The next low-pose recipe must restore explicit lift progress and verify that
-  the near-standing Gaussian doesn't eliminate the low-height learning signal.
-- No external force, gravity compensation, hard wheel lock, hidden action gate,
-  USD edits or effort-limit increase.
-- Completion notifications request review and never authorize continuation.
+腿部 reference、关节轴向、quaternion 顺序和 native 身体轴继续使用已核验定义。“上一执行目标”必须是机械限位处理后实际发送的目标。切换模型不能清零速度、重建姿态或重置上一目标。
+
+---
+
+## 6. 成功标准分成四类，避免互相冒充
+
+| 结果类型 | 证明什么 |
+| :--- | :--- |
+| **工程通过** | 接口、时序、reward、PPO、保存和结算工作正常 |
+| **正常站姿通过** | 从声明正常站姿能够保持 |
+| **动态后缀通过** | 从教师生成的指定动态状态能够收稳 |
+| **独立 Swing 通过** | 学生从 Swing 开始全程自主完成恢复 |
+
+*   工程 smoke 不要求先学会完整起身。
+*   正常站姿通过不代表 Swing 通过。
+*   动态后缀通过不能减少最终独立 Swing 评分分母。
+*   GUI 观察有价值，但 GUI 使用的 checkpoint、初态、控制者和时钟必须明确。GUI 不能自动替代固定协议评估。
+
+### 6.1 当前正式 Recovery 协议
+保持既有版本语义：
+*   受控 2.5 秒内完成入口。
+*   入口连续确认 0.20 秒。
+*   从首次确认后的下一个 interval 开始，观察完整 1000 个 10ms 样本。
+*   不重新挑选后面更好的窗口。
+*   高度不低于 0.30m，允许 0.42m。
+*   保持阶段 pitch/roll 平均绝对值 ≤ 0.10rad、峰值 ≤ 0.15rad。
+*   保持 tilt 峰值 ≤ 0.18rad。
+*   保持连续双轮接触，沿用当前传感器合力 > 2N 定义。
+*   闭链误差 ≤ 5mm。
+*   policy 采样触限比例 ≤ 5%。
+*   mean(abs(vx)) ≤ 0.5m/s。
+*   横速和 yaw 沿用当前协议。
+*   所有初始评分环境进入分母。
+
+上述高度应继续沿用当前明确测量语义。不能把 root 高度阈值静默改解释为底盘净空；两者应分别记录。
+
+### 6.2 新增稳态对称质量目标
+为了落实用户“左右腿对称”的要求，另立质量字段，不追溯改旧 gate。
+
+**定义：**
+```text
+e_hip = q_left_hip + q_right_hip
+e_active = q_left_active − q_right_active
+```
+
+**首版建议目标：**
+```text
+保持窗口内：
+mean(abs(e_hip)) ≤ 0.10rad
+mean(abs(e_active)) ≤ 0.10rad
+P95(abs(e_hip)) ≤ 0.20rad
+P95(abs(e_active)) ≤ 0.20rad
+```
+
+这些是新增设计目标，不是已经验证的机械极限。
+
+**同时报告：**
+*   左右腿长差。
+*   轮心沿机体前向的水平错位。
+*   实际目标镜像误差与实际 q 镜像误差。
+*   roll 与左右接触情况。
+
+不要求起身过渡的每一帧都满足稳态对称目标。
+
+### 6.3 控制质量目标
+继续保留触限门槛，同时增加：
+*   每轮目标变化 RMS。
+*   requested 与 applied torque RMS。
+*   力矩变号次数。
+*   连续触限时长。
+*   目标—实际轮速误差。
+
+这些指标先用于比较和诊断，不随意新增未经验证的硬机械门槛。**稳定、对称且触限合格，才是用户期望的站立能力。**
+
+---
+
+## 7. 当前第一实验：直接 Actor 时间平滑正则
+
+**执行入口（2026-10-12）**：A/B工程与CPU验证已完成，A已通过公共supervisor首次提交；一次握手SOURCE_EVAL，未核验formal首更新。每臂smoke12＋formal100，B由既有owner串行调度；阶段事实与精确路径见STATUS和[提交报告](RECOVERY_ACTOR_TEMPORAL_AB_SUBMISSION_20261012.md)。旧自动续块的状态机故障已修，旧FAILED不改；本轮不同时改对称或前翻奖励。
+
+### 7.1 为什么先做这个
+已经试过环境侧轮目标平滑 reward，未获得可靠改善。下一实验直接约束网络输出的时间变化，检验是否能改善策略本身的反馈平滑性。这与 CAPS 时间平滑思路相关，但本项目只做明确的时间项，不同时加入空间噪声、滤波或其他模块。[CAPS 研究说明]
+
+### 7.2 固定来源
+```text
+runs/2026_10_12-13_29__recovery_course_b_prefix180_block0002/formal/model_update_100.pt
+SHA256: bc52456109c79f7a9c5b7abb0b9cab9fc9ef46af7576fbfe5f0f9829ac70be4d
+```
+update 200 已有明显退化，不能默认从 latest 继续。本实验应在原 owner 的明确调度点串行执行，不修改活动 run。
+
+### 7.3 A/B 定义
+*   **A**：原 PPO。
+*   **B**：原 PPO ＋ 以下 Actor loss：
+
+$$ L_T = \text{mean} \left[ \left( \frac{100\mu_{wheel}(o_t) - 100\mu_{wheel}(o_{t-1})}{10} \right)^2 \right] $$
+
+```text
+loss_B = loss_A + 0.01 × L_T
+```
+$\mu$ 为当前 Actor 的确定性 mean。输出转换为物理轮速后计算。
+
+**有效相邻对必须：**
+*   同环境、同 episode。
+*   间隔正好 10ms。
+*   两步都由学生控制。
+*   两步都处于入口确认后的保持阶段。
+*   不跨 reset、terminal、交接或评估重建。
+*   两侧 mean 都参与梯度。数据输入作为固定采样值，不对物理仿真反向传播。
+
+每个 PPO minibatch 最多 256 对，独立 RNG；无有效对时 loss 为零。辅助前向不得覆盖 PPO 分布缓存、改变采样 RNG 或污染 old log probability。
+
+### 7.4 对照范围
+*   保留当前 1.80 秒课程和 32/16/8/8 采样。
+*   保留 v10 全部 reward、网络、std、PD 和评分。
+*   两臂恢复同一来源 Actor、Critic、Adam 及 RNG。reward 未改变，不重建 Critic。新增 loss 配置单独记录，不能冒称与旧历史完全相同的续训。
+*   每臂 12 次 smoke、100 次 formal，50 和 100 评估。
+
+**评估包含：**
+```text
+动态后缀：24 环境
+正常站姿：24 环境
+独立 Swing：8 环境
+```
+
+### 7.5 改善与退出
+**明确改善要求：**
+*   完整观察窗口数量不下降。
+*   轮目标变化 RMS 相对来源下降至少 50%。
+*   触限比例相对来源下降至少 30%。
+*   姿态、速度和接触没有明显退化。
+*   不通过提前跌倒或缩短窗口制造“动作更少”。
+*   同时提供共同前 2 秒的配对比较，失败环境保留在分母。
+
+若 B 改善，可继续同配方 300 更新确认。
+若 B 在两个检查点均损伤姿态或存活，停止该分支。
+若正则梯度很小且行为基本不变，可进行一次 $\lambda=0.03$ 的独立对照；若正则明显压制控制并导致退化，可进行一次 $\lambda=0.003$ 的独立对照。不能在运行中自动不停调系数。
+
+完成这些有限对照仍无改善，进入第 14 节备选分支，不继续无界增加平滑权重。
+
+---
+
+## 8. 第二实验：修复稳态对称成本的辨别力
+
+本阶段在平滑控制候选建立后单独进行，不与第 7 节同时修改。
+
+当前封顶平方成本在大部分不对称样本上接近常数。新实验只替换该项：
+
+$$ z_i = \frac{\max(|e_i| - 0.03, 0)}{0.20} $$
+
+$$ r_{mirror} = -0.10 H I_{entered} \text{mean}(\text{Huber}(z_i)) $$
+
+其中：
+```text
+Huber(z) = 0.5 z²，z≤1
+           z−0.5，z>1
+```
+
+**设计要点：**
+*   不对大误差封顶。
+*   保留 3cm 无关；这里死区是 0.03rad，不能混淆单位。
+*   只用实际关节 q。
+*   只在入口后启用。
+*   不硬锁动作。
+*   不对教师目标做镜像投影。
+*   不把左右轮速度相等作为对称要求。
+*   连续项乘 dt 一次。
+
+从相同稳定候选开展 A/B，各 100 次 formal，其他条件一致。新 reward 两臂采用一致的 Critic 初始化策略，避免把恢复方式差异混入奖励比较。
+
+**评价：**
+*   两种关节镜像误差是否分别降低。
+*   轮心几何是否同步改善。
+*   是否损伤姿态、接触、低速和触限。
+*   是否达到第 6.2 节质量目标。
+
+有收益后才继续训练到目标；若腿更齐但稳定性下降，回退，不能把“对称”单独宣布为成功。
+
+镜像等变网络、镜像数据增强属于后续架构方法。它们要求完整核对 IMU 轴、角速度作为轴向量的变换、动作符号、命令和资产对称性，不能用简单交换左右通道替代。
+
+---
+
+## 9. 站立稳定阶段何时结束
+
+**结束条件：**
+1.  同一模型在正常站姿三组 24 环境完整通过。
+2.  当前动态后缀三组 24 环境完整通过。
+3.  两轮评估均达到稳态对称目标。
+4.  两轮使用不同声明的评估随机条件。
+5.  轮控制质量没有只在某个短窗口改善。
+
+在达到这些条件之前，不推进更短教师前缀。但可以继续保留少量独立 Swing 训练，避免完全丢失低位行为。
+
+*   若正常站姿通过、1.80 秒后缀仍失败，应把预算投向动态收稳，而不是继续扩大 normal 占比。
+*   若两者都抖动，优先处理共同反馈问题。
+*   若只能靠很高触限维持，不能先通过放宽 5% 门槛放行。
+
+触限门槛未来可以根据真实驱动能力、热约束和 PD 采样语义单独复审；目前教师同场景低触限成功，已经说明高触限并非该任务不可避免。
+
+---
+
+## 10. 真实动态前缀逆向课程
+
+### 10.1 课程的作用
+教师前缀用于产生可学习的动态状态。它不是最终控制器，也不是学生必须复刻的动作表。
+
+冻结教师在同一仿真中真实执行：
+```text
+前 0.50 秒：B50
+之后：B250
+到声明前缀长度：学生接管该 episode 剩余过程
+```
+前缀小于 0.50 秒时，只运行相应长度 B50。前缀为 0 时，初始化后直接由学生控制。不能把静态插值、清速度或重置姿态当成动态课程。
+
+### 10.2 默认前缀级别
+```text
+1.80, 1.50, 1.20, 1.00, 0.80, 0.65, 0.50, 0.40, 0.25, 0.10, 0.00 秒
+```
+时间从合法初始化结束后的第一个受控 interval 开始。这些是训练初态分级，不是对学生动作发生时刻的要求。同样的高度可能对应完全不同的动量与支撑状态，所以不能仅按高度排序难度。
+
+### 10.3 每级训练分布
+默认 64 环境：
+
+| 类别 | 数量 |
+| :--- | :--- |
+| 当前级动态前缀 | 32 |
+| 上一级已通过前缀 | 16 |
+| 正常站姿保持 | 8 |
+| 原始 Swing、无教师 | 8 |
+
+第一级没有上一级时，16 个环境同样使用当前级。记录各组真实有效 Actor 样本，不能只报槽位比例。若某组经历大量初始化或教师控制，应据实际样本判断覆盖；不要把教师执行时间算成学生经验。
+
+### 10.4 晋级
+*   当前级三组 24 环境完整通过，并达到稳态对称质量目标。
+*   下一轮独立条件再次通过后晋级。
+*   不能因为入口率高、最高高度高或 reward 上涨晋级。
+*   若正常站姿已认证能力连续两次明显退化，停止推进难度，回到最近完整候选。连续失败必须在中间通过后清零。
+
+### 10.5 细分
+当前级连续三个 300-update 块没有实质改善时：
+*   保留本级最佳模型。
+*   在当前级与上一级之间增加一个 10ms 对齐的中间前缀。
+*   每个间隔最多细分两次。
+*   仍无进展，转入明确机制分支，不无限细分时间。
+
+若 normal 已可靠通过，但 1.80 秒始终不可接，可增加一次更晚的 3.0 秒教师状态诊断。只有教师本身与接管证据有效时，才采用：
+```text
+3.0 → 2.4 → 1.8 秒
+```
+这一后备课程。它仍需最终回到 0 前缀，不能长期停在教师已经站稳的状态。
+
+---
+
+## 11. 控制归属、GAE 与计时
+
+教师、初始化和学生必须分别记录。每环境每步只有一个动作执行者。
+
+教师使用自己的：
+*   原生观测及历史。
+*   动作尺度。
+*   reference。
+*   冻结模型。
+
+不能将教师归一化 action 按学生尺度解码。学生只用自身真实控制样本更新 Actor。当前课程约定 Critic 也只拟合学生控制时刻，保持实现与声明一致。
+
+完整时间轴仍保存：
+*   不删除教师步骤后拼接 GAE。
+*   不跨 episode 传播 return。
+*   交接不是物理 reset。
+*   rollout 边界不是 episode 终止。
+*   成功、任务失败、工程截断分别处理。
+
+交接时可以重置“学生后缀任务计时与证书累计器”，但不能重置物理状态或上一执行目标。
+
+**必须同时保存三种时间：**
+```text
+仿真／episode 绝对时间
+初始化后的全程受控时间
+学生接管后的后缀时间
+```
+动态后缀的 2.5 秒入口期限从学生接管开始。独立 Swing 的 2.5 秒从初始化完成后学生首次控制开始。辅助后缀通过只生成后缀证据，不能生成独立 Swing 证书。
+
+---
+
+## 12. Swing 前翻：按事件定位，再选择一个干预
+
+前翻不是单看 pitch 峰值就能解决的问题。对同一模型的至少 8 条独立 Swing 轨迹，记录：
+```text
+初始化完成
+首次双侧收短
+首次明显俯仰角速度增长
+轮目标与力矩反向
+首次失去双轮接触
+最高点
+回落
+重新接触
+倾角终止
+```
+每个事件保存前后至少 100ms：pitch 与 roll、身体角速度、具名 pitch rate、root 线速度、主动和必要被动关节 q/dq、两轮相对机体位置、腿长与支撑方向、请求/裁剪/实际力矩、接触与闭链、学生输入/mean/实际目标。
+
+pitch rate 必须从当前坐标定义正确计算，不能直接把某个世界角速度分量当成 pitch rate。
+
+### 12.1 根据结果选择分支
+
+| 证据 | 下一单变量 |
+| :--- | :--- |
+| 高度门控启用前已经积累主要俯仰动量 | 提前入口前角速度成本的启用范围 |
+| 成本已启用，但大部分危险样本处于封顶区 | 单独取消该成本封顶或改为保留大误差辨别力的形式 |
+| 抬升可控，回落时轮子不在有效支撑位置 | 增加该动态区间的课程覆盖 |
+| 目标出现尖锐跳变后紧接着动量异常 | 检查相关状态下 Actor 反馈，再试过渡局部正则 |
+| 支撑与动作相近，但相似 31D 输入需要不同纠偏 | 进入观测充分性分支 |
+| GUI 动作与保存轨迹不一致 | 先核对 checkpoint、播放 family、教师开关和输入版本 |
+
+不要同时执行多个分支。
+
+### 12.2 不直接采用的做法
+*   不把保持阶段 pitch ≤ 0.15rad 套到整个起身过程。
+*   不因为腾空就终止。
+*   不禁止所有快速腿动作。
+*   不用强零速成本阻止必要动量。
+*   不因为冲高就奖励成功。
+*   不放宽全程倾角保护来让前翻“算完成”。
+*   不在失败状态上默认调用 B250 就能获得正确专家标签。
+
+之前 B250 对学生多个动态状态接管失败，说明教师能力有边界，不能把它视为任意状态上的可靠专家。
+
+---
+
+## 13. 奖励设计的长期原则
+
+### 13.1 分清三个问题
+奖励应分别回答：
+1.  是否接近可恢复的身体状态？
+2.  是否进入可持续支撑和收稳？
+3.  是否稳定、对称、低抖动地保持？
+
+不要只奖励高度，也不要把所有约束从第一步同时拉满。
+
+### 13.2 分阶段启用
+
+| 项目 | 起身过渡 | 收稳与保持 |
+| :--- | :--- | :--- |
+| 机械限位、闭链、非有限保护 | 始终有效 | 始终有效 |
+| 努力成本 | 弱约束 | 保留 |
+| 抬升进展 | 有效 | 达标后不鼓励无限升高 |
+| 过大角速度 | 针对危险范围 | 更严格 |
+| 连续双轮接触 | 不强制 | 必须 |
+| 零速度偏好 | 不强行要求 | 按用户容许范围约束 |
+| 左右对称 | 不限制必要瞬态 | 明确目标 |
+| 强轮平滑 | 避免压制必要动作 | 重点约束 |
+| 完整成功事件 | 尚不发放 | 完整验收后一次 |
+
+### 13.3 防止门控规避
+入口后约束应使用已确认的入口状态锁存，不应因为机器人稍微降低高度就全部关闭。否则策略可能通过离开目标区域逃避稳定成本。门控状态用于训练时，需要明确 Actor 是否能从自身观测识别该状态。Critic 看到计时不等于 Actor 也知道。
+
+### 13.4 不用 loss 数量级代替梯度证据
+reward 较小不必然没有学习作用，loss 较大也不等于主导参数更新。至少在选定更新记录：各项实际非零覆盖、raw/weighted/dt 后值、各阶段 return/value/advantage、Actor 辅助项梯度、PPO 梯度、clipping 前后范数。
+
+### 13.5 不让失败奖励制造拖延偏好
+时间成本、终止惩罚和 discount 会共同影响“早失败”和“晚失败”的回报。修改前先对真实成功、早失败、低位拖延轨迹做离线回放，检查明显的偏好错误。这只是公式审查，不是学习成功证明。
+
+---
+
+## 14. 平滑实验无效时，按顺序处理备选
+
+不能直接跳到“网络太小”或“再加奖励”。
+
+### 14.1 先区分确定性反馈和随机探索
+分别比较：deterministic mean 评估、训练随机动作、mean 变化、sampled action 变化、实际目标变化。轮 std 为 2rad/s 时，即使 mean 不变，独立相邻采样的目标差也会有随机成分。不能要求训练采样动作达到与确定性教师相同的平滑程度。如果确定性策略也严重抖动，减小 std 不能单独解释或解决它。
+
+### 14.2 若抖动只来自随机探索
+才准备单变量 std 对照。保持 Actor mean、reward、网络、PD 不变，比较实际物理 std。不能同时降低 std 和改平滑 loss 后，将收益归因某一项。
+
+### 14.3 若确定性策略对小输入变化过敏
+先用保存的真实状态，在物理合理的微扰范围测试：IMU 角速度、重力方向、关节速度、上一轮目标。重力微扰后应保持单位向量；不能任意加噪产生不可能输入。观察对应的物理目标变化，定位敏感通道。可准备空间平滑正则，但必须按传感器噪声或可信容差定义扰动，不对所有 31 维随意加同一个 Gaussian 噪声。
+
+### 14.4 若当前状态存在混淆
+再考虑第 15 节的小历史对照。
+
+### 14.5 若物理执行和请求不一致
+先解决可复现的控制／资产接口错误。这与 reward 设计分开；不能通过更大的惩罚掩盖执行错误。
+
+---
+
+## 15. 何时增加历史、时间或网络容量
+
+31D 是基线，不是不可修改的信仰。但改变接口应有明确触发证据：
+*   相近当前观测对应不同必要纠偏。
+*   当前帧模型局部拟合或闭环持续失败。
+*   原始时序、标签和执行已经核对。
+*   小历史在受控对照中提供可重复收益。
+
+### 15.1 优先备选：短历史 MLP
+使用当前帧加过去 4 帧本体信息：
+```text
+5 × 22D 本体帧 ＋ 9D 当前任务输入 ＝ 119D
+```
+保持网络：
+```text
+119 → 128 → 64 → 32 → 6
+```
+
+**资源对比：**
+
+| Actor 输入 | 参数量 | FP32 权重 |
+| :--- | :--- | :--- |
+| 31D | 14,630 | 58,520 bytes |
+| 32D (增加 1 维时间) | 14,758 | 59,032 bytes |
+| 119D (5 帧本体信息) | 25,894 | 103,576 bytes |
+
+这些不含运行库、激活和固件，也不证明 STM32 实测 100Hz。119D 仍远小于旧 1182D 方案，不必直接回到 51 帧大 MLP。
+
+**短历史应：**
+*   使用新接口版本。
+*   明确 oldest-to-newest。
+*   只在真实 episode reset 时清理。
+*   不在 teacher→student 交接时清历史。
+*   训练、评估、部署使用相同填充规则。
+*   不重复堆叠当前技能命令。
+
+可用函数保持的迁移初始化：旧网络权重连接到当前帧及当前任务输入，新增历史权重初始化为零。这样迁移起点与旧 Actor 输出一致，再学习利用历史。这是新接口实验，不改旧 checkpoint 语义。
+
+### 15.2 时间输入
+只在任务确实采用时间相关目标、且有未观测任务状态证据时考虑增加一个受控时间输入。它必须表示部署可获得的计时，不是：教师 ID、固定教师切换标签、未来成功、仿真真实恢复进度。时间输入不能代替 IMU 与关节反馈，也不能保证起身成功。
+
+### 15.3 不优先 GRU
+先验证短历史 MLP。只有短历史仍有明确不足，且板卡算子、内存和时序允许时，再考虑递归网络。不要同时改变历史长度、网络宽度、reward 和 PPO。
+
+---
+
+## 16. 如何理解“随时间线性变化的奖励”
+
+另一位技术人员的经验可以提供方向，但尚无完整公式，不能将其当作已验证的本项目配方。
+
+### 16.1 当前不做时间压缩
+当前主要问题是失控和保持失败。在这个阶段增加“更快起身”的奖励，可能让学生更猛烈地冲高和前翻。先获得稳定成功，再研究更快、更少位移。
+
+### 16.2 三类时间设计不能混淆
+1.  **目标高度随时间变化**：让策略追踪某种抬升进度。
+2.  **姿态／速度权重随时间变化**：前期宽松、后期收紧。
+3.  **成功越早奖励越高**：只改变完成任务的时间偏好。
+
+它们是不同实验，不能把“线性时间奖励”作为一个含糊字段实现。
+
+### 16.3 首选的后期时间优化
+在独立 Swing 已经稳定通过后，先保持硬 deadline 和完整保持要求，比较同样成功率下的：入口时间、完整恢复时间、平面路径长度、最大角速度、最大力矩和触限、对称质量。若要加提前完成偏好，必须避免仅瞬间触及入口就领奖后放弃保持。完整成功仍是选模主标准。
+
+### 16.4 discount 的重要影响
+当前 100Hz、gamma=.99：
+```text
+1 秒后的折扣约 0.366
+2.5 秒后约 0.081
+10 秒后约 0.000043
+```
+因此，从起身开始看，10 秒后的成功 bonus 直接贡献已经很小。这不意味着 GAE 不能学习长任务，但意味着不能只靠最后一个稀疏奖励解决全部动作。如果后续证据显示长时保持回报传播不足，可单独比较 gamma=.99 与 .997，保持 lambda 和其他变量不变，并采用一致的新 Critic 处理。不要把该对照与时间输入或 reward 重构同时进行。
+
+---
+
+## 17. 何时使用示教、蒸馏和教师补采
+
+教师应帮助学生进入有效区域，不应永久限制学生的动作。
+
+### 17.1 已有成功轨迹
+继续作为：编码与动作物理单位核验、事件顺序参考、真实动态状态来源、局部监督数据、对照基线。不反复做同一批数据上的无界 BC。
+
+### 17.2 学生偏离轨迹后的补教
+只有教师在该局部状态具有实际能力证据，才提供标签。不能按“学生现在到了 0.6 秒”就查教师 0.6 秒动作。教师需要看到自己的正确历史和实际物理状态。DAgger 类方法的核心是处理学生自身诱导的状态分布，但本项目教师并非任意状态上的可靠专家。[DAgger 原论文]
+
+### 17.3 若 31D 持续难学，可先训练更强教师再压缩
+这是后备路线，不是立即执行的主线：
+1.  使用训练端允许的短历史或更大 Actor 获得可靠完整技能。
+2.  收集比原 31 条轨迹更丰富的闭环状态。
+3.  蒸馏到 MCU 学生。
+4.  在学生自身轨迹上补充数据和微调。
+5.  再独立认证。
+
+训练模型不必等于最终部署模型。示教与任务强化学习结合已有研究基础，但其成功依赖具体环境和目标，不能保证本项目自动成功。[DeepMimic 研究说明]
+
+---
+
+## 18. 持续训练、回退和停滞规则
+
+### 18.1 同配方正常续训
+恢复：Actor、Critic、PPO Adam、训练 RNG、累计 update、课程级别、已认证范围。不在每个块开始时随机重置 Critic。进程重启后的 PhysX reset 如实记录，不声称精确恢复了未保存的物理状态。
+
+### 18.2 新 reward
+使用新 spec 和 recipe，明确初始化策略。若回报定义明显变化，新 Critic 与短 warmup 可以作为声明的一部分；A/B 两臂必须采用一致处理。
+
+### 18.3 新 Actor 正则
+reward 不变时，不必因此丢弃已有 Critic。需要记录辅助目标配置、optimizer 兼容恢复和是否增加参数。
+
+### 18.4 实质改善
+同级、同协议下，至少满足一个：
+*   完整通过环境数增加至少 2/24。
+*   入口数量增加至少 2/24。
+*   有效保持前缀中位数增加至少 0.5 秒。
+*   完整窗口保留时，触限相对降低至少 20%。
+*   姿态和稳定性保留时，对称误差相对降低至少 20%。
+
+这些指标用于决定是否继续，不替代正式成功 gate。
+
+### 18.5 停滞
+连续三个块无实质改善：
+*   停止同配方自动重复。
+*   保留本级最佳。
+*   执行本文指定的一个后备分支。
+*   分支仍无收益，记录 `NEEDS_DESIGN` 并停止空耗。
+
+不限量授权意味着可以持续完成有依据的路线，不意味着必须永远训练。
+
+### 18.6 退化
+两个独立检查点连续损伤已认证能力，回退到最近完整候选。没有认证过的能力不能设为“必须保留”的硬条件。不能用回退删除或重置历史实际消耗。
+
+---
+
+## 19. 无教师 Swing 训练与最终认证
+
+当课程到达 0 前缀并通过：
+```text
+56 个原始 Swing
+8 个正常站姿
+全部关闭教师执行
+```
+进行一个巩固块，保留此前最佳模型。巩固不是必须采用 latest。若新模型退化，保留此前认证候选。
+
+**最终固定一个 checkpoint，执行：**
+*   原生 Swing：8 环境。
+*   三组新的小 yaw 随机条件：各 8 环境。
+*   合计 32 环境。
+*   全程学生自主控制。
+*   同一个完整协议。
+*   稳态对称质量单列并通过。
+*   保存必要完整控制轨迹。
+
+通过后冻结模型，再进行一次独立复核。两次评估种子不等于两个训练随机流。报告泛化范围仅限实际测试的初态和扰动。不要直接宣称浅洼、台阶、斜坡或任意倒地恢复成功。
+
+---
+
+## 20. Recovery 交给 Motion 的验证
+
+Recovery 完整成功后，再验证 Motion 接管。训练与诊断时可以使用仿真真值判定评分，但部署切换只能使用可获得的 IMU、关节信息、控制器计时及经过验证的估计量。首次联调先使用人工明确请求或已验证的切换条件，不凭仿真接触力构造一个实机不存在的触发器。
+
+**切换要求：**
+*   每步只有一个 Actor 拥有执行权。
+*   不清速度。
+*   不重置关节。
+*   不清上一实际目标。
+*   Motion 输入按自身契约构造。
+*   不平均不同 scale 的归一化 action。
+
+**先测试：**
+```text
+Recovery 完成保持
+→ Motion 零命令
+→ +0.5m/s
+→ 回零
+→ −0.5m/s
+→ 回零
+```
+Motion 命令使用已认证范围。新 Motion 学生尚未学会时，不得用其替代可靠教师后宣称系统接管失败归因于 Recovery。
+
+若接管失败，分别判断：
+*   Recovery 结束状态不在 Motion 可接范围。
+*   Motion 历史或 previous action 初始化错误。
+*   物理目标跳变。
+*   Motion 自身能力不足。
+
+任何 blend、滤波或目标限速都属于新的控制变量，必须先在仿真明确验证。
+
+---
+
+## 21. 部署与硬件验证
+
+Actor 参数少不等于硬件部署已经通过。
+
+**部署仅包含：**
+*   选定 Actor。
+*   输入预处理。
+*   动作解码。
+*   显式状态机。
+*   必要状态估计。
+
+不部署 Critic、教师、Adam、PPO storage 和仿真特权输入。首版 FP32 优先。INT8 量化不是当前闭环失败的解决方案。
+
+**必须分开验证：**
+*   PyTorch 与导出模型数值一致。
+*   固件输入预处理与 Python 一致。
+*   固件动作解码与物理单位一致。
+*   真实板卡推理耗时。
+*   完整控制链 100Hz 时序。
+*   真实传感器噪声和执行延迟下的行为。
+
+至少记录 10000 次调用的平均、P95、P99、最大耗时与超期次数。未完成板卡测试时，状态为 `HARDWARE_UNVERIFIED`。
+
+---
+
+## 22. 数据保存与诊断协议
+
+**每 update 记录轻量指标：**
+```text
+raw samples
+有效 Actor／Critic 样本
+控制者与课程分组
+reward raw / weighted / dt
+entry、window complete、certificate passed
+return / value / advantage
+KL、clip fraction
+Actor/Critic 梯度
+辅助 loss 及梯度
+动作和力矩触限
+轮目标变化
+对称误差
+终止原因
+```
+
+**完整轨迹保留在：**
+*   来源对照。
+*   新执行版本 smoke。
+*   首次通过某级。
+*   退化检查点。
+*   停滞诊断。
+*   最终认证。
+
+不能为了节省空间，恰好删掉用于解释控制抖动的 control 字段。100Hz held torque 只能代表对应采样。确有必要时，单独启用有限时长 200Hz PD 记录，不默认保存所有 1kHz 物理步骤。
+
+故障证据覆盖全部 64 环境，保存 env ID 和 pre-reset 状态。不能只记录前 8 环境，却由其他环境触发错误后无法归因。
+
+**记录：**
+```text
+工程故障
+初始化拒绝
+非有限
+任务失败
+完整窗口验收失败
+用户停止
+预算／存储停止
+```
+不要把窗口结束时的证书失败统称“提前摔倒”。
+
+---
+
+## 23. 实验质量与回归要求
+
+每次实验开始前，冻结六项：
+1.  具体要回答的问题。
+2.  唯一主要变量。
+3.  来源 checkpoint 与 SHA。
+4.  训练状态分布。
+5.  评估协议及候选选择。
+6.  改善、退化和停滞分支。
+
+**至少完成：**
+*   CPU 配置和纯域测试。
+*   真实公共调用链测试。
+*   冻结 PORTABLE 测试。
+*   零写 plan。
+*   来源身份核验。
+*   真实 smoke 事件。
+*   checkpoint 保存、加载、续训一致性。
+*   源码和资产身份记录。
+
+旧 fixture 失败应与修改前逐项核对，不能笼统忽略。CPU 通过不代表物理能力通过。一次单 seed 收益不代表普遍有效。对决定长期路线的改动，应在后续安排独立训练随机流确认，但不要求每个探索实验都先跑大量重复。
+
+---
+
+## 24. Worker 决策表
+
+| 当前现象 | 应做 | 不应做 |
+| :--- | :--- | :--- |
+| normal 与后缀都抖动 | 优先共同反馈平滑实验 | 继续缩短前缀 |
+| 动作平滑但姿态倒了 | 回退，检查约束是否压制必要控制 | 继续增大平滑系数 |
+| 站得稳但腿不对称 | 单独修镜像辨别力 | 硬锁左右动作 |
+| 对称后更早倒 | 保留稳定候选，分析构型与支撑 | 将对称度当唯一成功 |
+| normal 通过、后缀失败 | 增加真实动态后缀覆盖 | 继续大量 normal 训练 |
+| 能抬升但前翻 | 对齐动量、构型、接触事件 | 只奖励更快或更高 |
+| 学生偏离教师 | 按任务结果判断 | 自动认为动作错了 |
+| 教师接不住学生状态 | 不把该动作当专家标签 | 按时间强行补教 |
+| 当前帧出现状态混淆 | 准备 119D 短历史对照 | 直接恢复 1182D |
+| reward 依赖时间但 Actor 不知阶段 | 审查可部署计时需求 | 悄悄添加 Progress |
+| 300 次块结束仍在进步 | 同配方完整续训 | 重置 Critic/Adam |
+| 三块无进展 | 执行一个明确分支 | 无限重复同配方 |
+| 工程错误 | 保存全环境证据、修复并按授权处理 | 改 gate 或删异常 |
+| GUI 与原始评估不符 | 核对身份与控制路径 | 先猜 reward 根因 |
+| 辅助后缀通过 | 缩短教师前缀 | 宣称独立起身成功 |
+| 独立 Swing 完整通过 | 冻结、复核、验证 Motion 交接 | 立即同时加地形、跳跃、压弯 |
+
+---
+
+## 25. 给后续 Worker 的总指令
+
+你接手时，先读取当前任务终态、冻结配置和原始评估，确认工作没有被其他 owner 推进到新阶段。
+
+然后按本文执行：
+
+```text
+固定当前难度
+→ 完成 Actor 时间平滑对照
+→ 获得可靠站立／后缀保持
+→ 单独改善稳态对称
+→ 逐级缩短真实教师前缀
+→ 针对前翻和落地问题走证据分支
+→ 无教师 Swing 巩固
+→ 完整认证
+→ Motion 交接
+```
+
+*   不要重新全面审计已经反复确认的基础接线，除非出现新的冲突证据。
+*   不要把正常站姿、动态后缀、完整 Swing 和部署性能混成一个“通过”。
+*   不要为追求进度，同时修改网络、std、PD、reward 和课程。
+*   不要为了保护沉没成本，坚持一个已经反复失败的配方；也不要因一次失败就推翻所有已有能力。
+
+用户允许持续 PPO，意味着你应持续推进有信息量的学习工作，并按照冻结规则自动续块和晋级。它不要求你无限空转，也不要求每次例行续训重新申请许可。
+
+**最终交付应始终回答：**
+1.  机器人现在独立能完成哪一段？
+2.  下一段失败的最早可观察事件是什么？
+3.  本次唯一改动带来了什么真实行为变化？
+4.  哪个模型值得保留，为什么？
+5.  下一步按哪条既定分支执行？
+
+最终要得到的是一个能从 Swing 自主恢复、平稳且左右基本对称的策略，而不是一份越来越长、却没有缩小行为缺口的实验记录。

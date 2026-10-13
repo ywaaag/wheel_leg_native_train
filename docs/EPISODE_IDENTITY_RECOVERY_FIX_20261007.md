@@ -83,7 +83,7 @@ ledger、FAILED证书和metrics SHA未变。没有实际发布恢复配置或启
 CPU覆盖：schema兼容/冲突、pose计数、不均衡事件拒绝、任务声明冲突、
 冻结实际preflight、原SHA不可重绑、默认plan零写入、发布继承IDs/usage且不授权、
 拒绝重复和篡改、报告压缩不改raw。后续冻结schema记录的针对性回归43项通过
-（2.18秒）。当前总入口见[ENGINEERING_STATUS](ENGINEERING_STATUS.md)。
+（2.18秒）。当前总入口见[ENGINEERING_STATUS](../STATUS.md)。
 未实际运行新GPU episode汇总；事件吞吐、真实低位smoke覆盖仍须新运行证据。
 没有为旧550个episode补造family/pose身份，不称新接口改善了策略能力。
 
