@@ -1,4 +1,6 @@
 # Native interface gap closure
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
+
 
 2026-10-07. This document supersedes completion claims in the first interface
 engineering report; all earlier artifacts remain immutable. Scope: CPU fixtures,

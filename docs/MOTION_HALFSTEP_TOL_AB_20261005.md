@@ -1,4 +1,6 @@
 # Motion halfstep tolerance A/B 2026-10-05
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
+
 
 本轮从 overnight `update50`（SHA `fa6dcb5eb9466b2484d3ac23688cc4a1ba7729897f02d3e393eef66b956809a9`）重新初始化，未使用 update75。GPU0/逻辑 `cuda:0`，在线 PPO 新增 52 次、样本 425,984；A/B 各 1 smoke + 25 formal。跨 motion 账本累计 2592 次，按 10000 上限剩余 7408 次。
 

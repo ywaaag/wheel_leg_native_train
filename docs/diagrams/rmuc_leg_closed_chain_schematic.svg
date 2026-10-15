@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="920" viewBox="0 0 1280 920"
+     font-family="DejaVu Sans, Noto Sans CJK SC, WenQuanYi Zen Hei, Arial, sans-serif">
+  <title>RMUC 轮腿机器人 单腿五连杆闭链 侧视机构简图</title>
+  <desc>左腿侧视。关节位置与杆长取只读 USD 的真实几何（姿态 train_R0_0，闭链残差 5.1e-9 m）；
+        连杆按中心线细线绘制。概念/几何示意，非 CAD 认证，非运行时接触证据。</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#33526f"/>
+    </marker>
+    <pattern id="hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="12" stroke="#9fb0c2" stroke-width="2"/>
+    </pattern>
+  </defs>
+
+  <rect x="0" y="0" width="1280" height="920" fill="#ffffff"/>
+
+  <!-- ==================== 左：机构简图（1400 px/m，关节位置真实） ==================== -->
+  <g id="main-panel">
+    <text x="24" y="34" font-size="21" font-weight="bold" fill="#12314e">
+      轮腿机器人 · 单腿闭链侧视（左腿，按真实 USD 几何）
+    </text>
+    <text x="24" y="58" font-size="13.5" fill="#5b6b7c">
+      姿态 train_R0_0（站立）· 关节位置与杆长取真实几何 · 横轴 = 前向，纵轴 = 上方 · 比例 1400 px/m
+    </text>
+    <text x="24" y="80" font-size="13" fill="#b91c1c">
+      连杆按中心线绘制（真实为胶囊体：细杆 r = 0.014 m，lower_leg r = 0.022 m）
+    </text>
+
+    <!-- 轴向指示 -->
+    <g stroke="#33526f" stroke-width="2" fill="none">
+      <line x1="46" y1="140" x2="46" y2="112" marker-end="url(#arrow)"/>
+      <line x1="46" y1="140" x2="100" y2="140" marker-end="url(#arrow)"/>
+    </g>
+    <text x="54" y="116" font-size="12.5" fill="#33526f">上 (CAD +y)</text>
+    <text x="106" y="144" font-size="12.5" fill="#33526f">前向 (CAD −z)</text>
+
+    <!-- 导轮支架范围 -->
+    <rect x="85" y="150" width="490" height="336" rx="16" fill="none"
+          stroke="#a9b8c7" stroke-width="1.8" stroke-dasharray="9 7" stroke-opacity="0.55"/>
+
+    <!-- 导轮 -->
+    <g fill="#e7ecf2" stroke="#9fb0c2" stroke-width="2.2">
+      <circle cx="563.8" cy="445.0" r="22"/>
+      <circle cx="518.6" cy="451.0" r="22"/>
+      <circle cx="372.0" cy="469.9" r="22"/>
+      <circle cx="288.0" cy="469.9" r="22"/>
+      <circle cx="141.4" cy="451.0" r="22"/>
+      <circle cx="96.2"  cy="445.0" r="22"/>
+    </g>
+
+    <!-- 机体 -->
+    <rect x="232" y="157" width="196" height="196" rx="16" fill="#eef3f8" stroke="#93a8bd" stroke-width="2.5"/>
+    <text x="330" y="196" font-size="16" font-weight="bold" fill="#1f3a5f" text-anchor="middle">robot</text>
+    <text x="330" y="218" font-size="12" fill="#5b6b7c" text-anchor="middle">机体（侧视 0.14×0.14 m，横向宽 0.32 m）</text>
+
+    <!-- 腿长连线：髋锚点 → 轮心 -->
+    <line x1="330" y1="255" x2="329.9" y2="726.2" stroke="#c2410c" stroke-width="2.2" stroke-dasharray="8 7"/>
+    <text x="352" y="600" font-size="14" fill="#c2410c">腿长 L = 0.339 m</text>
+    <text x="352" y="620" font-size="12.5" fill="#c2410c">= |髋锚点 − 轮心|（项目定义）</text>
+
+    <!-- 连杆中心线 -->
+    <g stroke-linecap="round" fill="none">
+      <!-- 第二支链 active_link / long_link / node_link / parallel_link -->
+      <line x1="330" y1="255" x2="428" y2="343.9" stroke="#6f8fb5" stroke-width="9"/>
+      <line x1="428" y1="343.9" x2="330" y2="467.1" stroke="#6f8fb5" stroke-width="9"/>
+      <line x1="330" y1="467.1" x2="195.7" y2="260.3" stroke="#6f8fb5" stroke-width="9"/>
+      <line x1="195.7" y1="260.3" x2="75.9" y2="368.8" stroke="#6f8fb5" stroke-width="9"/>
+      <!-- 主支链 upper_leg / lower_leg -->
+      <line x1="330" y1="255" x2="112.2" y2="452.3" stroke="#1f3a5f" stroke-width="11"/>
+      <line x1="112.2" y1="452.3" x2="329.9" y2="726.2" stroke="#1f3a5f" stroke-width="13"/>
+      <line x1="112.2" y1="452.3" x2="75.9" y2="368.8" stroke="#1f3a5f" stroke-width="11"/>
+    </g>
+
+    <!-- 轮 -->
+    <circle cx="329.9" cy="726.2" r="84" fill="#e7ecf2" stroke="#1f3a5f" stroke-width="5"/>
+    <circle cx="329.9" cy="726.2" r="18" fill="#1f3a5f"/>
+    <line x1="329.9" y1="726.2" x2="329.9" y2="645" stroke="#1f3a5f" stroke-width="3"/>
+    <text x="432" y="718" font-size="14" fill="#1f3a5f">left_wheel</text>
+    <text x="432" y="738" font-size="12.5" fill="#5b6b7c">轮毂电机（动作为轮速 rad/s）</text>
+
+    <!-- 地面 -->
+    <line x1="30" y1="810.2" x2="660" y2="810.2" stroke="#33526f" stroke-width="3"/>
+    <rect x="30" y="810.2" width="630" height="16" fill="url(#hatch)"/>
+    <text x="480" y="802" font-size="12.5" fill="#33526f">地面（Plane）</text>
+
+    <!-- 连杆名称 -->
+    <g font-size="13.5" fill="#1f3a5f">
+      <path d="M178,428 L222,360" stroke="#93a8bd" stroke-width="1.2" fill="none"/>
+      <text x="170" y="440">left_upper_leg</text>
+
+      <path d="M152,258 L140,306" stroke="#93a8bd" stroke-width="1.2" fill="none"/>
+      <text x="14" y="252">left_parallel_link</text>
+
+      <path d="M246,530 L312,452" stroke="#93a8bd" stroke-width="1.2" fill="none"/>
+      <text x="196" y="544">left_node_link</text>
+
+      <path d="M128,646 L228,600" stroke="#93a8bd" stroke-width="1.2" fill="none"/>
+      <text x="14" y="660">left_lower_leg</text>
+
+      <path d="M470,302 L404,322" stroke="#93a8bd" stroke-width="1.2" fill="none"/>
+      <text x="474" y="298">left_active_link</text>
+
+      <path d="M470,430 L394,392" stroke="#93a8bd" stroke-width="1.2" fill="none"/>
+      <text x="474" y="434">left_long_link</text>
+    </g>
+
+    <!-- 编号标记 -->
+    <g font-size="13" font-weight="bold" text-anchor="middle" dominant-baseline="central">
+      <circle cx="330" cy="255" r="14" fill="#b91c1c" stroke="#ffffff" stroke-width="2.5"/>
+      <text x="330" y="256" fill="#ffffff">1</text>
+
+      <line x1="345" y1="250" x2="386" y2="244" stroke="#b91c1c" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <circle cx="400" cy="242" r="14" fill="#b91c1c" stroke="#ffffff" stroke-width="2.5"/>
+      <text x="400" y="243" fill="#ffffff">2</text>
+
+      <circle cx="112.2" cy="452.3" r="14" fill="#ffffff" stroke="#1f3a5f" stroke-width="3"/>
+      <text x="112.2" y="453.3" fill="#1f3a5f">3</text>
+
+      <circle cx="428" cy="343.9" r="14" fill="#ffffff" stroke="#1f3a5f" stroke-width="3"/>
+      <text x="428" y="344.9" fill="#1f3a5f">4</text>
+
+      <circle cx="330" cy="467.1" r="14" fill="#ffffff" stroke="#1f3a5f" stroke-width="3"/>
+      <text x="330" y="468.1" fill="#1f3a5f">5</text>
+
+      <circle cx="195.7" cy="260.3" r="14" fill="#ffffff" stroke="#1f3a5f" stroke-width="3"/>
+      <text x="195.7" y="261.3" fill="#1f3a5f">6</text>
+
+      <circle cx="329.9" cy="726.2" r="14" fill="#b91c1c" stroke="#ffffff" stroke-width="2.5"/>
+      <text x="329.9" y="727.2" fill="#ffffff">7</text>
+
+      <path d="M232,330.8 L247.2,343.8 L232,356.8 L216.8,343.8 z" fill="#047857" stroke="#ffffff" stroke-width="1.8"/>
+      <text x="232" y="344.6" fill="#ffffff">8</text>
+
+      <path d="M75.9,355.8 L91.1,368.8 L75.9,381.8 L60.7,368.8 z" fill="#047857" stroke="#ffffff" stroke-width="1.8"/>
+      <text x="75.9" y="369.6" fill="#ffffff">9</text>
+    </g>
+
+    <text x="428" y="236" font-size="12.5" fill="#b91c1c">② 侧视与 ① 重合（横向相距 4.2 mm）</text>
+    <text x="330" y="126" font-size="12.5" fill="#b91c1c" text-anchor="middle">
+      ① 绕横向轴（⊥ 纸面）俯仰转动 = 口语里的“摆角”
+    </text>
+  </g>
+
+  <!-- ==================== 右：说明面板 ==================== -->
+  <g id="legend-panel">
+    <line x1="690" y1="24" x2="690" y2="896" stroke="#d5dde5" stroke-width="2"/>
+
+    <text x="714" y="52" font-size="17" font-weight="bold" fill="#12314e">图例</text>
+
+    <g font-size="13">
+      <circle cx="726" cy="80" r="10" fill="#b91c1c"/>
+      <text x="746" y="85" fill="#22303c">主动关节（有电机，由动作控制）</text>
+
+      <circle cx="726" cy="106" r="10" fill="#ffffff" stroke="#1f3a5f" stroke-width="3"/>
+      <text x="746" y="111" fill="#22303c">被动关节（角度由闭链几何解出）</text>
+
+      <path d="M718,124 L726,132 L734,124 L726,116 z" fill="#047857"/>
+      <text x="746" y="134" fill="#22303c">球铰闭合点（两侧必须重合）</text>
+
+      <line x1="712" y1="160" x2="740" y2="160" stroke="#1f3a5f" stroke-width="11" stroke-linecap="round"/>
+      <text x="746" y="165" fill="#22303c">主支链 upper_leg → lower_leg</text>
+
+      <line x1="712" y1="186" x2="740" y2="186" stroke="#6f8fb5" stroke-width="9" stroke-linecap="round"/>
+      <text x="746" y="191" fill="#22303c">第二支链 active_link → long_link → node_link → parallel_link</text>
+
+      <line x1="712" y1="212" x2="740" y2="212" stroke="#c2410c" stroke-width="2.2" stroke-dasharray="8 7"/>
+      <text x="746" y="217" fill="#22303c">髋锚点 → 轮心 = 腿长</text>
+
+      <circle cx="726" cy="240" r="10" fill="#e7ecf2" stroke="#9fb0c2" stroke-width="2.2"/>
+      <text x="746" y="245" fill="#22303c">导轮（每侧 12 个，侧视重叠，横向内侧 |x|≈0.08–0.10 m）</text>
+    </g>
+
+    <line x1="714" y1="266" x2="1256" y2="266" stroke="#d5dde5" stroke-width="2"/>
+
+    <text x="714" y="294" font-size="17" font-weight="bold" fill="#12314e">编号说明</text>
+
+    <g font-size="13" fill="#22303c">
+      <text x="714" y="324" font-weight="bold" fill="#b91c1c">① left_hip_pitch　主动 · 动作第 0 维</text>
+      <text x="736" y="344" fill="#5b6b7c">髋俯仰角，即“摆角”；与 ② 在侧视里重合</text>
+
+      <text x="714" y="372" font-weight="bold" fill="#b91c1c">② left_active_link_pitch　主动 · 动作第 1 维</text>
+      <text x="736" y="392" fill="#5b6b7c">与 ① 共同决定轮心位置与腿的伸缩</text>
+
+      <text x="714" y="420" font-weight="bold" fill="#b91c1c">⑦ left_wheel_spin　主动 · 动作第 2 维</text>
+      <text x="736" y="440" fill="#5b6b7c">轮速目标（rad/s）；限矩 腿 40 / 轮 5.5 N·m</text>
+
+      <text x="714" y="468" font-weight="bold" fill="#1f3a5f">③④⑤⑥ 被动关节（无电机）</text>
+      <text x="736" y="488" fill="#5b6b7c">③ knee　④ long_link　⑤ node_link　⑥ parallel_link</text>
+      <text x="736" y="508" fill="#5b6b7c">动作只给 3 个主动目标，被动角由闭链解出</text>
+
+      <text x="714" y="536" font-weight="bold" fill="#047857">⑧ left_loop1　球铰闭合点</text>
+      <text x="736" y="556" fill="#5b6b7c">连接 node_link ↔ upper_leg</text>
+
+      <text x="714" y="584" font-weight="bold" fill="#047857">⑨ left_loop2　球铰闭合点</text>
+      <text x="736" y="604" fill="#5b6b7c">连接 parallel_link ↔ lower_leg</text>
+      <text x="736" y="624" fill="#5b6b7c">闭合点距离超阈值 → closure 故障，本局终止</text>
+    </g>
+
+    <line x1="714" y1="646" x2="1256" y2="646" stroke="#d5dde5" stroke-width="2"/>
+
+    <text x="714" y="674" font-size="17" font-weight="bold" fill="#12314e">镜像符号约定</text>
+    <text x="714" y="702" font-size="13.5" fill="#22303c">
+      [左髋, 左 active, 右髋, 右 active] = [+1, +1, −1, +1]
+    </text>
+    <text x="714" y="724" font-size="13" fill="#5b6b7c">左右髋反号：left_hip + right_hip ≈ 0</text>
+    <text x="714" y="744" font-size="13" fill="#5b6b7c">active 同号：left_active − right_active ≈ 0</text>
+    <text x="714" y="764" font-size="13" fill="#5b6b7c">镜像误差直接用关节量，不用髋心—轮心连线角</text>
+
+    <line x1="714" y1="784" x2="1256" y2="784" stroke="#d5dde5" stroke-width="2"/>
+
+    <text x="714" y="812" font-size="17" font-weight="bold" fill="#12314e">关键提醒：关节角 ≠ 连线角</text>
+    <text x="714" y="840" font-size="13" fill="#22303c">
+      ① 的关节角是相对机体的关节坐标，零位并非竖直方向
+    </text>
+    <text x="714" y="860" font-size="13" fill="#22303c">
+      本姿态 hip_pitch = 0.0128 rad，而连线对重力夹角 = 7.2°（主要来自横向外张 0.043 m）
+    </text>
+    <text x="714" y="880" font-size="13" fill="#22303c">
+      两者数值不同，不能互相替代；腿长也是“髋锚点→轮心”实测距离，不是关节角换算值
+    </text>
+
+    <line x1="714" y1="896" x2="1256" y2="896" stroke="#d5dde5" stroke-width="2"/>
+  </g>
+</svg>

@@ -16,7 +16,6 @@ runs/*
 *.npz
 *.npy
 *.log
-
 # Mutable runtime accounting must never be restored from a Git checkout.
 /configs/**/budget*.json
 /configs/**/ledger*.json
@@ -67,6 +66,9 @@ runs/*
 
 # Local third-party excerpts are not original project source.
 /开源文档.md
+/参考文献.md
+/.codebuddy/
+/.probe_test_d/
 
 # Build and development outputs.
 /build/

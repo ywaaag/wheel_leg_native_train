@@ -1,6 +1,8 @@
 # Recovery P0复评与P1目标迁移准备
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
 
-最新终态纠正：事件0809b5e45005c37591bb8494，链FAILED，source reset inference tensor错误；source一次/70.26秒、PPO0更新，无新候选。[复盘与CPU修复](RECOVERY_MIN_HEIGHT_P1_TERMINAL_REVIEW_20261007.md)。下方批准/提交与SOURCE_EVAL仅为历史握手，未自动重试。
+
+最新终态纠正：事件0809b5e45005c37591bb8494，链FAILED，source reset inference tensor错误；source一次/70.26秒、PPO0更新，无新候选。复盘与CPU修复（该报告已按文档整理删除，长期结论见 TRAINING_EXPERIENCE_REUSE.md §12）。下方批准/提交与SOURCE_EVAL仅为历史握手，未自动重试。
 
 ## P1新链已获批准并提交 — 2026-10-07
 

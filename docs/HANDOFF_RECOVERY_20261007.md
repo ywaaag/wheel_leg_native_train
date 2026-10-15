@@ -1,4 +1,6 @@
 # Recovery 训练交接与当前证据
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
+
 
 更新时间：2026-10-07，Asia/Shanghai。本文是会话交接记录，不授权仿真或 PPO。
 路径以 `/home/kellen/wheel_leg_native_train` 为根；run JSON 优先于 Markdown 历史快照。

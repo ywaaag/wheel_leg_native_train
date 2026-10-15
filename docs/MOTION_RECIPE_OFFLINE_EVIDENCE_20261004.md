@@ -1,4 +1,6 @@
 # motion_recipe evidence repair and CPU analysis
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
+
 
 本轮0物理样本、0在线PPO、0离线optimizer step；不改奖励/学习率/课程。历史run、评估、模型、账本均保留。新机器结果：`isolated/motion_recipe_20261004/diagnostics/evidence_repair/analysis.json`。
 

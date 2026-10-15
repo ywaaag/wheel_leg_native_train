@@ -1,4 +1,6 @@
 # 可复用键盘GUI入口
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
+
 
 固定脚本：`/home/kellen/wheel_leg_native_train/scripts/play_motion_keyboard.py`。
 使用原生150D actor、闭链USD、plane和原有PD；无PPO、无checkpoint写入。

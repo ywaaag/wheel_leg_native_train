@@ -1,7 +1,93 @@
 # Codex 工具手册
 
+## Motion31奖励区分度检查（CPU-only）
+
+实际奖励曲线及宽/窄核设计对比：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/audit_motion_reward.py \
+  --spec <实际Motion训练spec> --output <新的reward_snapshot.json>
+```
+
+省略output只打印，不创建run/ledger；指定output exclusive-create拒绝覆盖。现有Motion31准备器发布快照，runner在AppLauncher前再生成绑定实际spec的快照；准备后授权修改spec时，以启动快照身份为准。CPU reward状态误差导数不等于Actor梯度。方案及指标说明见[奖励可观测性与宽窄核](docs/MOTION_REWARD_OBSERVABILITY_20261014.md)。
+
+已有metrics具名导入TensorBoard：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python -m native_stand.command_v6.tools.metrics_tensorboard \
+  --metrics <run/formal/metrics.jsonl> --log-dir <新的TensorBoard目录>
+```
+
+默认一次导入后退出；旧记录缺dt时不推测density，缺分命令指标不补造。后台查看沿用已有服务，不由Codex轮询。
+
+## Motion31 新训练准备（CPU-only）
+
+直线±1.5→±2、原地yaw±1→±1.5的单链课程准备（默认零写，`--write`仅发布独立声明）：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_motion31_course.py \
+  --confirmation-spec <三seed确认spec> --confirmation-run <120/120已完成确认run>
+```
+
+仍只有supervisor是提交入口。该显式课程保持v3权重/停车/物理，继承完整Motion49状态，每250全命令评估、两次通过再解锁，512槽位和全链smoke5+formal1995预算不随晋级重置；任务状态、预算与TensorBoard见[本轮课程说明](docs/MOTION31_STRAIGHT_YAW_COURSE_20261015.md)。
+
+该准备器下一次发布默认采用显式最小启动：复用严格匹配的来源旧能力JSON/SHA，只补缺失端点；smoke5只验证真实接线、不再全命令能力评估。旧已发布spec不改变，不为应用该优化重启当前链。见[接口与证据边界](docs/MOTION31_MINIMAL_STARTUP_20261015.md)。
+
+已训练Motion31的三seed绝对姿态PPO0确认准备（默认零写，`--write`只创建新声明，不授权或启动）：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_motion31_confirmation.py \
+  --parent-spec <原v3训练spec> --checkpoint <已评估的v3完整checkpoint>
+```
+
+新协议保持段max(abs(pitch))≤.1、max(abs(roll))≤.05，保留缓变/停车及其他质量条件；明确3个评估seed×5命令×8env、PPO0；public提交仍用supervisor的`--evaluation-only`。宽容早停按新显式配置启用，不能热改旧run或凭准备器授予在线额度。见[协议与路线](docs/MOTION31_ABSOLUTE_GUARD_CONFIRMATION_20261015.md)。
+
+已授权的单次终态后续v4由专用准备器发布（默认零写，`--write`独占发布＋单次授权claim）：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_motion31_successor.py \
+  --authorization <已登记用户后续授权.json> --selection <终态完整同协议选模.json>
+```
+
+它不是新trainer或提交入口；新spec经CPU验证、登记既有明确授权后仍由supervisor提交。仅显式v4允许已训练Motion49全状态来源及保持到timeout的训练时相，不能套用旧original-source首块或reward不变的续块校验。见[终态与v4](docs/MOTION31_QUALITY_V3_TERMINAL_AND_V4_20261015.md)。
+
+用户显式批准的quality短smoke用同一准备器`--quality-termination --smoke-updates 5 --consumption-parent <已结算quality父spec> --envs 512 --formal-updates 1900`；必须新声明/新授权，smoke4critic+1actor、formal warmup不变，证书明确不证明完整training episode。见[smoke5及协议错误修复](docs/MOTION31_QUALITY_SMOKE5_20261014.md)。
+
+姿态质量v3沿用同一prepare入口，显式`--quality-termination --consumption-parent <已结算user-stopped父spec> --envs 512 --formal-updates 1900`；默认零写，严格扣除父链真实累计50次与墙钟，`--write`只发布新未授权声明。普通质量episode失败允许学习，新runtime故障仍停止；具体门槛和证据见[姿态质量v3](docs/MOTION31_POSTURE_QUALITY_V3_20261014.md)。正式提交仍仅supervisor。
+
+部分smoke已更新后诊断错误的受限恢复沿用准备器：`scripts/prepare_motion31_wiring_recovery.py --kind partial-smoke --parent-spec <已结算精确故障父spec> [--write]`。默认零写，只核验复用完整来源；新smoke和新wiring仍必需，历史消耗包含于原总上限，禁止自动多次恢复。见[恢复边界](docs/MOTION31_PARTIAL_SMOKE_RECOVERY_20261014.md)。
+
+宽窄核新显式准备使用同一准备器`--tracking-refinement --envs 512 --formal-updates 1950`；smoke50另含于总online2000。默认零写，`--write`只发布UNAUTHORIZED声明；实际运行仍由登记新授权后的公共supervisor负责。语义和边界见[宽窄核声明](docs/MOTION31_WIDE_NARROW_2000_20261014.md)。
+
+受限preformal存储失败恢复：`scripts/prepare_motion31_wiring_recovery.py --parent-spec <旧spec> [--write]`，只接受已结算存储估算故障且formal未开始，绑定原PASSED wiring/完整来源/真实50smoke消耗，发布新UNAUTHORIZED声明。公共登记授权后仍只用supervisor提交，不重复source/smoke，不继承smoke模型。见[修复边界](docs/MOTION31_PREFORMAL_STORAGE_RECOVERY_20261014.md)。
+
+512env/2000formal新授权profile用同一准备器：`--envs 512 --formal-updates 2000 --hapi-session <当前owner> --notify`，默认仍零写，`--write`仅发布，实际运行须登记授权。其余reward/PPO/物理保持。现役声明与预算见[512运行记录](docs/MOTION31_PARALLEL512_20261014.md)。提交仍仅supervisor，不直接调用motion_runner。
+
+`scripts/prepare_motion31_training.py` 默认零写；`--write`仅新建UNAUTHORIZED配置和零用量账本，不启动、不reserve。版本及预算见[设计说明](docs/MOTION31_TRAINING_DESIGN_20261014.md)。
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_motion31_training.py \
+  --parent-spec configs/experiments/2026_10_14-13_47__motion31_u300_fixed_command_ppo0/spec.json
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python -m native_stand.command_v6.supervisor \
+  --spec configs/experiments/2026_10_14-16_42__motion31_tracking_block01/spec.json \
+  --output-dir runs/2026_10_14-16_42__motion31_tracking_block01
+
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python -m pytest -q tests/test_motion31_training.py
+```
+
+plan的config_valid=true、AUTHORIZATION_MISSING为预期，不代表可提交。续块使用`--parent-spec <上块spec> --task-manifest <原task_manifest> --checkpoint <完整已评估模型> --stage <同级或已通过的下一级>`，仍须新审批。未授权状态不提供launch示例。
+
+本文件只维护**稳定**的工具用途、参数与副作用。
+
+> 当前任务状态、授权与未决事项的唯一正文在 [STATUS](STATUS.md)；执行顺序见 [WORKFLOW](WORKFLOW.md)；
+> 模块职责与数据契约见 [ARCHITECTURE](ARCHITECTURE.md)。本文不再承载“当前/下一步/未授权”状态叙述。
+> 2026-10-14 已将原头部的时间性通知条目（第 3–13 行）**逐字**迁往 STATUS 末尾，
+> 见“工具手册迁出的通知条目”；迁出正文未改写，仅改变归属位置，状态一律以 STATUS 为准。
+
 本文件是工具用途、参数和副作用的唯一正文；执行顺序见WORKFLOW，结构见ARCHITECTURE。
-所有命令在项目根执行。示例变量必须替换为已核验实际值，不复制历史session/GPU/授权。
+所有命令在项目根执行。下方路径为本机实际绝对路径，可直接复制执行（本机专属，其他机器需替换）。
+示例变量必须替换为已核验实际值，不复制历史session/GPU/授权。
 
 ```bash
 cd /home/kellen/wheel_leg_native_train
@@ -22,7 +108,7 @@ PYTHON=/home/kellen/anaconda3/envs/issaclab/bin/python
 | `tools.prepare_motion_experiment` | Motion冻结评估或单阶段课程声明 | 默认零写；--write发布UNAUTHORIZED新目录 |
 | `tools.prepare_recovery_retry` | FAILED/TERMINATED已结算phase的重试提案 | 默认零写；--write发布UNAUTHORIZED/零phase额度，不转移余额 |
 | `tools.prepare_checkpoint_diagnostic` | Recovery冻结checkpoint/profile评估声明 | 创建未授权新声明；无launch参数，不是Motion准备器 |
-| `tools.validate_frozen_cpu` | 冻结源码CPU验证 | 默认零写；--write生成源码/测试副本、SHA、schema/plan/测试报告 |
+| `tools.validate_cpu` | 共享源码CPU验证 | 默认零写；--write记录身份、schema/plan/PORTABLE测试结果，不复制源码或测试 |
 | `tools.audit_terminal` | 一次终态、事件、逐环境控制与账本审计 | 默认只读输出；--output-dir写新审计 |
 | `tools.summarize_run` | phase小文件状态与三类计数 | 一次只读，不证明进程存活 |
 | `tools.audit_entrypoints` | 静态引用/历史guard核查 | 默认只读；--output-dir写新审计，不删除工具 |
@@ -92,7 +178,7 @@ friction/damping/armature/collider/solver差异仍未严格parity，不为制造
 键盘只改变输入命令，物理、PD、动作尺度和限矩仍由冻结 spec 配置。
 
 ```bash
-"$PYTHON" scripts/play_motion_keyboard.py \
+"/home/kellen/anaconda3/envs/issaclab/bin/python" scripts/play_motion_keyboard.py \
  --spec runs/motion_cohort_width_ab_20261006/B/formal/source_snapshot/spec.json \
  --checkpoint runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt \
  --physical-gpu 1 --speed 1 --max-speed 2 --max-wall-seconds 600
@@ -112,10 +198,12 @@ Kit/Vulkan renderer显式选择同一物理GPU并关闭multi-GPU；CUDA逻辑0�
 
 ## 准备声明
 
+`scripts/prepare_standing_alignment034.py`是31D正常站姿0.34m/关节镜像/实体轮心对齐v12专用准备器，默认零写，--write发布UNAUTHORIZED声明；公开提交仍为supervisor。1000累计更新含smoke12/formal988，无smoke/formal墙钟截止，4GiB存储上限；仅明确授权且version完全匹配时register_authorization接受max_phase_wall_s=null。配方和证据边界见docs/STUDENT_STANDING_ALIGNMENT034_V12_20261013.md，不作为旧任务续训入口。
+
 Motion姿态专用准备器（B250，单次有界姿态目标，不作为高速或Recovery入口）：
 
 ```bash
-"$PYTHON" scripts/prepare_motion_posture.py --hapi-session "$HAPI_SESSION_ID"
+"/home/kellen/anaconda3/envs/issaclab/bin/python" scripts/prepare_motion_posture.py --hapi-session "$HAPI_SESSION_ID"
 # 默认零写；明确准备授权后加--write发布新UNAUTHORIZED spec/budget/manifest
 ```
 
@@ -207,7 +295,7 @@ arms列表每项为spec绝对路径/spec_sha256/budget_sha256。工具要求UNAU
 零used、无submission/既有授权receipt，核验SHA和声明预算一致。工具无法替代用户真实批准。
 
 ```bash
-"$PYTHON" -m native_stand.command_v6.tools.register_authorization --request "$APPROVAL_JSON"
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.tools.register_authorization --request "$APPROVAL_JSON"
 # 明确批准并审核上述计划后才加--write；登记不等于提交，不复用旧额度
 ```
 
@@ -218,10 +306,10 @@ publication_complete.json最后写入，绑定发布文件SHA。异常留下无�
 不能因receipt缺失就自动重复登记或提交。用户批准范围必须有真实依据，工具不验证自然语言授权真伪。
 
 ```bash
-"$PYTHON" -m native_stand.command_v6.supervisor \
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.supervisor \
  --spec "$SPEC_PATH" --output-dir "$NEW_RUN"
 
-"$PYTHON" -m native_stand.command_v6.supervisor \
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.supervisor \
  --spec "$SPEC_PATH" --output-dir "$NEW_RUN" \
  --physical-gpu "$PHYSICAL_GPU" --hapi-session "$HAPI_SESSION_ID" --check-submission
 ```
@@ -238,20 +326,20 @@ check-submission一次核对资源/current session/UUID/账本，未就绪exit2�
 ## CPU验证与离线审计
 
 ```bash
-"$PYTHON" -m pytest -q --tb=short
-"$PYTHON" -m native_stand.command_v6.tools.validate_frozen_cpu \
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m pytest -q --tb=short
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.tools.validate_cpu \
  --spec "$SPEC_PATH" --output-dir "$NEW_CPU_DIR" --test tests/test_submission_contract.py
-"$PYTHON" -m native_stand.command_v6.tools.audit_terminal \
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.tools.audit_terminal \
  --run "$PHASE_RUN" --ledger "$LEDGER_PATH"
-"$PYTHON" -m native_stand.command_v6.tools.summarize_run \
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.tools.summarize_run \
  --run-dir "$PHASE_RUN" --ledger "$LEDGER_PATH"
-"$PYTHON" -m native_stand.command_v6.tools.audit_entrypoints
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.tools.audit_entrypoints
 ```
 
-CPU验证加--write生成验证副本，无runs/checkpoint/环境复制；schema/冻结plan/测试失败exit2。
+CPU验证加--write生成身份与结果目录，不复制源码、测试、runs或checkpoint；schema/plan/测试失败exit2。
 加--checkpoint-initialization在CPU严格加载来源actor/critic/Adam，执行声明的std初始化，
 报告逐参数差异、Adam不变和std换算；不执行optimizer.step、不导出模型，默认仍零写。
-选择独立fixture测试，涉及旧项目数据的测试在原项目执行。验证副本零额度，不用于训练。
+选择独立fixture测试，涉及旧项目数据的测试在原项目执行。验证结果不预留额度、不授予训练权限。
 审计工具加--output-dir写新目录，已有路径拒绝；不重写run、不通知、不轮询。
 计数分别列phase limit、reserved（缺失null）、actual completed、ledger charged、settled updates。
 缺轨迹/控制字段记UNKNOWN，不补零；policy100Hz限矩读回不等于每5ms PD引擎审计。
@@ -259,7 +347,7 @@ CPU验证加--write生成验证副本，无runs/checkpoint/环境复制；schema
 离线重评分：
 
 ```bash
-"$PYTHON" -m native_stand.command_v6.tools.correct_evidence \
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.tools.correct_evidence \
  --run "$OLD_RUN" --output-dir "$NEW_AUDIT_DIR" --protocol-spec "$NEW_PROTOCOL_SPEC"
 ```
 
@@ -274,7 +362,7 @@ CPU验证加--write生成验证副本，无runs/checkpoint/环境复制；schema
 两臂都结束后一次比较：
 
 ```bash
-"$PYTHON" -m native_stand.command_v6.tools.compare_arms \
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.tools.compare_arms \
  --run "$A_FORMAL_RUN" --run "$B_FORMAL_RUN" --output-dir "$NEW_COMPARISON_DIR"
 ```
 
@@ -287,7 +375,7 @@ takeoff专用审计用--update重复选择checkpoint；dt/hold/动作尺度来�
 仅在有明确通知授权、归属匹配且报告ready时使用：
 
 ```bash
-"$PYTHON" -m native_stand.command_v6.tools.completion \
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.tools.completion \
  --run-dir "$RUN_WITH_READY_REPORT" --notify-only --expected-session "$HAPI_SESSION_ID"
 ```
 
@@ -325,7 +413,7 @@ COMPLETE_HOLD_WINDOW；完整窗口不等于证书通过。分别输出初始化
 `tools.test_resources.source_file`从实际导入native_stand定位源码，冻结副本无须项目根src。
 `project_file`仅定位明确历史资源，独立副本返回None；调用方应skip该历史验证，不假造配置。
 测试模块声明`FROZEN_TEST_SCOPE="PORTABLE"`（独立fixture）或`PROJECT_DATA`（项目历史数据）。
-validate_frozen_cpu默认计划报告分类；--write执行仅允许PORTABLE，未分类也先拒绝并要求审核。
+validate_cpu默认计划报告分类；--write执行仅允许PORTABLE，未分类也先拒绝并要求审核。
 本次可冻结测试：test_recovery_fixed_slots.py、test_recovery_event_interfaces.py。
 历史配置集成测试test_recovery_sampling_contract.py归PROJECT_DATA，继续在项目本体单独验证。
 
@@ -553,7 +641,7 @@ UNAUTHORIZED/NOT_READY是正确结果。获得真实新授权并经register_auth
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/build_student_teachers.py --output <新的CPU数据目录>
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/distill_student.py --dataset <数据目录>/RecoveryStudent.pt --output <新的学生目录> --role RecoveryStudent --steps 5000 --wall-s 1200
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_student_validation.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_student_validation.py --parent-spec "$PARENT_SPEC" --recovery-checkpoint "$RECOVERY_CHECKPOINT" --motion-checkpoint "$MOTION_CHECKPOINT" --dataset-manifest "$DATASET_MANIFEST"
 ```
 
 准备器默认零写，显式`--write`才公共发布新名spec/poses/ledger/marker；不授权、不提交。当前最终声明`2026_10_11-00_55__student_independent_swing_ppo0`，早期00_40/00_48准备草稿保留未授权，不提交。
@@ -587,7 +675,7 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bi
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/distill_student.py --dataset <数据目录>/RecoveryStudent.pt --output <新Recovery目录> --role RecoveryStudent --steps 5000 --wall-s 1200
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/distill_student.py --dataset <数据目录>/MotionZeroStudent.pt --output <新MotionZero目录> --role MotionZeroStudent --steps 5000 --wall-s 1200
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/export_mcu_student.py --checkpoint <学生目录>/best_validation.pt --dataset <数据目录>/<角色>.pt --output <新部署分析目录>
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_student_validation.py --interface-version multiskill_mcu_v2 --recovery-checkpoint <Recovery绝对路径>/best_validation.pt --motion-checkpoint <MotionZero绝对路径>/best_validation.pt --dataset-manifest <数据绝对路径>/manifest.json
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_student_validation.py --parent-spec "$PARENT_SPEC" --interface-version multiskill_mcu_v2 --recovery-checkpoint <Recovery绝对路径>/best_validation.pt --motion-checkpoint <MotionZero绝对路径>/best_validation.pt --dataset-manifest <数据绝对路径>/manifest.json
 ~~~
 
 准备器默认零写，显式--write发布独立spec/pose/ledger/marker。授权仍由公共register_authorization登记。本轮已获授权、一次提交命令如下（不是再次运行许可）：
@@ -649,7 +737,7 @@ resources默认exclusive/no shared approval，不继承父运行授权。`--outp
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python \
- -m native_stand.command_v6.tools.validate_frozen_cpu --spec <新未授权spec.json> \
+ -m native_stand.command_v6.tools.validate_cpu --spec <新未授权spec.json> \
  --output-dir <新CPU验证目录> --test tests/test_student_recovery_runtime_parent.py \
  --test tests/test_student_engineering_boundary.py --submission-package --write
 ```
@@ -1048,6 +1136,9 @@ MOTION_RUN=runs/2026_10_13-00_16__motion_standing034_pm2_block0000
   --authorization-scope "填写本次用户授权的确切目标和资源"
 ```
 
+该 `native_stand.motion_course` 由**本地人工工作台**提供（PYTHONPATH 指向 `manual_train/motion/*_engine_*/src`），
+不在仓库 `src/` 内；未配置该引擎时此命令不可用，改用已注册的公共准备器（见上文“选择入口”）。
+
 旧source保存原Actor/Critic/Adam/RNG/std。新版高度、协议身份和0/+2/-2评估矩阵显式发布；有限授权由register_authorization工具登记，不能靠编辑AUTHORIZED字符串代替。新bare源码路径及文件职责见manual_train/motion/README。
 
 如需停止自己的两条当前任务，在各自任务目录创建STOP（owner/实际trainer消费，勿kill他人）：
@@ -1184,3 +1275,216 @@ PYTHONDONTWRITEBYTECODE=1 /home/kellen/anaconda3/envs/issaclab/bin/python \
 `python scripts/test_portable_cpu.py --list`只列显式FROZEN_TEST_SCOPE=PORTABLE文件；
 去掉--list执行这些CPU契约测试，不启动Isaac、GUI或训练。CPU依赖与外部资产边界见README/PUBLIC_RELEASE。
 GitHub workflow使用相同入口；PROJECT_DATA和未分类历史测试不并入无资产CI，不放宽SHA断言。
+
+## Motion对齐更新诊断（未授权）
+
+最终声明13_35；工程证据见docs/MOTION_ALIGNMENT_UPDATE_DIAGNOSTIC_20261013.md。下面是已验证的零写plan，不启动物理运行。收到覆盖50更新/409600samples/2400秒/512MiB/GPU0shared的新授权后，按公共register_authorization登记并核验session/GPU/身份，再在相同supervisor命令上增加--launch --handshake-wait-s 30；不直接沿用旧授权。
+
+```bash
+cd /home/kellen/wheel_leg_native_train
+PYTHONDONTWRITEBYTECODE=1 \
+PYTHONPATH=manual_train/motion/alignment_update_diagnostic_20261013/engine/src \
+/home/kellen/anaconda3/envs/issaclab/bin/python -m native_stand.command_v6.supervisor \
+--spec configs/experiments/2026_10_13-13_35__motion_alignment_update_diagnostic_block0000/spec.json \
+--output-dir runs/2026_10_13-13_35__motion_alignment_update_diagnostic_block0000 \
+--hapi-session 7bbabd67-183d-4185-b686-1aefcd55781b --physical-gpu 0 \
+--resource-mode shared --sharing-authorization 'preparation only; runtime permission pending'
+```
+
+## 0.34m Motion运动候选冻结复测
+
+源码与结果：manual_train/motion/strongest034_recheck_20261013。已提交一次，下面只读复盘，不重复launch。
+
+```bash
+cd /home/kellen/wheel_leg_native_train
+python3 manual_train/motion/strongest034_recheck_20261013/review.py
+```
+
+公共supervisor原提交使用--evaluation-only --launch；有界诊断需要前台等待时提交时附--wait，不重复提交已有attempt。准确声明configs/experiments/2026_10_13-15_12__motion034_selected_movement_recheck_ppo0/spec.json，独立engine/src，同模型56episode/PPO0/1800秒。
+
+## 25D真实0.34教学学生：闭环验证待授权
+
+模型isolated/motion_frame25_actual034_bc_20261013/best_validation.pt，Actor导出同目录actor.onnx。下面只做CPU零写plan；新80评分episode/3000秒/512MiB/GPU0shared的PPO0授权登记后，提交时增加--launch --wait，前台有界等待，不重复提交或重试。
+
+```bash
+cd /home/kellen/wheel_leg_native_train
+PYTHONDONTWRITEBYTECODE=1 \
+PYTHONPATH=manual_train/motion/frame25_actual034_distillation_20261013/evaluation_engine/src \
+/home/kellen/anaconda3/envs/issaclab/bin/python -m native_stand.command_v6.supervisor \
+--spec configs/experiments/2026_10_13-16_05__motion_frame25_actual034_student_teacher_ppo0/spec.json \
+--output-dir runs/2026_10_13-16_05__motion_frame25_actual034_student_teacher_ppo0 \
+--hapi-session "$HAPI_SESSION_ID" --physical-gpu 0 --resource-mode shared \
+--sharing-authorization 'preparation only; new runtime pending' --evaluation-only
+```
+
+## 25D Actor＋34D特权Critic零速PPO（未授权）
+
+已验证零写plan：
+
+```bash
+cd /home/kellen/wheel_leg_native_train
+PYTHONDONTWRITEBYTECODE=1 \
+PYTHONPATH=manual_train/motion/frame25_ppo_preparation_20261013/engine/src \
+/home/kellen/anaconda3/envs/issaclab/bin/python -m native_stand.command_v6.supervisor \
+--spec configs/experiments/2026_10_13-16_54__motion_frame25_asymmetric_ppo_from_actual_bc/spec.json \
+--output-dir runs/2026_10_13-16_54__motion_frame25_asymmetric_ppo_from_actual_bc \
+--hapi-session "$HAPI_SESSION_ID" --physical-gpu 0 --resource-mode shared \
+--sharing-authorization 'CPU preparation only; new PPO pending approval'
+```
+
+CPU入口：manual_train/motion/frame25_ppo_preparation_20261013/test_training.py。source_actor当前e86b7922…23ab；smoke25/formal300各独立初始化BC Actor、新Critic/Adam，325update/2662400samples/4h/2GiB。收到对应新授权后公共register_authorization登记，核验identity/resource/ledger及--check-submission，再在同supervisor命令中写实际共享授权并增加--launch --handshake-wait-s 30。只一次握手，原owner监督，不个人轮询。不复用旧16_05 PPO0额度。
+
+25D/34D PPO工程故障后当前有效待重试声明：configs/experiments/2026_10_13-17_09__motion_frame25_asymmetric_ppo_closurefix_from_bc/spec.json，源码PYTHONPATH=manual_train/motion/frame25_ppo_preparation_20261013/engine_closurefix/src。按上一节supervisor CLI替换spec/output-dir；原17_06 FAILED不重启、不改账本，17_09授权后新attempt，仍325更新/2662400samples/4h/2GiB。原16_54/16_48为未运行CPU声明，不提交。
+
+## 已完成25D Motion PPO：离线评估汇总
+
+只读原run，输出路径须不存在，不启动Isaac/采样/optimizer。
+
+```bash
+cd /home/kellen/wheel_leg_native_train
+PYTHONDONTWRITEBYTECODE=1 /home/kellen/anaconda3/envs/issaclab/bin/python \
+scripts/review_motion_frame25_ppo.py \
+--run runs/2026_10_13-17_09__motion_frame25_asymmetric_ppo_closurefix_from_bc \
+--output isolated/motion_frame25_ppo_review_20261013/result.json
+```
+
+上例输出已存在；重复复盘需指定新的输出路径，不覆盖证据。
+
+## 已选Motion教师Actor部署导出
+
+电控交付正文deployment_protocol/README.md；模型deployment_protocol/motion_legacy150d_v1/actor.onnx，验证同目录verification.json及model_golden_vectors.json。CPU导出入口manual_train/motion/teacher_deployment_export_20261013/export.py，源固定05_39/u300 SHA4750ee…cafb，只导确定性Actor、不执行optimizer/硬件。交付目录既有文件不随意重导覆盖；修改接口或模型应新版本并核验SHA。
+
+## 当前0.34m部署教师MuJoCo诊断
+
+本命令已执行，原输出不可覆盖。新运行须新命名/授权；去掉--run是零写plan，也需新输出路径。
+
+```bash
+cd /home/kellen/wheel_leg_native_train
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=manual_train/motion/standing034_engine_v2/src \
+/home/kellen/anaconda3/envs/issaclab/bin/python scripts/validate_native_mujoco.py \
+--spec runs/2026_10_13-05_39__motion_standing034_pm2_block0003/formal/source_snapshot/spec.json \
+--checkpoint runs/2026_10_13-05_39__motion_standing034_pm2_block0003/formal/model_update_300.pt \
+--output-dir sim2sim/2026_10_13-19_46__motion034_teacher_mujoco \
+--commands 0 .5 -.5 1 -1 --wall-seconds 600 --run
+```
+
+## 声明驱动的checkpoint与存储计划
+
+```bash
+"/home/kellen/anaconda3/envs/issaclab/bin/python" -m native_stand.command_v6.tools.checkpoint_lifecycle --run-dir "$PHASE_RUN"
+```
+
+此命令只读一次，仅输出保留/可删除计划，不执行删除。新spec可显式设置artifacts.checkpoint_retention为
+`{"version":"checkpoint_retention_v1","keep_last":3,"milestone_updates":[25,50,100]}`；未声明则不清理。
+只有真实trainer的RUNNING exact attempt可应用自身目录计划；source、latest、registry/selection/阶段证据引用优先保留。
+旧run不清理、已结算attempt拒绝应用；不同checkpoint不合并认证。
+
+artifacts.storage_max_bytes和terminal_reserve_bytes为显式字节限制；runtime_log可声明
+`{"max_bytes":10485760,"backups":2}`，由既有monitor轮转owned child日志（不新增watcher）。
+容量preflight包含日志和临时文件峰值；估算不等于分区硬配额。训练在更新边界核验声明空间，保留终态余量。
+数值评估采用`artifacts.evaluation_trace_encoding="evaluation_numeric_npz_v1"`时，JSON只引用SHA绑定压缩NPZ；历史JSON由同一loader读取。
+
+CPU验证审阅包：在validate_cpu中增加`--submission-package --write`，发布spec、独立预算副本、身份引用、CPU结果、零写plan、授权模板及supervisor命令。模板不登记授权；必须显式device声明，缺项在CPU执行前拒绝。
+`--reuse-validation <已通过结果目录>`严格比较输入、源码摘要、依赖版本、外部PPO源码SHA及测试；不重新复制执行树。
+两个旧submit_motion_high_speed_formal/continue_motion_high_speed_submission兼容入口已移除，当前提交只用supervisor；motion_batch已内联到具名请求dispatcher。
+
+## 指定更新的optimizer初态捕获
+
+新spec可声明：
+
+```json
+{"artifacts":{"optimizer_capture":{"version":"optimizer_capture_v1","updates":{"smoke":[1],"formal":[25,50]},"max_bytes":33554432}}}
+```
+
+未声明不捕获。config/preflight拒绝越界或重复update；两个trainer均在真实ppo.update前调用。
+每项原子写optimizer_before_update_N.pt及小型路径/SHA摘要，累计文件大小受max_bytes限制；容量预算同时计入它。
+记录Actor/Critic/Adam、参数名及CPU/CUDA RNG，不执行optimizer step、不产生训练候选。
+该初态证据不等于完整GAE复算/历史GPUshuffle复现；完整rollout仍按单独显式保存计划启用。
+
+学生PPO0诊断准备必须传入--parent-spec、--recovery-checkpoint、--motion-checkpoint、--dataset-manifest；
+不再默选旧日期模板/教师/模型。教师从父声明按teacher case身份选择，逐文件SHA及模型dataset绑定核验；
+--standing-check还必须显式--comparison-checkpoint。默认只输出零写plan，不登记授权或查询GPU。
+
+## v14站立工程证书v2准备器
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_standing_survival_quality.py --smoke-updates 12 --formal-updates 988 --notify
+```
+
+默认只计划；--write发布新的未授权声明/账本，不自动启动。smoke至少6更新以包含warmup后Actor更新，并必须有真实episode事件；不以30秒生存作为前置。本轮10_16声明已发布，不重复准备或提交；实际状态见STATUS，证据见[记录](docs/STANDING_SURVIVAL_WIRING2_20261014.md)。通知只在已有明确授权的当前owner上启用。
+
+## v14已训练存储故障恢复准备
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_student_storage_resume.py --parent-spec <已结算v14父spec.json>
+```
+
+默认只计划；--write只发布新未授权spec/ledger和单父claim。只接受明确的Handoff storage cap故障和同配方训练状态，不支持任意错误/新预算。当前12_44已发布，勿重复准备；获明确恢复授权后仍公共register_authorization及supervisor提交。见[本轮恢复](docs/STANDING_SURVIVAL_STORAGE_RECOVERY_20261014.md)。
+
+### v14状态机零PPO故障重试
+
+上述prepare_student_storage_resume.py新增`--retry-state-failure`，--parent-spec指定已FAILED且formal0的恢复声明，默认只核验计划；--write独立发布一次。严格复用完整source JSON/NPZ证据，不再次采集、不授予quota/授权。13_17已发布，不重复执行。见[状态修复与重试](docs/STANDING_SURVIVAL_RESUME_STATEFIX_20261014.md)。
+
+## 学生Swing初态GUI诊断（不修改训练矩阵）
+
+```bash
+cd /home/kellen/wheel_leg_native_train
+CUDA_VISIBLE_DEVICES=0 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src \
+/home/kellen/anaconda3/envs/issaclab/bin/python -m native_stand.command_v6.tools.play \
+ --spec configs/experiments/2026_10_14-10_16__standing034_survival_quality_v14_wiring2/spec.json \
+ --checkpoint runs/2026_10_14-10_16__standing034_survival_quality_v14_wiring2/formal/model_update_300.pt \
+ --preview --strict-identities --physical-gpu 0 \
+ --preview-family swing_candidate_from_historical_r1 --diagnostic-initialization \
+ --ground-style grid --max-policy-steps 6000 --max-wall-seconds 300 --run
+```
+
+新增显式--diagnostic-initialization仅用于学生GUI：姿态库SHA与合法holdout family必须通过，checkpoint/interface/asset/原spec身份不放宽。只改变本次播放初态，不写spec/run/ledger，不改训练采样或验收矩阵；CPU计划标记capability_certification=false/assessment_family_declared=false。目标高度来自原v14为0.34m，无教师接管；不宣称此前正常站姿验收已覆盖Swing起身。去掉--run为CPU计划，未启动AppLauncher。自动reset可能重复显示失败，肉眼观察不是完整起身认证。2026-10-14本次仅验证CPU计划及接口fixture，真实GUI效果尚未核验。
+
+## Recovery→独立Motion Actor离线迁移
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/migrate_recovery_actor_to_motion.py \
+ --checkpoint <Recovery训练checkpoint> --parent-spec <其冻结spec> \
+ --expected-sha256 <完整source SHA> --reference-evaluation <同checkpoint原始evaluation JSON>
+```
+
+默认零写CPU计划；--write仅发布新日期命名isolated目录的Actor/manifest/发布标记，不启动仿真/PPO。只支持显式multiskill_mcu_v2同接口，Motion列←Recovery列，不复制旧Critic/Adam/recipe训练身份；SHA绑定实际轨迹前向检查。已迁移本轮update300，不重复当作新实验运行；产物与限制见[迁移报告](docs/MOTION31_RECOVERY_ACTOR_TRANSFER_20261014.md)。
+
+## 迁移Motion31独立命令验证准备器
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src /home/kellen/anaconda3/envs/issaclab/bin/python scripts/prepare_motion31_validation.py \
+ --actor-manifest isolated/2026_10_14-13_39__motion31_from_recovery_u300/manifest.json
+```
+
+默认只计划；--write发布新PPO0 spec/独立ledger。新公开运行仍supervisor --evaluation-only，先CPU与授权登记/check-submission；五命令各8/30秒，实际输入readback、reward不优化、单seed诊断，不自动训练。13_47已发布，勿重复提交。后台既有monitor收尾精简completion并通知当前owner，无额外watcher。见[协议/接线与本轮事实](docs/MOTION31_MIGRATED_CAPABILITY_VALIDATION_20261014.md)。
+
+## 学生性能配置与GPU1 PPO0验证
+
+```bash
+CUDA_VISIBLE_DEVICES=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src \
+/home/kellen/anaconda3/envs/issaclab/bin/python scripts/benchmark_student_trace_transport.py \
+ --device cuda:0 --steps 1000 --repeats 3
+```
+
+只进行有界张量传输，不启动Isaac/Actor/optimizer。评估准备可用prepare_motion31_validation.py的`--performance --physical-gpu 1 --gpu-uuid <实测UUID>`，默认只计划、--write独立发布，运行仍需公共supervisor和明确授权。performance字段默认关闭，具体配置/等价限制见[优化记录](docs/STUDENT_PERFORMANCE_OPTIMIZATION_20261014.md)。当前15_03声明已发布，不重复提交；旧standing保持原冻结配置。
+
+
+## Motion31冻结advantage单rollout诊断（显式PPO0）
+
+`scripts/prepare_motion31_advantage_probe.py --parent-spec <已验证的七cohort课程spec> --session <当前session>`默认零写；`--write`只发布独立UNAUTHORIZED evaluate1声明，不提交。固定512env、800步预运行＋128步真实采集、600秒、capture128MiB，保持来源Actor/Critic/Adam/std/RNG/mix和全部物理/奖励/命令契约；optimizer更新0。独立用户授权登记后仅经`native_stand.command_v6.supervisor --evaluation-only`运行；这不是新训练/能力认证，不自动通知或续训。
+
+`scripts/review_motion31_advantage_probe.py --run <该完成诊断run> --output-dir <全新审计目录>`只在CPU核验SHA、GAE/global normalization、命令读回、固定前向和ratio=1局部梯度；不执行optimizer。拒绝覆盖；局部重构梯度不等于历史真实梯度。捕获与prelude、全有效样本与保持段分别计数。数据示例和证据限制见[2026-10-15审计](docs/MOTION31_ADVANTAGE_PROBE_20261015.md)。
+
+
+## Motion31固定batch CPU Adam单步消融
+
+`scripts/audit_motion31_adam_step.py --run <已完成Motion31冻结advantage诊断run> --output-dir <全新审计目录> --cpu-threads 2`：严格绑定capture/spec/source SHA，A完整batch、B只将−1.5 Actor贡献置零；不重归一化或改变分母，Critic目标保持。每臂1次真实CPU Adam step、同源完整optimizer恢复，不模拟/在线PPO/导出checkpoint，不reserve或修改ledger。拒绝覆盖。不是历史GPU更新复现或在线课程配置，不能将动作均值变化解释为速度变化。见[单步对照与限制](docs/MOTION31_ADAM_SINGLE_STEP_20261015.md)。
+
+
+上述`scripts/audit_motion31_adam_step.py`增加显式`--full-update`：直接运行生产ControlledPPO.update，每臂4epochs×4minibatches，共32次CPU optimizer step；同一CPU shuffle逐batch核验SHA、Critic一致，记录每step全batch逐命令surrogate/KL/clip及六通道动作变化。原单步默认不变。无仿真、无在线PPO、无模型导出或ledger写入；不是历史GPU shuffle/完整闭环重放。实际示例及限制见[完整更新审计](docs/MOTION31_FULL_UPDATE_AUDIT_20261015.md)。
+
+
+## Motion31前进优先课程（显式新版本）
+
+`scripts/prepare_motion31_forward.py --parent-spec <原已结算course spec> --source-run <该run/source_eval>`默认CPU零写；`--write`发布独立UNAUTHORIZED声明，授权登记后仅由supervisor提交。新版本motion31_forward_progression_v1：来源1600、512env，+2→+3→+4，保留zero/已学前进，不采样后退/yaw；smoke5+formal1995总2000、18h/2GiB，250评估、两次通过升档。原训练时相/reward不变，parking评分仅诊断；复用四旧来源原始证据并明确derived protocol，仅新+2补评。命令只维护本索引，方案和当前路径见[前进课程](docs/MOTION31_FORWARD_COURSE_20261015.md)。准备不等于运行授权，提交不等于formal/能力通过。

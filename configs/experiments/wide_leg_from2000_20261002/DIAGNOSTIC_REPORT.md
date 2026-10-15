@@ -1,4 +1,6 @@
 # wide_leg_from2000_20261002 D0/D1 diagnostic status
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
+
 
 Date: 2026-10-02 (Asia/Shanghai)
 

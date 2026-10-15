@@ -1,4 +1,6 @@
 # Recovery P2 B臂完成：早期候选完整通过
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
+
 
 事件d9da6b8293caceaa2ace3598报告SHA已核对，既有CLI确认reviewed。
 B链COMPLETED，source/smoke/formal均正常；smoke20+formal100，共120更新/983040样本，3192.978秒（53.22分钟）。

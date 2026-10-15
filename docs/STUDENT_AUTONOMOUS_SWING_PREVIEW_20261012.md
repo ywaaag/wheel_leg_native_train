@@ -1,9 +1,0 @@
-# 动态课程学生独立Swing GUI：CPU接线修复
-
-课程spec此前在单环境GUI仍构造64槽位CourseStudentEnv，且循环直接执行学生动作，不能正确表达独立学生播放。新增显式autonomous_preview=True，仅允许单环境、非teacher、非handoff；构造共享TrainingStudentEnv，不加载教师，不执行课程前缀，物理/输入/动作尺度保持。默认False的课程训练/正式评估行为保持；活动冻结代码、原spec/checkpoint/ledger不改。
-
-preview-family优先筛选独立student case，避免相同source路径优先命中normal起点。候选继续严格核验spec/asset/recipe/interface与授权receipt；GUI不生成能力证书。当前命令使用13_29动态后缀选出的update100，SHA bc52456109c79f7a9c5b7abb0b9cab9fc9ef46af7576fbfe5f0f9829ac70be4d；尚无无教师Swing完整通过证据。
-
-22项针对性CPU通过，实际冻结副本6 PORTABLE通过、schema与supervisor零写plan通过；真实CLI身份计划verified/teacher_control=false/prefix0/Swing。未启动Isaac、GUI、采样或PPO。命令只维护TOOL_INDEX。
-
-修改文件：src/native_stand/students/play.py、src/native_stand/students/evaluator.py、tests/test_student_preview_publication.py；新增tests/test_student_autonomous_preview.py；更新TOOL_INDEX.md、ARCHITECTURE.md、STATUS.md及本报告。CPU证据isolated/student_swing_preview_20261012与artifacts/student_autonomous_preview_cpu_20261012。

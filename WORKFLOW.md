@@ -176,3 +176,44 @@ editable是可变的真实源码副本；freeze只复制人工改动，运行从
 Motion新Adam工程故障修复：原FAILED与账本不重写。用户明确修复并继续后另建执行副本/task/spec，真实CPU测试覆盖新Adam空state、warmup部分state和历史完整state；零写plan、冻结身份、授权、资源检查完成后只提交一次。首次新reward仍Actor/std继承、新Critic/Adam、warmup5，同配方后续完整续训。
 
 Motion alignment首块：旧任务STOP结算后，新bundle注册reward/gate/schema，具名trace离线重放，实际reward、公共gate、freshAdam和Criticwarmup测试，冻结PORTABLE/preflight与零写plan；用户确认尝试启动后新授权receipt，sharedGPU/session/UUID/源码与source核验，公共supervisor只提交一次/30秒握手。每100formal评估；formal300或预算/故障后owner结算停止，不自动追加设计试验块。保持峰高通过不冒称完整启动或实机限高认证。
+
+## 新链的校验与身份记录
+
+1. 用TOOL_INDEX中的validate_cpu对共享src运行PORTABLE测试及零写plan；不创建执行副本。
+2. supervisor在预约前核验授权、资源与前置证据；ledger锁内再次核对关键文件SHA和预算，将提交凭证绑定exact attempt。
+3. trainer消费已预约凭证，保存requested/effective配置及实际源码身份；代码变动记录为差异，不冒充相同版本比较。
+4. 收尾优先使用运行记录，报告异常生成保守缺证据摘要；通知仍按已有负责人授权及at-most-once机制执行。CPU结果不授予仿真或能力通过。
+
+## 新声明的模型、预算与保存校验
+
+准备时显式绑定source SHA和初始化语义，由公共ModelAdapter读取checkpoint，不按文件名或宽度认定新接口。来源/cadence/storage可以是新实例字段；reward、PPO、课程或物理改变仍须单变量声明和新授权。
+
+ExecutionLimits负责update/sample/wall口径。smoke/formal的显式null表示没有墙钟上限，不表示无限更新；授权模板保留null，由用户明确批准。来源与PPO0评估仍须有限墙钟，账本实际消耗不重置。
+
+保存策略在提交前声明；checkpoint清理只由运行owner在更新边界执行，先记录意图、再核验SHA并更新inventory。CLI仅审阅计划；历史目录不纳入运行清理。评估/选择引用优先于keep_last配额。默认不开启日志轮转或清理，开启后的字节/备份/终态余量均从spec读取。
+
+## 保存中断与补充诊断
+
+checkpoint owner删除前同时保存intent及inventory的removal_pending；删除后再标removed。
+若进程中断，下一次同exact RUNNING owner会核对记录并结算已删项；普通缺文件或变成被引用的缺失模型仍拒绝。
+已结算旧run仅输出pending事实，不写恢复或再删除。
+
+optimizer初态仅显式指定phase/update保存，先核对字节上限；不会替代完整rollout或自动执行离线重放。
+提交计划分别显示配置、账本授权、前置证据和资源就绪，未实际检查资源显示null，而非默认通过。
+学生诊断从显式父声明和模型dataset身份构建，禁止默用旧日期模板；CPU通过不授予PPO0物理运行。
+
+## 站立工程smoke与能力分离（v14 wiring2）
+
+工程证书验证真实更新/episode结束reset/reward/保存，不要求随机策略已经完成30秒站立；timeout实际覆盖单独记录。完整生存与末段质量验收不放宽。新授权、新spec/ledger、新run，不改旧FAILED或消费旧余额；source→smoke12→formal988由既有owner执行，单次握手后结束交互。配方与本轮证据见[修订记录](docs/STANDING_SURVIVAL_WIRING2_20261014.md)。
+
+## v14存储故障后的训练状态恢复
+
+父formal终态及已耗额度→受限storage_resume证据/原smoke核验→新命名spec/独立余额账本→CPU容量回归及Actor/Critic/Adam逐tensor恢复→公共授权/提交→一次握手。source补齐checkpoint完整评估后formal，不重复smoke/warmup。缺旧RNG显式记seed重置，物理重新reset；新checkpoint保存RNG。历史FAILED/312消耗保留，剩余688不是额外1000。具体见[恢复记录](docs/STANDING_SURVIVAL_STORAGE_RECOVERY_20261014.md)。
+
+### 已知恢复状态机错误的单次重试
+
+零PPO故障终态→原完整source身份核对→具名continuation的完整worker CPU测试→新retry声明/独立ledger→显式授权登记→公共提交一次。source只读复用，RunState记reused再formal；不重算旧source消耗、不复制轨迹。失败后无自动下一次重试。见[执行记录](docs/STANDING_SURVIVAL_RESUME_STATEFIX_20261014.md)。
+
+## 性能优化验证
+
+先CPU比较原/缓存轨迹及rollout统计、异常/RNG清理→有界GPU张量微基准→新GPU1 PPO0声明与原评分协议→公共授权/资源/提交→一次身份握手后结束。物理评估完整回收后才能讨论实际case wall节省，不能把微基准倍数当作整场加速。训练统计启用须下一次新声明；不改活动进程。见[记录](docs/STUDENT_PERFORMANCE_OPTIMIZATION_20261014.md)。

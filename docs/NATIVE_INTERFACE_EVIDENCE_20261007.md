@@ -1,4 +1,6 @@
 # Native interface and evidence changes
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
+
 
 2026-10-07. Engineering-only change: no Isaac/AppLauncher, online PPO, continuation,
 new budget, reward/physics/optimizer recipe modification, or historical evidence overwrite.

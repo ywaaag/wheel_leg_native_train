@@ -1,5 +1,11 @@
 # Native 实现与接口：Codex 接线地图
 
+显式Motion31晋级课程 `motion31_straight_yaw_progression_v1` 在既有Motion runner内执行：`motion_course`提供阶段白名单、512整数槽位、两次完整证据升级及stage-scoped选优；`motion_course_requests`核验三seed来源与全状态恢复；`motion_runner`保持同一PPO/Adam实例和全局预算，仅在固定评估后重建下一阶段环境。冻结spec不原位改写，active-stage view及stage checkpoint/evaluation引用单独持久化；原始v3配方/停车与Actor31/Critic49语义不变。最终accepted只对应最后yaw档，之前通过单独登记accepted_by_stage。见[课程声明](docs/MOTION31_STRAIGHT_YAW_COURSE_20261015.md)。
+
+Motion31新训练（CPU交付、未运行）：显式 `student_motion31_training_v1` 由既有 `command_v6/train.py` 分派到Motion adapter；公开提交仍只有supervisor。单一target_xy → controlled-age schedule → Actor22–24 → pre-action command快照 → Motion reward，evaluator校验实际任务槽位。新 `motion_privileged49_v1` 为Actor31+18D具名Motion信息，不能用standing49 encoder。旧诊断及Recovery默认不启用，设计及证据边界见[Motion31方案](docs/MOTION31_TRAINING_DESIGN_20261014.md)。
+
+v14学生站立链：纯standing_survival_reward→TrainingStudentEnv真实pre-reset状态→standing_survival_task.Clock（30秒truncated/物理terminated）→受控PPO存储。正常timeout从reset前Critic49输入bootstrap，raw reward不混入价值项。在线ring buffer与离线trace共用quality_features/quality_checks，固定末10秒world水平速度/姿态/几何评分；training.rank仅对v14分派联合质量选优，旧协议不变。身份、预算和原子产物仍消费共享工程接口，具体声明与验证见[接入记录](docs/STANDING_SURVIVAL_V14_INTEGRATION_20261014.md)。
+
 本文件只维护结构和契约。命令见TOOL_INDEX，执行步骤见WORKFLOW，任务状态见STATUS。
 当前实现是 `src/native_stand/`；旧isolated/source_snapshot只解释对应历史run。
 
@@ -70,7 +76,7 @@ supervisor  → preflight + submission_contract + health/resource check
 | `tools/evaluation_loader.py` | registry引用→身份核验raw；摘要不能冒充完整轨迹 |
 | `domain/task_curriculum.py` | 新任务晋级与已认证能力保护分开，统一连续失败计数 |
 | `completion.py`、`domain/candidate_roles.py` | 完整候选、角色与认证排序；诊断并列项不授予accepted |
-| `tools/validate_frozen_cpu.py`、`audit_terminal.py`、`audit_entrypoints.py` | CPU副本验证、一次终态事件核验、历史引用/guard审计 |
+| `tools/validate_cpu.py`、`audit_terminal.py`、`audit_entrypoints.py` | 共享源码CPU验证、一次终态事件核验、历史引用/guard审计 |
 
 ## 物理与模型接口
 
@@ -216,7 +222,7 @@ Motion reward使用B250冻结effective combined formula、zero retained width .0
 
 receiver_recipe.evaluate_actor真实重新运行Swing前缀/候选接管和正常零速两family，合并同env证书；另新episode候选同episode10s之后继续原Motion ±.5m/s各5s诊断。此处仅defer物理窗口结束以避免reset，评分仍是原1000interval；不得把驾驶诊断等同高速能力。isolated_evaluation恢复模式、family/config/RNG，清理异常保留primary exception。wiring smoke要求真实handoff/有效optimizer/episode结束/保存和身份，不要求能力先8/8。
 
-Jump/Traverse/0.5s本体历史只是契约规划，代码声明在handoff_ownership.interface_contract，不自动替换旧模型。任务状态只在STATUS，路线图在docs/MULTI_SKILL_ROADMAP，命令只在TOOL_INDEX。
+Jump/Traverse/0.5s本体历史只是契约规划，代码声明在handoff_ownership.interface_contract，不自动替换旧模型。任务状态只在STATUS，路线图在PROJECT_MASTER_PLAN「多技能路线图细节」，命令只在TOOL_INDEX。
 
 ## multiskill_student_v1：完整起身学生（2026-10-11）
 
@@ -253,7 +259,7 @@ train checkpoint绑定接口/recipe/dataset/asset/spec/source源码SHA；wiring�
 PORTABLE首步契约测试仅替换最低层Isaac物理数据，不替换共享环境或dones。学生训练reward/Certificate仍按原版本。
 students.artifacts集中原子tensor/NPZ落盘与声明存储上限；training保存/清理二次错误不覆盖主异常，进入前RNG必恢复。
 prepare_student_recovery_ppo是显式parent/source的配方包装，case_id选择并记录SHA/有效声明差异，来源/算法版本严格。
-submission_preparation是公共validate_frozen_cpu的审阅包扩展；authorization template仍交公共register_authorization，
+submission_preparation是公共validate_cpu的审阅包扩展；authorization template仍交公共register_authorization，
 提交仍只supervisor/launcher/monitor，不新增worker。缓存复用是精确SHA收据引用，不能豁免源码变化。
 watcher退役拒绝，legacy selector仅历史150D schema；历史freeze不迁移、不删除。
 
@@ -340,3 +346,92 @@ evaluator同时保存具名native_posture_geometry_v1，fixed1000hold samples计
 Motion frame25_distilled_v1为独立离线Actor接口，25/128/64/32/6ELU/linear，legacy25Dframe字段保留、125Dhistory删除。teacherquery使用完整legacy输入，学生只currentframe；数据pre-actionq/dq/previousaction对应实际保存输入，heightcounterfactual显式记录。当前仅CPU训练、TorchScript/ONNXreference输出；未注册公共model/evaluator运行，因此旧legacy150D/31D/1182D路径严格保持，不能按Tensor维度自动猜版本。
 
 Motion25D物理评估接线为独立publicbundle frame25_evaluation_20261013/engine。frame25_probe显式绑定version/studentcheckpoint/manifestSHA/10case矩阵/项目根/资源输出预算；公共checkpoint_input仅对显式绑定25D学生接受严格Sequentialstate及teacher/datasetmetadata，legacy输入检验保持。Frame25Actor只读obs.policy25，不使用obs.history；教师原构造/150D自身分布。evaluate_batch每条件构造对应独立冻结Actor，CaptureActor记录实际preframe25/mean6，不替换行为。两策略每case单独控制，没有student失败后teacher救场。共享CommandEnv/scale/PD/history/物理保持，64simenv/8scoreenv。在线训练请求明确CPU拒绝，未定义reward/critic不放行PPO。
+
+Motion对齐更新诊断采用独立公共bundle（alignment_update_diagnostic_20261013），有效奖励参数显式进入spec.reward.joint_mirror.terms；trainer在选定rollout收集实际成本与reward，在真实PPO更新前后观察同批输入目标，保留原storage/GAE/分布与RNG。成本相关不等于因果或分项梯度。公共supervisor与原owner负责一次有限块，不自动续块；旧v5和共享src保持原样。
+
+Motion运动筛选复测使用strongest034_recheck_20261013独立public bundle，motion_recheck版本严格绑定同一模型七命令、.34m、64/8布局与PPO0，显式project_root分派；未知字段/非零训练拒绝，原Motion物理不变。结果使用具名vx指标，hold_mean_abs_error不能通用视为前向误差。
+
+25D实际0.34教学由frame25_actual034_distillation_20261013/data.py消费具名控制schema与实际pre-action capture，物理目标重新编码学生坐标；distill.py完整episode分割并均衡命令/阶段/episode，不使用历史或teacherquery。旧frame25输入契约保留，新checkpoint角色MotionFrame25Student由独立probe版本识别并校验dataset/manifest/教师SHA，评估共享CommandEnv/PD。
+
+25D学生在线PPO由frame25_ppo_preparation_20261013独立public bundle按frame25_training recipe分派；物理legacy适配保留，但Actor严格只读policy25、Critic真实读取新增frame25_critic34。原reward/CommandEnv/共享train/ControlledPPO/stand_chain不复制成第二trainer。BC权重只映射参数名加载Actor，新Critic/Adam/RNG；计时器只供Critic、不发成功奖，checkpoint绑定新接口/recipe/数据/资产/源码。旧无flag路径保留。
+
+## 共享源码与提交凭证（2026-10-13）
+
+新公共链直接执行src，记录identity.json中的相对路径SHA、Git/dirty及外部PPO身份；阶段引用链身份，仅有变化时保存差异。配置归档目录source_snapshot仅含spec.json，不再含执行代码。未归档dirty内容不能保证字节级复现。
+
+preflight产出进程内Approval；ledger在锁内复核配置、模型、资产、前置证据及预算，持久化submission_receipt_v1。runtime消费该exact attempt的凭证，不重复审查整条祖先链；运行源码变化另行记录。终态报告读取已记录身份，丰富报告失败时保守输出缺失证据摘要，不能补造accepted。历史证据只读；旧validate_frozen_cpu入口已移除。
+
+## 工程精简第二批（2026-10-14）
+
+`tools.model_adapter.ModelAdapter`是checkpoint结构读取/strict state加载边界：describe保留原参数名、显式interface、Critic/Adam/RNG是否存在；load对照实际构造网络检查完整names/shape/finite。actor-only BC不再因health硬编码Critic/update元数据而无法读取，是否允许初始化仍由recipe及前置校验决定。
+
+`domain.execution_limits.ExecutionLimits`从预算声明解析phase updates/samples/wall；null只用于有正更新上限的smoke/formal。学生validate_instance将source SHA、cadence、capture与storage视为实例字段，算法/reward/初始化仍严格匹配版本。历史模板保留原默认值和实际实验语义，不用于隐式扩大新授权。
+
+`tools.artifact_io`统一原子checkpoint/NPZ；`domain.checkpoint_policy`计算保留计划，`tools.checkpoint_lifecycle`在真实owner及ledger锁内执行显式新策略，所有来源、评估与选择引用优先保留。无声明即不清理；已结束历史attempt禁止应用。monitor可按声明轮转子进程日志；报告和数值轨迹继续使用现有摘要/NPZ接口，不新建保存框架。
+
+## 精简复查补丁（2026-10-14）
+
+chain_report通过evidence_summary.ledger_summary保留账本计数与receipt路径/SHA，原始完整凭证仍在ledger；不重复把requested/effective配置写进终态报告。
+checkpoint_lifecycle使用inventory的removal_pending跨unlink/原子inventory更新记录中断；只有当前owned attempt可恢复，原始缺证据仍fail closed。
+optimizer_capture在两个trainer的真实PPO调用前执行，声明由artifact_policy验证、storage_budget计入；默认不运行。
+prepare_student_validation不再固定历史资产模板，显式父spec及source models/manifest经过SHA绑定后构建PPO0声明，教师按case identity匹配。
+
+## 架构精简设计约束（当前有效，2026-10-14 自 plan.md 迁入）
+
+plan.md 的实施清单已完成并归档；本节是其中仍生效的设计正文，与上文「工程精简第二批」「精简复查补丁」按同一主题合并阅读。
+
+**身份记录，不做源码字节归档。** 不保存不可变源码包，不建 CAS 或硬链接物化。每实验只记录 requested/effective 配置、
+checkpoint 来源身份、实际模块路径、源码摘要、外部算法与依赖版本、命令；检测到变化时追加一条简短 phase 差异记录。
+支持追溯声明与版本差异，**不保证之后逐字节重放**：未提交的 dirty 源码只有 hash 无法重建；正式任务期间避免修改其相关
+执行模块，跨版本结果不得自动宣称严格同代码对照，未记录的变化标 UNKNOWN。
+
+**校验按三个时刻收敛。**
+1. **准备**：轻量零写 plan —— 配置 schema、未知字段、网络 shape、动作单位/顺序、资源请求与额度语义；需要读
+   checkpoint 时一次读取缓存。提交相关字段显式分开：`config_valid` / `resource_ready` / `authorized` / `prerequisites_ready`。
+2. **提交/预约**：一个原子边界 —— 创建一次 submission receipt（spec ID、source checkpoint SHA、asset ID、source
+   identity ID、协议 ID、GPU UUID/逻辑映射/共享授权、session、预算、exact attempt），锁内再次核对文件未改变且未重复预约。
+   trainer 启动后只核验这份 receipt 与实际读回，不重新遍历证书祖先。`reserve` 的锁内 TOCTOU 检查不得因去重取消。
+3. **收尾/复盘**：历史只读 —— 终态 + 已结算 ledger + checkpoint inventory + raw evaluation 引用即可生成报告，
+   不依赖当前 src、当前全局健康状态或新授权。原证据缺失/损坏标 MISSING/INVALID，仍可出解释性报告但不赋 accepted。
+
+**硬门槛与告警的分界。** 仍拒绝：输入/动作版本不兼容、资产或 checkpoint 拿错、关键输入损坏、非有限值或控制权故障、
+重复预算消费、非法资源、评估 window 或模型绑定不完整。降级为告警：当前工作树与旧 run 不同、无关模块变化、报告格式
+不同、历史文档链接失效、通知失败（通知故障不改变训练终态，报告故障不阻止终态摘要产生）。
+
+**复用边界。** `supervisor`（公开请求）、`launcher`（创建进程）、`monitor`（owned child 退出/预算）、`stand_chain`
+（阶段顺序）职责不同，不为“一个入口”合并成巨型文件。只共享确实跨 Motion/Recovery/学生使用的部分：发布 fresh 目录、
+checkpoint 元数据 reader、执行 receipt、预算记账、trace 加载与字段 schema、终态事件写入。允许 task-local
+preparer/reviewer，不要求每个辅助动作再套一层公共 CLI。
+
+**数据保存与预算。** raw 数值轨迹一份压缩 NPZ + 具名 schema；JSON 只存逐 env 摘要、协议与轨迹路径/SHA，不重复嵌入
+raw 或完整候选对象（legacy 格式 reader 保留）。保留策略：source/accepted/stage passed/best evaluated/latest 保留；
+普通中间 checkpoint 按 spec 保留最近 K 及里程碑；optimizer capture 默认关闭且只指定 update；失败尾窗单独上限。
+容量估计不是锁；在线默认不自动删除其他 run，清理由显式保护清单 + 用户授权执行，旧物理结果不重评分为新协议通过。
+
+**源码/CPU 验证零复制。** `stand_chain` worker 直接使用共享 src；`validate_cpu` 是普通 CPU 验证入口（默认在当前 src
+执行，保存测试名称、源码身份、解释器与结果摘要），旧的“冻结验证”命名与入口已移除，调用统一迁移。
+
+**仍未执行项（边界，不得写成已完成）。** 存量文件迁移/GC 与精确可回收磁盘量未执行（本设计不授权存量删除）；
+日期型人工 prepare 变体尚未统一（涉已冻结独立网络，需单独迁移设计，不改原证据）；全部模型格式统一构造仅部分完成
+（25D 手工 Actor / 34D Critic 仍独立构造，不开放按 shape 推断）；历史能力集成测试仅部分转为小 fixture
+（PORTABLE 入口已隔离历史数据，仍有 22 项历史证书 fixture 行为 SHA 冲突未批准）；旧日期脚本的全调用审计未完成
+（只删已迁移调用且已有替代的入口）；手工工作台的独立可编辑引擎不迁回共享 src；旧 Motion 恢复证书涉及的未批准
+runtime/configure.py 变化保留严格拒绝；新物理实验、训练配方变量与实际物理能力均未执行或认证。
+
+## 与同事流水线对齐的 PPO 选项契约（自 docs/COLLEAGUE_ALIGNMENT.md 迁入，2026-10-14）
+
+本项目沿用同事已验证流水线的**过程保护**，同时保留 native 闭链物理契约。下列选项均**默认关闭**，
+只在新的实验 spec 中显式启用；历史 spec 与 Recovery 行为不受影响（已核对实现：`train.py`、`config.py`）。
+
+| 选项 | 语义 | 记录位置 |
+|---|---|---|
+| `ppo.critic_warmup_updates: N` | 前 N 次 PPO update 冻结 actor 参数，让 critic 先拟合新的回报分布 | `progress.json` 的 active interval 与 release update |
+| `ppo.clear_adam_first_moment: true` | 严格恢复 actor/critic 之后显式清零 Adam `exp_avg`，保留 `exp_avg_sq` | `progress["optimizer_initial"]` 记录被清零张量数 |
+
+命令保留门由既有 `TaskProgression` 与 `task_confirmations.jsonl` 承担：每次完整确认检查零命令站立，
+确认到回退即停止该 run。逐命令证据由 `RolloutMetrics.task_metrics` 与 `command_sample_counts` 保留，
+不依赖全局 reward 曲线。
+
+**明确不复用**：同事项目的虚拟腿映射、残差动作控制器、轮矩上限、reward 权重与资产相关命令语义。
+native 训练继续使用 25D 帧 + 125D 历史、物理六路动作、Plane 场景、1/5/10 ms 时序与 40/5.5 Nm 上限；
+同事源码只读。

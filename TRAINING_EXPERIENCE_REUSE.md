@@ -1,4 +1,6 @@
 # 训练经验复用指南
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
+
 
 ## 2026-10-07：native 运动学习与能力保持的推荐实践
 
@@ -232,7 +234,7 @@ B250当前±2能力属于**真实物理复核**；后续多速度响应收缩属
 | 站立依赖异常接触、换场景后退化 | 核对 USD 碰撞表示、材质 readback、穿透/接触力峰值、闭链误差，并在相同初态和来源身份下做有界场景对照。 | 不由单个异常推定 contact solver 是唯一根因，也不为提高通过率临时修改接触刚度或验收 gate。 |
 | 以后训练起立/恢复或鲁棒性 | 可把目标姿态附近的小扰动 reset 与更远初态做分层对照；分别统计恢复率、旧能力回归和各扰动范围的失败环境。 | 不把目标姿态自动视为已证明的稳定不变集；不以“倒放课程”保证学会恢复，也不先用无限力矩或极端随机化改变冻结物理契约。 |
 
-参考文献讨论的高层策略加 WBC/CBF/QP、任务空间阻抗和足端 `F_n\|v_{xy}\|²` 滑移项，**不是当前实现**。本项目是策略位置/轮速目标加 PD；滚动轮的合法前进与左右差速不能按静止足端滑动惩罚。文中“PD 自动保证渐近稳定”“门控彻底消除奖励规避”“CLF/PBRS 消除局部最优”“机械功率等于完整电耗”等断言均不能据此当作项目事实；若未来考虑其中任何新控制层或奖励，先核实适用条件、物理接口和独立验收，再单独立项。见[当前 spec](configs/experiments/stand_plane.json) `action/control/reward`、[复用决策](docs/REUSE_DECISIONS.md)和[方法论](/home/kellen/fudan_train/TRAINING_METHODOLOGY.md)。
+参考文献讨论的高层策略加 WBC/CBF/QP、任务空间阻抗和足端 `F_n\|v_{xy}\|²` 滑移项，**不是当前实现**。本项目是策略位置/轮速目标加 PD；滚动轮的合法前进与左右差速不能按静止足端滑动惩罚。文中“PD 自动保证渐近稳定”“门控彻底消除奖励规避”“CLF/PBRS 消除局部最优”“机械功率等于完整电耗”等断言均不能据此当作项目事实；若未来考虑其中任何新控制层或奖励，先核实适用条件、物理接口和独立验收，再单独立项。见[当前 spec](configs/experiments/stand_plane.json) `action/control/reward`、[复用决策](#11-复用决策台账自-docsreuse_decisionsmd-迁入2026-10-14)和[方法论](/home/kellen/fudan_train/TRAINING_METHODOLOGY.md)。
 
 ## 5. 课程、episode 与能力保留
 
@@ -253,11 +255,11 @@ B250当前±2能力属于**真实物理复核**；后续多速度响应收缩属
 
 ## 7. 闭链、Plane 与 sim2sim 复用边界
 
-旧 Gym 资产是树模型的虚拟串联腿；实机/并联闭链需要 Jacobian、零点与力矩映射。当前项目直接用**物理主动关节位置目标**和轮速度目标，由 PhysX 求解闭链；`τ_virtual`、并联关节轴力矩与 motor-side 力矩不是一个量，任何外部日志须说明位置和单位。旧 Gym 的 25D/125D/6D、PD、动作 scale、47.294118 Nm 轮限矩及内倾符号都不能因“维度同”而直接移植。见[当前架构](ARCHITECTURE.md)、[复用决策](docs/REUSE_DECISIONS.md)、[历史 Gym 边界](/home/kellen/fudan_train/AGENTS.md)。
+旧 Gym 资产是树模型的虚拟串联腿；实机/并联闭链需要 Jacobian、零点与力矩映射。当前项目直接用**物理主动关节位置目标**和轮速度目标，由 PhysX 求解闭链；`τ_virtual`、并联关节轴力矩与 motor-side 力矩不是一个量，任何外部日志须说明位置和单位。旧 Gym 的 25D/125D/6D、PD、动作 scale、47.294118 Nm 轮限矩及内倾符号都不能因“维度同”而直接移植。见[当前架构](ARCHITECTURE.md)、[复用决策](#11-复用决策台账自-docsreuse_decisionsmd-迁入2026-10-14)、[历史 Gym 边界](/home/kellen/fudan_train/AGENTS.md)。
 
 历史 ground A/B 固定摩擦 0.5/0.5、恢复系数 0，仅换 mesh/plane；同一 Gym 47250 桥接策略在 2 s 诊断中，Plane 的左轮离地窗口/接触力峰值与漂移明显更小。**相关性强，但仅对该资产、初态、材料及短窗口成立**；它支持“碰撞表示参与异常”，不证明所有 mesh 都不适用，也不等于本项目 B200 在新 Plane 已通过。[ground A/B](/home/kellen/wheel_leg_migration_audit/sim2sim_47250_bridge_20261001/GROUND_AB_REPORT_20261001.md)。新项目必须在自己当前 plane 上验证物理 readback、来源模型和独立评估；历史 MuJoCo 10000 的缓变五项、Gym 47250 的 Isaac 转弯、旧 mesh B200 的站立都分别保留原场景/协议身份。
 
-不主动加入 V14 弹簧补偿、Gym 虚拟腿映射、LQR、完美世界位置或第三方策略网络接口；这些会改变当前冻结的物理/策略实验，并需机构/执行器证据及新 spec。[本项目复用决策](docs/REUSE_DECISIONS.md)。root 高度不等于质量加权 COM；轮心投影也不是求解器接触点。[方法论](/home/kellen/fudan_train/TRAINING_METHODOLOGY.md)。
+不主动加入 V14 弹簧补偿、Gym 虚拟腿映射、LQR、完美世界位置或第三方策略网络接口；这些会改变当前冻结的物理/策略实验，并需机构/执行器证据及新 spec。[本项目复用决策](#11-复用决策台账自-docsreuse_decisionsmd-迁入2026-10-14)。root 高度不等于质量加权 COM；轮心投影也不是求解器接触点。[方法论](/home/kellen/fudan_train/TRAINING_METHODOLOGY.md)。
 
 ## 8. 自动化与性能规则
 
@@ -281,3 +283,140 @@ CPU 身份/schema/preflight、授权账本校验先于 AppLauncher。detached �
 - **过时：**playbook 2026-09-30 称原生 v2 B 还在运行；实际[链终态](/home/kellen/wheel_leg_migration_audit/native_stand/stable_stand_v2/runs/chain_20260930_224452/chain_terminal_report.json)是 COMPLETED。playbook 对旧 v2 `.35 m` 和 `.34–.36 m` gate 的“先做漂移可观测性诊断”不是当前 Plane 任务的自动下一步。
 - **过时：**[日记](/home/kellen/fudan_train/日记.md)中的“下一步减弱 roll 约束”已由后续 A/B 否定；[历史 method_v1 交接](/home/kellen/fudan_train/HANDOFF_METHOD_V1.md)的运行进度和推荐命令不能用于本项目。
 - **未知：**新 Plane 的来源 B200 逐环境基线、有效 PhysX 接触/恢复偏移、任何本项目的新 checkpoint 能力，以及迁移到实机后的稳定性。缺少这些证据时写“未评估”，不能用 Gym/MuJoCo/旧 mesh 的通过数填空。[STATUS](STATUS.md)、[工具索引](TOOL_INDEX.md)。
+
+---
+
+## 11. 复用决策台账（自 docs/REUSE_DECISIONS.md 迁入，2026-10-14）
+
+本节原文来自 `docs/REUSE_DECISIONS.md`（核对于 2026-10-01），已**逐字迁入**本文，内容未改写。
+“复用”指具体的物理/配置元素或工程模式，不是其他团队的政策或 reward 表。
+表中 `/home/kellen/...` 为**外部或本机参考路径**，保留原身份供追溯，不是可移植示例；
+对方仓库为只读，本项目未复制其代码。
+
+Checked 2026-10-01. Source projects are read-only. "Reuse" below means a
+specific physical/configuration element or engineering pattern, not another
+team's policy or reward table.
+
+| Source and location | Useful part | Decision / side effect |
+| --- | --- | --- |
+| Colleague `wheeled-legged_RL/source/agent_world/agent_world/assets/rmuc_wheel_leg.py`, `configs/rmuc_wheel_leg.yaml` | Immutable closed-loop USD path, articulation root/solver setup, active leg/wheel and passive/guide actuator groups. | Import the SHA-pinned `RMUC_WHEEL_LEG_CFG` at the CLI boundary, copy it per environment, zero only active gains for one explicit effort path, and read back all active bindings/limits. The module reads YAML at import; preflight hashes both before Isaac. Do not mutate the shared cfg or import the colleague task env. |
+| Colleague closed-loop USD `.../assets/usd_files/rmuc_wheel_leg/rmuc_robot_closed_loop.usd` | Closed-loop constraints, bodies, collision assets and inertia. | Use the immutable SHA-pinned source. `native_stand/env.py` resolves six motor joints by name and four closure endpoints; no USD edit or Jacobian lookup. Authored properties are distinct from runtime effective values. |
+| Colleague `source/agent_tasks/agent_tasks/direct/rmuc_wheel_leg/env.py` | Scene cloning, body-name contact binding, passive/guide separation, closure-consistent reset ideas. | Reuse only these physical-interface principles. Do **not** inherit right-first action order, wheel-effort action, its 8 ms policy, radial spring, extra feedback, motor-response compensation, reward, curriculum or PPO. |
+| Local [ground A/B report](/home/kellen/wheel_leg_migration_audit/sim2sim_47250_bridge_20261001/GROUND_AB_REPORT_20261001.md) and `ground_env.py` | On fixed 0.5/0.5 friction, zero restitution, the USD Plane reduced left-wheel separation and force spikes relative to the mesh. | Implement only the physical Plane and explicit material in this project; verify composed binding at runtime. This was 47250 diagnostic evidence, **not** native-training acceptance. PhysX contact/rest offsets remain UNKNOWN until readback. |
+| Local `native_stand/command_v6/domain`, `ledger.py`, `train.py`, `tools/preflight.py` | 25D/125D native contract, B200 warmstart by named columns, exact attempt ledger, GPU rollout aggregation, independent terminal snapshot. | Carry one audited kernel into this long-term project. Old v6 runs and their consumed ledger stay at the audit path; the new project has one code tree and new spec/budget. Remove unreachable benchmark phase. |
+| Local `native_stand/contract.py`, `env.py` | Physical-joint targets/PD, named joints, reset/closure/body motion. | Carry only these needed source modules and change ground to Plane as an explicit new physics experiment. `native_stand/train.py`/`probe.py` are **not** runtime imports. |
+| Fudan Gym `ARCHITECTURE.md`, `CODEX_WORKFLOW.md`, `TRAINING_METHODOLOGY.md` | Clear layer ownership, true command/observation/reward/PPO wiring checks, retained baseline tasks, independent candidate selection. | Reuse process and tests. Do not import its tree asset, virtual joint map, 47.294118 Nm wheel limit or actor weights into the native physical-joint policy. |
+| Third-party `/home/kellen/wheeled-legged_RL/README.md`, `scripts/rsl_rl/play.py`, `source/agent_tasks/agent_tasks/direct/wheelbipe/wheelbipe_V14/env_cfg.py`, `.../agents/rsl_rl_ppo_cfg.py` | Separate task config/runner config, a play CLI with keyboard and bounded steps, per-run velocity/reward traces and explicit multiple RL recipes. | Reference architecture and operator UX only. Its Wheelbipe V14 topology, older documented Isaac Lab version, domain randomization, action/reward definitions and PPO numbers are not this RMUC closed-chain contract. Existing dirty files remain untouched. No code was copied from it. |
+
+The V14 action implementation in `wheelbipe25_v3/env.py:_apply_action`
+sets leg position targets, but its wheel branch is **conditional**: configured
+velocity control uses velocity targets, otherwise the default branch uses
+effort targets. It does not prove our RMUC wheel control without our own
+readback. Its `_apply_spring` models forces on V14 prismatic spring joints;
+the current RMUC native environment has passive-link damping and no copied
+V14 spring force. Adding one would change the frozen physical experiment and
+requires mechanism/force-curve evidence and a new spec. V14's 35D/78D saved
+run and delay/randomization settings remain references, not our 25D/125D
+interface or a reason to inject new delay now.
+
+The current project therefore owns the observation, six-channel physical
+action, reward, standing recipe and independent gate. The colleague provides
+the closed-loop asset and validated physical organization; the third-party
+project and Fudan provide design experience.
+
+---
+
+## 12. 模型与实验证据摘要（自 198 份按日期报告压缩，2026-10-14）
+
+本节把 `docs/*_2026MMDD.md` 这批按日期的实验/工程报告中**有长期价值**的部分压缩到这里：
+模型身份与祖先、实际协议、关键能力结果与失败边界。过程细节、逐次故障与命令输出不迁入。
+
+**方法与覆盖**：由 5 个并行只读任务按固定列（类别/模型身份/协议/能力结果/失败边界/独有价值）读取全部
+198 份报告，本节据其合并去重。日期报告本身不因此成为“能力当前有效”的证明 —— 能力结论一律以 run 的
+`terminal` 与原始 `evaluation` 为准（见 `docs/README.md` 的证据状态说明）。
+
+### 12.1 模型身份与祖先（权威台账，SHA 已现场核验）
+
+来自 `artifacts/2026_10_14-11_05__storage_prune_audit_rev3/protected_models.json`（2026-10-14 13:42 逐项核验）。
+
+| id | 类别 | 路径 | SHA256（前 16） | 角色 |
+|---|---|---|---|---|
+| M1 | Motion 教师 | `runs/2026_10_13-05_39__motion_standing034_pm2_block0003/formal/model_update_300.pt` | `4750ee5661ade1e9` | 当前选定教师（PPO Actor），五命令 40/40；已成 ONNX |
+| M1b | Motion 候选 | `runs/2026_10_13-07_21__motion_standing034_pm2_block0004/formal/model_update_100.pt` | `df60f53cc4bcca08` | 最强运动候选（七命令 40/56） |
+| R1 | Recovery | `runs/2026_10_13-10_39__recovery_standing034_mirror_huber_block0007/formal/model_update_300.pt` | `cdcbae696f224e9b` | v11 最后成功 formal 块（block0008 预算耗尽 FAILED） |
+| S1 | 31D 学生 | `runs/2026_10_13-22_14__standing034_zero_privileged49_v13/formal/model_update_988.pt` | `2af573b318d7ebd6` | v13 终态，也是活动 v14 的来源 checkpoint |
+| S1c | 31D 学生 | `runs/2026_10_13-17_16__student_standing034_alignment_v12/formal/model_update_700.pt` | `73a7a09e713afcb5` | v13 **实际使用**的来源（不是 v12 终态 S1b） |
+| D1 | 25D 蒸馏 | `isolated/motion_frame25_actual034_bc_20261013/best_validation.pt` | `e86b7922d099f251` | 真实 .34 教师教学的 25D 学生；13,862 参数 |
+| D1b | 25D 蒸馏 | `isolated/motion_frame25_zero_distilled_20261013/best_validation.pt` | `e56dc7f5b07f15bc` | 更早 zero-only 版本（标签来自 .40 离线 query） |
+
+**关键祖先事实**（报告明确写出，按当时 run 身份保留）：
+
+- **共同分叉点**：`runs/2026_10_12-00_12__recovery_standing_velocity_huber_from200/formal/model_update_300.pt`
+  （v7 u300，`2a587c31…37a9a`）同时是 Recovery v11 链与 31D 学生主干的祖先。
+- **B250 是 Motion pm2 全链根模型**：`runs/motion_cohort_width_ab_20261006/B/formal/model_update_250.pt`
+  （`5d3389d5…b89e`）。B250 → 父 `motion_forward_cohort…forward25 (bacd31f3)`，上游六级 random 初始化
+  祖先为 `wide_leg_from_scratch_20261002_formal`（stage0 零命令）。B250 同时是活动 v14/v13/v12 spec
+  显式引用的教师，属活动依赖。
+- **31D 两链共同根**：`isolated/recovery_mcu_v2_bc_20261011/best_validation.pt`（`7b306936…f470`）；
+  PPO 链再由 `isolated/recovery_standing_reset_distilled_20261011/best_validation.pt`（`06c33cf7…e365`）分出。
+- **蒸馏教师 = Motion M1**（跨类共享祖先）。
+- **Recovery 旧站立链（与 B250 无关）**：`wide_leg_from_scratch_20261002_formal/model_update_500.pt`
+  （STAND500，`fc51370b…631e1`）→ `standing_scissor_20261006/formal/model_update_50.pt`
+  （source50，`1fa4255a`）→ `recovery_survival_level_from50_20261006 u200`（new200）。
+- **v13 → v14 链**：v13 `u988`（S1）→ v14 `model_update_100/200/300`；v14 存储续跑 u300/688 再接
+  `v14_wiring2 u300`。
+- **v12 来源**：`runs/2026_10_12-13_29__recovery_course_b_prefix180_block0002/formal/model_update_100.pt`
+  （`bc524561…be4d`）。
+- **未决（不据以删除）**：Recovery 与 31D 是否同类、v12 终态是否保留、25D 更早版本 D1b、Motion M1b —— 均已保护。
+
+### 12.2 实际协议
+
+| 族 | 协议要点 |
+|---|---|
+| Motion 教师（legacy 150D） | 教师策略确定性导出；评估五命令 / 七命令；40/40 与 40/56 两档口径 |
+| Recovery（31D） | 31D Actor；Critic 演进 34D → 40D → 49D（特权）；站立高度 0.34m / 0.36m；`rising` 23s + `holding` 10s；策略 100Hz、物理 1/5/10 ms |
+| 学生 25D 蒸馏 | 25D Actor + 34D 特权 Critic；ONNX 55 KiB；数值误差 1.79e-7（D1）/ 5.96e-8（D1b） |
+| 闭链物理契约 | Plane 场景、六路物理动作、40 / 5.5 Nm 上限、25D 帧 + 125D 历史 |
+
+### 12.3 关键能力结果（可长期引用）
+
+- M1 教师五命令 **40/40**；M1b 七命令 **40/56**（同模型 ±2 档最高）。
+- Recovery **B25（`8c3f74f9…f4f9`）与 u50（`a646b6d0`）：DrawBack / R0 各 8/8、完整 10 秒** —— 这条链首次通过；
+  其后再没有同等级的完整认证。
+- Recovery **B50（`46add82f`）0.50s + Motion 组合 7/8**：目前唯一被记录的自主起身接近成功组合。
+  **直接 Swing 全程 0/8。**
+- v13 `u988` 独立 30 秒 PPO0：**首 30 秒存活 8/8，但质量 0/8**（末 10 秒 abs vx 2.720 m/s）。
+- 31D 迁移 Motion：**存活 40/40、质量 0/40**。
+
+### 12.4 失败边界（合并去重后的长期结论）
+
+1. **学生闭环普遍不达标**：mcu_v2 学生 0/32 与 0/8；25D 学生 0/40（1.38–2.09s 倾角终止）；25D PPO 300 更新后 13 候选全 0/8。
+2. **入口 ≠ 保持**：多个学生 normal 入口 8/8，完整保持仍 0/8（倾角/滑走/触限）；v10 入口 8/8、保持仅 2/8。
+3. **单策略自主起身全 0/8**：直接 Swing 0/8；缩腿 ≠ 转腿/支撑/抬升。
+4. **单变量奖励/动作修改无效**：`λ=0.001` mean aux、几何 cost、`speed_scale 0.1`、取消 failure 事件、
+   退火 BC、几何惩罚 —— 均未解决 Swing 入口与收稳，Swing 恒 0/8 ~ 0/32。
+5. **对称/镜像改善 ≠ 收腿**：镜像仅改善对称 ~29.7%，轮心几何只减 3.2mm，右腿不收短，且损伤旧组接触；
+   镜像学生（~0.56s）比未镜像 BC（~1.17s）**更早倒**。
+6. **轮动作别名**：轮 raw 变化但 clipped 恒 [−1,−1]（−100 rad/s），轮 mean 越界；增大轮探索不改变腿协同。
+7. **静态几何桥接失败**：0.228 / 0.259 / 0.289 m 支撑初态 8/8 被拒并回落 Swing；静态闭链几何**不证明**
+   动态 Swing→DrawBack 可达（b=0.20 地面穿入）。
+8. **探索覆盖不足**：联合收短方向概率 ~1e-92 量级；提 std×8、平滑 clamp、混合 policy 均未过审核。
+9. **时间平滑 ≠ 改善平衡**：A100 无额外正则也变平滑。
+10. **成功门槛与验收门槛不一致**：在线 2s 成功（roll ≤ .15）与 10s 验收（mean ≤ .10）存在缺口，roll≈.13 可在线成功却完整失败。
+11. **宽松零速门槛 ≠ 零速能力**：0.5 m/s 门槛下可通过，但后滑 0.0895 / 0.346 / 0.468 m/s，不能称定点站立。
+12. **更全输入不保证稳定**：25D+ / 34D 特权 Critic PPO 最好 u100 3.38s，仅略好于来源 2.08s 且后期退化。
+13. **长训非 GO**：正向与站立随更新退化，无双向改善；tracking 误差 .145–.165 ≫ .03 gate。
+14. **来源同协议基线缺失**：fixed 非零运动基线缺失，旧评估与 formal 不可直接比较。
+15. **CPU / BC 拟合 ≠ 闭环**：CPU 通过、提交握手均不转化为闭环能力，也不等于 formal 首更新。
+16. **sim2sim 未认证**：首轮 0.18s 失败因坐标基接错，该结论作废；`height034_v2` 速度后偏，contact/friction/inertia parity 未认证。
+17. **硬件与实机空白**：真机、ONNX Runtime 均为 NOT_RUN / HARDWARE_UNVERIFIED；实机 0.36m 限高无证据（启动峰高 ≈0.3997–0.3998 m）。
+18. **速度/yaw 菜单空白**：±4 与 yaw 从无证据；new250 ±2 旧证据缺失；±2.5 未测；姿态对齐未 accepted。
+19. **窗口聚合不能作因果证据**：多个 run 缺全过程 height/geometry 保存，末段窗口结论不可当因果。
+20. **关节点镜像误差小推不出实体几何**：0.56 rad 对应实际 17–18 cm；hip 镜像 ≠ 腿长差。
+
+### 12.5 不可复核项与证据状态
+
+- 本摘要引用的 run 路径若已在 2026-10-14 存储精简中删除，**原始证据不可再访问**；相关数值按当时报告的
+  run 身份与协议保留，**不重建、不补零、不重新认定能力通过**。
+- 逐份报告的原文仍保留在 `docs/`（本轮未删除），其顶部「证据注记」标明哪些引用目标已清理。
+- 报告间的相互引用（多数为台账式列举）不构成调用依赖。

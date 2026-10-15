@@ -1,4 +1,6 @@
 # Recovery A 终态复盘与 B 首次提交 — 2026-10-09
+> 证据注记：部分引用目标已于 2026-10-14 存储精简中清理，原始数据不可再访问；相关结论按当时 run 身份与协议保留，不重建、不补零。集中说明见 docs/README.md。
+
 
 A事件`0eecf02e13a71201c9a1a484`，run `runs/2026_10_9-15_10__recovery_leg_center_a_from_new25`：COMPLETED，smoke10/81920样本＋formal25/204800样本，合计35更新286720样本、976.9504秒（约16.3分钟）。ledger source_eval1/smoke10/formal25已使用，3个attempt，remaining formal=0；未重试/追加。
 
