@@ -112,7 +112,7 @@ def test_public_evaluator_baseline_failure_stops_remaining_cases(tmp_path,monkey
  (tmp_path/'budget.json').write_text(json.dumps({'attempts':{attempt:{'status':'RUNNING','output_dir':str(out.resolve()),'started_unix_s':__import__('time').time()}}}))
  args=types.SimpleNamespace(spec=config,output=out,run=True,attempt_id=attempt,wall_limit_s=1000)
  monkeypatch.setattr(evaluator,'plan',lambda *a:{'preflight':{'status':'PASS'},'requests':s['student_evaluation']['cases']})
- monkeypatch.setattr(train,'_snapshot',lambda *a:'fixture_sha')
+ monkeypatch.setattr(train,'record_run_configuration',lambda *a:'fixture_sha')
  close_codes=[]
  def close_app(**kw):
   assert (out/'terminal_report.json').exists() and (out/'cleanup.json').exists()

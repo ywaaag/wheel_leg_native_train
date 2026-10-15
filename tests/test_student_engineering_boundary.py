@@ -79,7 +79,7 @@ def test_execute_failure_restores_rng_before_app_close_and_records_secondary(mon
   def close(self,**kwargs):
    closed.append(torch.equal(rng,torch.get_rng_state()));torch.rand(2);raise RuntimeError('close secondary')
  monkeypatch.setitem(sys.modules,'isaaclab.app',SimpleNamespace(AppLauncher=lambda *a:SimpleNamespace(app=App())))
- monkeypatch.setattr(train,'_snapshot',lambda *a:'cpu-fixture')
+ monkeypatch.setattr(train,'record_run_configuration',lambda *a:'cpu-fixture')
  monkeypatch.setattr(train,'install_stop_handlers',lambda:None)
  def fail(*a):torch.rand(4);raise ValueError('original model load')
  monkeypatch.setattr(training,'load',fail)
@@ -92,13 +92,13 @@ def test_execute_failure_restores_rng_before_app_close_and_records_secondary(mon
 
 
 def test_exact_validation_reuse_rejects_stale_inputs_and_copies_only_receipt(monkeypatch,tmp_path):
- from native_stand.command_v6.tools import validate_frozen_cpu as validator
+ from native_stand.command_v6.tools import validate_cpu as validator
  project=tmp_path/'project';source=project/'src/native_stand';source.mkdir(parents=True)
  (source/'x.py').write_text('x=1')
  testdir=project/'tests';testdir.mkdir();(testdir/'conftest.py').write_text('')
  (testdir/'test_one.py').write_text("FROZEN_TEST_SCOPE='PORTABLE'\n")
  spec=project/'spec.json';spec.write_text('{}')
- monkeypatch.setattr(validator,'__file__',str(source/'command_v6/tools/validate_frozen_cpu.py'))
+ monkeypatch.setattr(validator,'__file__',str(source/'command_v6/tools/validate_cpu.py'))
  plan=validator.validate(spec,project/'never',['tests/test_one.py'])
  prior=project/'prior';prior.mkdir();(prior/'validation_result.json').write_text(json.dumps({**plan,'passed':True}))
  output=project/'reused';result=validator.validate(spec,output,['tests/test_one.py'],reuse=prior,write=True)

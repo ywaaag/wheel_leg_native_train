@@ -8,13 +8,12 @@ def assemble(checkpoint,observations,*,steps_per_env=128,recipe=None):
     actor,data=load(checkpoint)
     mcu=data['interface_version']=='multiskill_mcu_v2'
     if mcu:
-        from .training_recipe import declaration
-        expected=declaration(recipe.get('version'),source_actor_sha256=recipe.get('source_actor_sha256')) if recipe else None
-        if recipe and recipe.get('version')=='student_recovery_ppo_dynamic_suffix_contact_v10' and recipe.get('milestones')==[50,100]:expected['milestones']=[50,100]
-        if recipe is None or recipe!=expected:raise ValueError('MCU v2 online reward undefined or recipe missing; PPO request rejected')
+        from .training_recipe import validate_instance
+        if recipe is None:raise ValueError('MCU v2 reward undefined without explicit training recipe')
+        validate_instance(recipe,(recipe or {}).get('source_actor_sha256'))
         actor.log_std.requires_grad_(False)
-    critic=Student(False,version=data['interface_version'])
-    if observations['student_actor'].shape[-1]!=(31 if mcu else 1182) or observations['student_critic'].shape[-1]!=(40 if mcu else 1191):raise ValueError('Student PPO observation dimensions differ')
+    critic=Student(False,version=data['interface_version'],critic_privileged_version=(recipe or {}).get('critic_privileged_version'))
+    if observations['student_actor'].shape[-1]!=(31 if mcu else 1182) or observations['student_critic'].shape[-1]!=(49 if mcu and (recipe or {}).get('critic_privileged_version') in ('standing_privileged49_v1','motion_privileged49_v1') else 40 if mcu else 1191):raise ValueError('Student PPO observation dimensions differ')
     if KEY not in observations or observations[KEY].dtype!=torch.bool:raise ValueError('Student PPO requires pre-action control metadata')
     device=str(observations['student_actor'].device)
     storage=RolloutStorage('rl',observations.batch_size[0],steps_per_env,observations,[6],device=device)

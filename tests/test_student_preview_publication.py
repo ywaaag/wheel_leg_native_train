@@ -9,7 +9,7 @@ from native_stand.students import play
 
 def fixture(tmp_path,monkeypatch):
  checkpoint=tmp_path/'student.pt';checkpoint.write_bytes(b'identity fixture')
- spec={'student_evaluation':{'cases':[{'kind':'student','family':'Swing','checkpoint':str(checkpoint),'sha256':digest(checkpoint),'role':'RecoveryStudent'}]},'recovery':{'active_family':'Swing'},'interface_version':'multiskill_mcu_v2','asset_module_root':str(tmp_path)}
+ spec={'student_evaluation':{'cases':[{'kind':'student','family':'Swing','checkpoint':str(checkpoint),'sha256':digest(checkpoint),'role':'RecoveryStudent'}]},'recovery':{'active_family':'Swing'},'interface_version':'multiskill_mcu_v2','asset_module_root':str(tmp_path),'device':{'physical_index':0}}
  folder=tmp_path/'published';publish(folder,{'spec.json':spec,'budget.json':{'authorization':'UNAUTHORIZED'}},{},completion_marker=True)
  # Mirror actual registration and subsequent mutable reservation ledger.
  spec['authorization']={'status':'AUTHORIZED'};(folder/'spec.json').write_text(json.dumps(spec))
@@ -37,6 +37,20 @@ def test_gui_uses_same_receipt_before_launcher(tmp_path,monkeypatch):
  receipt=json.loads((folder/'authorization_receipt.json').read_text());receipt['spec_sha256']='f'*64
  (folder/'authorization_receipt.json').write_text(json.dumps(receipt))
  with pytest.raises(ValueError,match='input SHA differs'):play.execute(args,spec)
+
+def test_gpu1_preview_mapping_is_explicit_before_launcher(tmp_path,monkeypatch):
+ args,spec,folder=fixture(tmp_path,monkeypatch);args.run=True;args.physical_gpu=1
+ with pytest.raises(ValueError,match='declared spec'):play.execute(args,spec)
+ spec['device']['physical_index']=1
+ monkeypatch.setattr('native_stand.command_v6.tools.experiment_preparation.verify_publication',lambda *a,**kw:{'status':'VERIFIED'})
+ class Reached(Exception):pass
+ def launcher(*a,**kw):
+  import os
+  assert os.environ['CUDA_VISIBLE_DEVICES']=='1' and a[0]['device']=='cuda:0'
+  raise Reached()
+ monkeypatch.setenv('CUDA_VISIBLE_DEVICES','0');monkeypatch.setattr(play.sys,'path',list(sys.path))
+ monkeypatch.setitem(sys.modules,'isaaclab.app',SimpleNamespace(AppLauncher=launcher))
+ with pytest.raises(Reached):play.execute(args,spec)
 
 def test_student_gui_consumes_public_floor_options_and_follow_camera(tmp_path,monkeypatch):
  import torch

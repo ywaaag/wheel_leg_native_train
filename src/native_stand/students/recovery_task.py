@@ -17,6 +17,15 @@ SYMMETRY_VERSION='student_recovery_reward_standing_mirror_huber_v11'
 FIELDS=('height_progress','support_quality','effort','target_change','post_entry_angular','post_entry_velocity')
 WEIGHTS=(2.,3.,-.02,-.002,-.05,-.10)
 def configuration(version=VERSION):
+ if version=="student_standing_survival_quality_reward_v14":
+  from .standing_survival_reward import configuration as survival_configuration
+  return survival_configuration()
+ if version=="student_standing_zero_privileged49_reward_v13":
+  from .standing_zero_privileged import configuration as privileged_config
+  return privileged_config()
+ if version=="student_standing_alignment_reward_v12":
+  from .standing_alignment import configuration as alignment_config
+  return alignment_config()
  if version==SYMMETRY_VERSION:
   result=configuration(SLIDING_VERSION);result['version']=version
   result['weak_mirror']={'version':'native_physical_joint_mirror_huber_v2','scale_rad':.20,'huber_delta':1.,'weight_per_s':-.20,'squared_cap':None,'coordinates':'left_hip+right_hip,left_active-right_active','state':'post_physics_pre_reset_active_q','gate':'height_progress','action_override':False}
@@ -56,8 +65,13 @@ def pre_entry_angular_cost(height,angular_body,entered,controlled,fault,cfg):
  speed=torch.linalg.vector_norm(angular_body[:,item['axes_body']],dim=-1)
  excess=(torch.relu(speed-item['deadband_rad_s'])/item['scale_rad_s']).square().clamp(max=item['squared_cap'])
  return gate*excess*((~entered)&controlled&~fault)
-def reward(height,h0,angles,contacts,clearance,torque,previous_targets,executed_targets,angular_body,velocity_native,yaw,entered,controlled,fault,entry_event,success_event,failure_event,*,reward_configuration=None,active_leg_q=None):
+def reward(height,h0,angles,contacts,clearance,torque,previous_targets,executed_targets,angular_body,velocity_native,yaw,entered,controlled,fault,entry_event,success_event,failure_event,*,reward_configuration=None,active_leg_q=None,wheel_heading_offset=None):
  cfg=configuration() if reward_configuration is None else reward_configuration
+ if cfg.get('version') in ('student_standing_alignment_reward_v12','student_standing_zero_privileged49_reward_v13'):
+  from .standing_alignment import apply
+  if cfg!=configuration(cfg['version']):raise ValueError('alignment reward differs')
+  result=reward(height,h0,angles,contacts,clearance,torque,previous_targets,executed_targets,angular_body,velocity_native,yaw,entered,controlled,fault,entry_event,success_event,failure_event,reward_configuration=configuration(SYMMETRY_VERSION),active_leg_q=active_leg_q)
+  return apply(result,height,active_leg_q,wheel_heading_offset,velocity_native,yaw,controlled,fault,alignment_configuration=cfg['standing_alignment'])
  if cfg.get('version')==SYMMETRY_VERSION:
   if cfg!=configuration(SYMMETRY_VERSION):raise ValueError('standing symmetry reward configuration differs')
   result=reward(height,h0,angles,contacts,clearance,torque,previous_targets,executed_targets,angular_body,velocity_native,yaw,entered,controlled,fault,entry_event,success_event,failure_event,reward_configuration=configuration(SLIDING_VERSION),active_leg_q=active_leg_q)

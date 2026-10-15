@@ -184,9 +184,9 @@ def _latest_course_result(chain):
  return json.loads((Path(chain)/'formal/course_result.json').read_text())
 
 def submission_environment(spec_path,environment=None):
- """Execute the newly published child's declared bundle, not its parent's path."""
- spec=json.loads(Path(spec_path).read_text());root=Path(spec['execution_source_root']).resolve()
- if not root.is_relative_to(PROJECT) or not (root/'native_stand/command_v6/supervisor.py').is_file():raise ValueError('child execution source root missing/outside project')
+ """Use this imported shared package; declarations cannot select a stale engine."""
+ root=Path(__file__).resolve().parents[2]
+ if not (root/'native_stand/command_v6/supervisor.py').is_file():raise ValueError('shared execution source root missing')
  return {**(os.environ if environment is None else environment),'PYTHONPATH':str(root)}
 
 def finish_block(spec_path,chain,chain_status,failure):

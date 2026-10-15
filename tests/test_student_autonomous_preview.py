@@ -38,3 +38,25 @@ def test_explicit_family_does_not_select_another_source_family(tmp_path,monkeypa
  args=SimpleNamespace(checkpoint=cp,spec=tmp_path/'spec.json',preview_family='Swing',preview=True,handoff_condition=None,keyboard=False,run=False)
  play.execute(args,spec);result=json.loads(capsys.readouterr().out)
  assert result['initial_family']=='Swing' and result['teacher_prefix_intervals']==0 and not result['teacher_control']
+
+def test_explicit_diagnostic_family_preserves_training_declaration(tmp_path,monkeypatch,capsys):
+ from native_stand.students import play
+ from native_stand.students.data import sha
+ cp=tmp_path/'candidate.pt';cp.write_bytes(b'fixture');poses=tmp_path/'poses.json';poses.write_text(json.dumps({'poses':[{'family':'Swing'}]}))
+ row={'kind':'student','family':'normal','checkpoint':str(cp),'sha256':sha(cp),'role':'RecoveryStudent'}
+ spec={'interface_version':'multiskill_mcu_v2','recovery':{'active_family':'normal','pose_library':str(poses),'pose_library_sha256':sha(poses)},'student_evaluation':{'cases':[row]},'student_training':{'target_height_m':.34}}
+ before=copy.deepcopy(spec);calls=[]
+ monkeypatch.setattr(play,'validate',lambda s:[])
+ monkeypatch.setattr('native_stand.command_v6.tools.experiment_preparation.verify_publication',lambda *a,**kw:{'status':'VERIFIED'})
+ def validate_family(config,poses,family):
+  calls.append(family)
+  if family not in {p['family'] for p in poses}:raise ValueError('unknown pose family')
+ monkeypatch.setattr('native_stand.students.requests.evaluation_recovery',validate_family)
+ args=SimpleNamespace(checkpoint=cp,spec=tmp_path/'spec.json',preview_family='Swing',diagnostic_initialization=True,preview=True,handoff_condition=None,keyboard=False,run=False)
+ play.execute(args,spec);result=json.loads(capsys.readouterr().out)
+ assert result['initial_family']=='Swing' and not result['capability_certification'] and not result['assessment_family_declared']
+ assert result['target_height_m']==.34 and calls==['Swing'] and spec==before
+ args.preview_family='unknown'
+ with pytest.raises(ValueError,match='unknown pose'):play.execute(args,spec)
+ args.preview_family=None
+ with pytest.raises(ValueError,match='explicit'):play.execute(args,spec)

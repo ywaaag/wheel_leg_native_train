@@ -68,11 +68,15 @@ def test_runtime_actual_limit_cache_partial_reset_and_no_history(monkeypatch):
  assert torch.equal(env._get_rewards(),torch.zeros(2))
  sys.modules.pop('native_stand.students.runtime',None)
 
-def test_public_snapshot_keeps_student_sources_for_replay(tmp_path):
+def test_public_configuration_records_student_source_identity_without_copy(tmp_path):
  import json,hashlib
- from native_stand.command_v6.train import _snapshot
- spec=tmp_path/'spec.json';spec.write_text(json.dumps({'interface_version':'multiskill_mcu_v2','task':'cpu_snapshot'}))
- output=tmp_path/'output';output.mkdir();identities=_snapshot(output,spec)
- for name in ['student_mcu_interface.py','student_model.py','student_runtime.py','student_evaluator.py','model_factory.py']:
-  path=output/'source_snapshot'/name
-  assert path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest()==identities[name]
+ from native_stand.command_v6.train import record_run_configuration
+ from native_stand.command_v6.tools.source_identity import read_identity
+ spec=tmp_path/'spec.json';spec.write_text(json.dumps({'interface_version':'multiskill_mcu_v2','task':'cpu_identity'}))
+ output=tmp_path/'output';output.mkdir();identities=record_run_configuration(output,spec)
+ assert identities['spec.json']==hashlib.sha256(spec.read_bytes()).hexdigest()
+ assert (output/'source_snapshot/spec.json').read_bytes()==spec.read_bytes()
+ assert not list(output.rglob('*.py'))
+ recorded=read_identity(output)
+ for name in ['students/mcu_interface.py','students/model.py','students/runtime.py','students/evaluator.py']:
+  assert name in recorded['relative_modules_sha256']

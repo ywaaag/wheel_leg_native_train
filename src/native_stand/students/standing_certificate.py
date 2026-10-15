@@ -46,3 +46,40 @@ def score(state,posture,control,student_control,*,policy_time_s,first_episode_va
   result['standing_physical_pass']=all(v for k,v in checks.items() if k not in ('leg_symmetry','early_failure'))
   result['standing_joint_pass']=result['accepted']
  return result
+
+
+class AlignmentCertificate(StandingCertificate):
+ def __init__(self,n,device):
+  super().__init__(n,device)
+  self.offset=torch.zeros(n,device=device)
+  self.offset_history=torch.zeros(n,1000,device=device)
+ def reset(self,ids):
+  super().reset(ids)
+  if hasattr(self,'offset_history'):self.offset_history[ids]=0;self.offset[ids]=0
+ def set_offset(self,offset):self.offset.copy_(offset)
+ def observe(self,*args,**kwargs):
+  ids=torch.where(kwargs['active']&(self.entry>=0)&~self.sent&(self.count<1000))[0]
+  self.offset_history[ids,self.count[ids]]=self.offset[ids].abs()
+  success,failure,end,fault=super().observe(*args,**kwargs)
+  ids=torch.where(self.hold_window_complete)[0];good=torch.ones_like(success)
+  if len(ids):
+   values=self.offset_history[ids]
+   good[ids]=(values.mean(-1)<=.02)&(torch.quantile(values,.95,dim=1)<=.04)
+  success&=good;failure=end&~success&~fault
+  self.certificate_passed.copy_(success);self.task_failure.copy_(failure)
+  return success,failure,end,fault
+
+
+def alignment_score(result,geometry):
+ """Same fixed window, explicit additional wheel geometry gate."""
+ from native_stand.recovery.standing import longitudinal_geometry
+ result['version']='student_standing_alignment034_v12'
+ if result.get('hold_complete'):
+  lo,hi=result['hold_index_half_open'];g=geometry[lo:hi]
+  offset=longitudinal_geometry(g[:,:6].reshape(-1,2,3),g[:,6:9]).abs()
+  mae=float(offset.mean());p95=float(torch.quantile(offset,.95))
+  result.update(wheel_offset_mae_m=mae,wheel_offset_p95_m=p95)
+  result['checks']['wheel_alignment']=bool(torch.isfinite(offset).all() and mae<=.02 and p95<=.04)
+  result['failed_checks']=[k for k,v in result['checks'].items() if not v]
+  result['accepted']=not result['failed_checks'];result['standing_joint_pass']=result['accepted']
+ return result

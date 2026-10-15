@@ -1,5 +1,6 @@
 """Explicit student preview via shared environment; never launches by default."""
 import json,time,os,sys
+from pathlib import Path
 from .data import sha
 from .requests import validate
 
@@ -8,6 +9,18 @@ def execute(args,spec):
  if errors:raise ValueError(errors)
  family=getattr(args,'preview_family',None) or spec['recovery']['active_family']
  independent=[r for r in spec['student_evaluation']['cases'] if r['kind']=='student' and r['family']==family]
+ diagnostic=getattr(args,'diagnostic_initialization',False)
+ if diagnostic:
+  if not getattr(args,'preview_family',None):raise ValueError('diagnostic initialization requires explicit preview-family')
+  library_path=spec['recovery']['pose_library']
+  if sha(library_path)!=spec['recovery']['pose_library_sha256']:raise ValueError('preview pose library SHA differs')
+  library=json.loads(Path(library_path).read_text())
+  from .requests import evaluation_recovery
+  evaluation_recovery(spec['recovery'],library['poses'],family)
+  if not independent:
+   baseline=next((r for r in spec['student_evaluation']['cases'] if r['kind']=='student'),None)
+   if baseline is None:raise ValueError('student diagnostic baseline absent')
+   independent=[{**baseline,'family':family}]
  row=next((r for r in independent if r['checkpoint']==str(args.checkpoint.resolve())),None)
  if row is None:
   from .model import load
@@ -20,13 +33,17 @@ def execute(args,spec):
  if sha(args.checkpoint)!=row['sha256']:raise ValueError('Student preview checkpoint SHA differs')
  if not args.preview or args.handoff_condition is not None or args.keyboard:raise ValueError('Student preview must be independent, without teacher/keyboard override')
  result={'interface_version':spec['interface_version'],'checkpoint':str(args.checkpoint),'checkpoint_sha256':sha(args.checkpoint),'initial_family':row['family'],'teacher_control':False,'teacher_prefix_intervals':0,'simulation':0,'online_PPO':0}
+ result.update(diagnostic_initialization=diagnostic,capability_certification=False,
+  assessment_family_declared=any(r['family']==family for r in spec['student_evaluation']['cases']),
+  target_height_m=spec.get('student_training',{}).get('target_height_m'))
  from native_stand.command_v6.tools.experiment_preparation import verify_publication
  # Registration legitimately replaces spec/ledger against its exact receipt.
  # Perform the same strict identity check in CPU preview and GUI execution.
  result['publication']=verify_publication(args.spec,authorized=True)
  if not args.run:print(json.dumps(result,indent=2));return
- if args.physical_gpu!=0:raise ValueError('Explicit physical GPU0 required')
- os.environ['CUDA_VISIBLE_DEVICES']='0';sys.path.insert(0,spec['asset_module_root'])
+ if args.physical_gpu not in (0,1):raise ValueError('Explicit physical GPU0 or GPU1 required')
+ if spec.get('device',{}).get('physical_index')!=args.physical_gpu:raise ValueError('preview physical GPU differs from declared spec')
+ os.environ['CUDA_VISIBLE_DEVICES']=str(args.physical_gpu);sys.path.insert(0,spec['asset_module_root'])
  from isaaclab.app import AppLauncher
  app=AppLauncher({'headless':False,'device':'cuda:0','visualizer':['kit'],'visualizer_explicit':True}).app;env=None
  try:

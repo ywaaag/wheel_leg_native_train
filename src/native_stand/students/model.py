@@ -4,10 +4,11 @@ from torch import nn
 from .interface import ACTOR_DIM,CRITIC_DIM,VERSION
 class Student(nn.Module):
     is_recurrent=False
-    def __init__(self,actor=True,version=VERSION):
+    def __init__(self,actor=True,version=VERSION,critic_privileged_version=None):
         super().__init__();self.is_actor=actor;self.interface_version=version
         if version not in (VERSION,"multiskill_mcu_v2"):raise ValueError("Unknown student interface version")
-        dims=([31,128,64,32,6] if actor else [40,256,128,64,1]) if version=="multiskill_mcu_v2" else ([ACTOR_DIM,256,128,64,6] if actor else [CRITIC_DIM,256,128,64,1])
+        if critic_privileged_version not in (None,'standing_privileged49_v1','motion_privileged49_v1') or (critic_privileged_version and version!='multiskill_mcu_v2'):raise ValueError('unknown Critic privileged version')
+        dims=([31,128,64,32,6] if actor else [49 if critic_privileged_version else 40,256,128,64,1]) if version=="multiskill_mcu_v2" else ([ACTOR_DIM,256,128,64,6] if actor else [CRITIC_DIM,256,128,64,1])
         layers=[]
         for i,(a,b) in enumerate(zip(dims,dims[1:])):
             layers.append(nn.Linear(a,b))
@@ -45,19 +46,19 @@ def load(path,role=None):
     data=torch.load(path,map_location='cpu',weights_only=False)
     if data.get('interface_version') not in (VERSION,'multiskill_mcu_v2') or (role and data['role']!=role):raise ValueError('student identity/role differs')
     if data.get('recipe_version'):
-        from .training_recipe import declaration
-        recipe=declaration(data['recipe_version'],source_actor_sha256=data.get('source_sha256'))
+        from .training_recipe import validate_instance
+        recipe=validate_instance(data.get('training_recipe'),data.get('source_sha256'))
+        if recipe['version']!=data['recipe_version']:raise ValueError('student checkpoint recipe version differs')
         if data.get('temporal_regularization') is not None:
             from .temporal import declaration as temporal_declaration
             if data['temporal_regularization']!=temporal_declaration(data['temporal_regularization'].get('arm')):raise ValueError('temporal checkpoint declaration differs')
-            recipe['milestones']=[50,100]
-        if data.get('training_recipe')!=recipe:raise ValueError('student training checkpoint recipe identity differs')
         for key in ('source_sha256','dataset_sha256','manifest_sha256','asset_sha256','spec_sha256','source_code_sha256'):
             if not isinstance(data.get(key),str) or len(data[key])!=64:raise ValueError('training checkpoint missing bound '+key)
         if data['source_sha256']!=recipe['source_actor_sha256'] or data.get('BC_coefficient')!=0. or data.get('fixed_std') is not True:raise ValueError('student trained checkpoint intervention differs')
     with torch.random.fork_rng(devices=[]):
         actor=Student(True,version=data["interface_version"])
-        actor.load_state_dict(data['actor'])
+        from native_stand.command_v6.tools.model_adapter import ModelAdapter
+        ModelAdapter(data).load(actor,'actor')
     return actor,data
 
 def ppo_initialization(path):
