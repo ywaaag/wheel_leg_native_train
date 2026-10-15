@@ -150,6 +150,8 @@ def plan(args):
             'collision_shapes':'reference MJCF proxies, not USD collider parity certified',
             'solver':'MuJoCo soft equality/contact vs PhysX; solver/inertia/guide-wheel parity not fully certified'},
         'protocol':{'commands':commands,
+            'version':'native_mujoco_height034_v2' if spec['control']['height_command_m']==.34 else 'native_mujoco_legacy_v1',
+            'height_mean_band_m':[.32,.36] if spec['control']['height_command_m']==.34 else [.34,.46],
             'duration_s':30,'schedule_s':[2,8,8,8],'hold_s':[10,18],'parking_s':[26,30],
             'seed':104,'environments_per_command':1,'physics_steps_per_command':30000},
         'simulation':0,'online_PPO':0,'files_written':0,
@@ -242,7 +244,8 @@ def _advance_case(spec,model,refs,actor,target,deadline,data,hist,prev,reference
     if target and (direction is None or direction<.95):failed.append('DIRECTION')
     if dual is None or dual<.95:failed.append('DUAL_CONTACT')
     if rows and max(r['tilt'] for r in rows)>.5:failed.append('TILT')
-    if hold and not .34<=avg('height',hold)<=.46:failed.append('HEIGHT_MEAN')
+    height_band=(.32,.36) if spec['control']['height_command_m']==.34 else (.34,.46)
+    if hold and not height_band[0]<=avg('height',hold)<=height_band[1]:failed.append('HEIGHT_MEAN')
     if hold and float(np.mean([abs(r['vy']) for r in hold]))>.02:failed.append('LATERAL_SPEED')
     if hold and float(np.mean([abs(r['yaw_rate']) for r in hold]))>.3:failed.append('YAW_LEAKAGE')
     summary={'target':target,'requested_physics_steps':30000,'completed_physics_steps':actual_steps,
@@ -258,7 +261,7 @@ def _advance_case(spec,model,refs,actor,target,deadline,data,hist,prev,reference
         'hold_leg_length_difference_abs_mean_m':float(np.mean([abs(r['posture_geometry']['leg_length_difference_m']) for r in hold])) if hold else None,
         'hold_ground_heading_offset_abs_mean_m':float(np.mean([abs(r['posture_geometry']['wheel_heading_offset_m']) for r in hold])) if hold else None,
         'closure_max_m':max((r['closure_m'] for r in rows),default=None),
-        'height_hold_mean':avg('height',hold),'max_excursion_m':float(maximum),
+        'height_hold_mean':avg('height',hold),'height_mean_band_m':list(height_band),'height_peak_full_m':max((r['height'] for r in rows),default=None),'max_excursion_m':float(maximum),
         'net_displacement_m':float(np.linalg.norm(data.xpos[refs['root'],:2]-init)),
         'PD_saturation_fraction_by_channel':(saturation/max(1,(actual_steps+4)//5)).tolist(),
         'action_clip_fraction_by_channel':(clipped_count/max(1,(actual_steps+9)//10)).tolist(),

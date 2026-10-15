@@ -4,7 +4,7 @@
   "imu_quaternion_convention": null,
   "encoder_angle_units": null,
   "motor_torque_units": null,
-  "root_height_measurement": "not actor input; external deployment height validation required",
+  "root_height_measurement": "ground to midpoint of left/right hip axes, vertical; command .34m; not an Actor measurement",
   "joints": [
     {
       "policy_channel": 0,

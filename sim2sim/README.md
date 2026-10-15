@@ -34,3 +34,7 @@ B250的真实迁移能力。该run中canonical几何/roll输出可解释其自�
 - root线速度是COM速度，不能误用freejoint link-origin速度。
 - 当前参考MJCF有friction/damping/armature/collider/solver差异，不自动调参制造通过。
 - 新运行目录用集中日期时间命名，拒绝覆盖；每次仿真需明确授权和独立消耗记录。
+
+## 当前选定0.34m Motion教师（2026-10-13）
+
+`2026_10_13-19_46__motion034_teacher_mujoco`绑定05_39/u300 SHA4750ee…cafb，零速/±.5/±1各30秒，全部完成但速度明显后偏（zero-.468m/s），不是完整迁移通过。部署ONNX45输入输出与checkpoint一致。详见[最新复盘](../docs/MOTION034_TEACHER_MUJOCO_REVIEW_20261013.md)，命令维护TOOL_INDEX，旧B250证据保留。

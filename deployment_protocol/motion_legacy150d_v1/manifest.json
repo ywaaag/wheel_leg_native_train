@@ -1,13 +1,6 @@
 {
   "protocol_version": "motion_legacy150d_electrical_handoff_v1",
-  "status": "PROTOCOL_ONLY_MODEL_NOT_SELECTED_HARDWARE_UNVERIFIED",
   "interface": "legacy150D",
-  "scope": "Motion 0.34m candidates only; not Recovery student31D",
-  "model_selection": null,
-  "evidence_spec": "/home/kellen/wheel_leg_native_train/runs/2026_10_13-05_39__motion_standing034_pm2_block0003/formal/source_snapshot/spec.json",
-  "evidence_spec_sha256": "019567614859c9e944b88b97f67b521491a9c339ce55811b5a9a81b3459e89fb",
-  "asset_path": "/home/kellen/\u684c\u9762/11 (1)/11/wheeled-legged_RL/source/agent_world/agent_world/assets/usd_files/rmuc_wheel_leg/rmuc_robot_closed_loop.usd",
-  "asset_sha256": "6bf6ce7f64f8d46cdc759bdf48dba0def85f6e9e6915acca27c543dbcf031a27",
   "command_height_m": 0.34,
   "physical_max_height_m": 0.36,
   "height_limit_verified": false,
@@ -48,7 +41,6 @@
   "wheel_scale_rad_s": 100.0,
   "policy_dt_s": 0.01,
   "pd_dt_s": 0.005,
-  "physics_dt_s": 0.001,
   "leg_kp": 60.0,
   "leg_kd": 2.0,
   "wheel_kv": 1.0,
@@ -60,151 +52,39 @@
     40,
     5.5
   ],
-  "joints": [
-    {
-      "name": "left_hip_pitch",
-      "usd_path": "/rm_train_ground/joints/left_hip_pitch",
-      "axis_local_joint": "X",
-      "axis_in_parent_body": [
-        -1.0,
-        0.0,
-        -1.2246467991473532e-16
-      ],
-      "localRot0_wxyz": [
-        0.0,
-        0.0,
-        1.0,
-        0.0
-      ],
-      "body0": [
-        "/rm_train_ground/robot"
-      ],
-      "body1": [
-        "/rm_train_ground/left_upper_leg"
-      ],
-      "lower_limit_rad": -3.099999936317154,
-      "upper_limit_rad": 3.099999936317154
-    },
-    {
-      "name": "left_active_link_pitch",
-      "usd_path": "/rm_train_ground/joints/left_active_link_pitch",
-      "axis_local_joint": "X",
-      "axis_in_parent_body": [
-        1.0,
-        0.0,
-        0.0
-      ],
-      "localRot0_wxyz": [
-        1.0,
-        0.0,
-        0.0,
-        0.0
-      ],
-      "body0": [
-        "/rm_train_ground/robot"
-      ],
-      "body1": [
-        "/rm_train_ground/left_active_link"
-      ],
-      "lower_limit_rad": -2.599999963770265,
-      "upper_limit_rad": 2.599999963770265
-    },
-    {
-      "name": "left_wheel_spin",
-      "usd_path": "/rm_train_ground/joints/left_wheel_spin",
-      "axis_local_joint": "X",
-      "axis_in_parent_body": [
-        1.0,
-        0.0,
-        0.0
-      ],
-      "localRot0_wxyz": [
-        1.0,
-        0.0,
-        0.0,
-        0.0
-      ],
-      "body0": [
-        "/rm_train_ground/left_lower_leg"
-      ],
-      "body1": [
-        "/rm_train_ground/left_wheel"
-      ],
-      "lower_limit_rad": null,
-      "upper_limit_rad": null
-    },
-    {
-      "name": "right_hip_pitch",
-      "usd_path": "/rm_train_ground/joints/right_hip_pitch",
-      "axis_local_joint": "X",
-      "axis_in_parent_body": [
-        1.0,
-        0.0,
-        0.0
-      ],
-      "localRot0_wxyz": [
-        1.0,
-        0.0,
-        0.0,
-        0.0
-      ],
-      "body0": [
-        "/rm_train_ground/robot"
-      ],
-      "body1": [
-        "/rm_train_ground/right_upper_leg"
-      ],
-      "lower_limit_rad": -3.099999936317154,
-      "upper_limit_rad": 3.099999936317154
-    },
-    {
-      "name": "right_active_link_pitch",
-      "usd_path": "/rm_train_ground/joints/right_active_link_pitch",
-      "axis_local_joint": "X",
-      "axis_in_parent_body": [
-        1.0,
-        0.0,
-        0.0
-      ],
-      "localRot0_wxyz": [
-        1.0,
-        0.0,
-        0.0,
-        0.0
-      ],
-      "body0": [
-        "/rm_train_ground/robot"
-      ],
-      "body1": [
-        "/rm_train_ground/right_active_link"
-      ],
-      "lower_limit_rad": -2.599999963770265,
-      "upper_limit_rad": 2.599999963770265
-    },
-    {
-      "name": "right_wheel_spin",
-      "usd_path": "/rm_train_ground/joints/right_wheel_spin",
-      "axis_local_joint": "X",
-      "axis_in_parent_body": [
-        1.0,
-        0.0,
-        0.0
-      ],
-      "localRot0_wxyz": [
-        1.0,
-        0.0,
-        0.0,
-        0.0
-      ],
-      "body0": [
-        "/rm_train_ground/right_lower_leg"
-      ],
-      "body1": [
-        "/rm_train_ground/right_wheel"
-      ],
-      "lower_limit_rad": null,
-      "upper_limit_rad": null
-    }
+  "status": "ACTOR_SELECTED_EXPORTED_HARDWARE_UNVERIFIED",
+  "model_selection": {
+    "source_checkpoint_sha256": "4750ee5661ade1e9089e7d81f7f6c294490e8f8c078a766c9a9c78f1a80ccafb",
+    "actor_file": "actor.onnx",
+    "actor_sha256": "34587471f1f7e045606af634278c13b6bf84c2d55f9346997e38d248896a0449"
+  },
+  "input_name": "observation",
+  "output_name": "mean_action",
+  "input_shape": [
+    1,
+    150
   ],
-  "hardware_signs_and_offsets": "UNCONFIRMED; fill HARDWARE_MAPPING_TEMPLATE.json before use"
+  "output_shape": [
+    1,
+    6
+  ],
+  "height_reference": "ground to midpoint of left/right hip axes, vertical",
+  "deployment_files": {
+    "actor.onnx": {
+      "sha256": "34587471f1f7e045606af634278c13b6bf84c2d55f9346997e38d248896a0449",
+      "bytes": 321729
+    },
+    "actor_torchscript.pt": {
+      "sha256": "cad8e603f3ddd7a58992ed86e40f67416d3d9b76bbdada93a2e7b7890814ed22",
+      "bytes": 334871
+    },
+    "actor_weights_fp32.pt": {
+      "sha256": "f3e3af6939c066eefda360a28d8f62a3b1dda0e2cbc11cbd361674d35d0bf8cf",
+      "bytes": 324455
+    },
+    "model_golden_vectors.json": {
+      "sha256": "e0a4c2a7d896789a6221adebaa116e4e115553adeda49148ecf3625900025a35",
+      "bytes": 190418
+    }
+  }
 }
