@@ -12,10 +12,11 @@ def inspect(path,spec,spec_path):
     path=Path(path)
     identity=digest(path)
     checkpoint=torch.load(path,map_location="cpu",weights_only=False)
-    state=checkpoint.get("actor")
-    if not isinstance(state,dict) or "mlp.0.weight" not in state:
-        raise ValueError("actor state dictionary is incomplete")
-    width=state["mlp.0.weight"].shape[-1]
+    from .model_adapter import ModelAdapter
+    adapter=ModelAdapter(checkpoint)
+    description=adapter.describe()
+    shape=description["actor_input_shape"]
+    width=shape[-1]
     if width==132:
         if identity!=spec["source_sha256"]:
             raise ValueError("132D checkpoint is not the frozen B200 source")
@@ -38,6 +39,7 @@ def inspect(path,spec,spec_path):
             kind="NATIVE_CANDIDATE"
     else:
         raise ValueError("actor input width must be source 132D or native 150D")
-    if tuple(state["mlp.0.weight"].shape)!=(spec["ppo"]["hidden_dims"][0],width):
+    adapter.validate(spec)
+    if tuple(shape)!=(spec["ppo"]["hidden_dims"][0],width):
         raise ValueError("actor first-layer hidden dimension differs")
     return {"checkpoint_sha256":identity,"kind":kind,"actor_input_dim":width}

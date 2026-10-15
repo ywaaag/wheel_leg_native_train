@@ -1,4 +1,4 @@
-"""CPU/fake-process gates for the authorized immutable execution snapshot."""
+"""CPU/fake-process gates for ledger-owned shared-source execution."""
 import json
 import os
 from pathlib import Path
@@ -34,10 +34,11 @@ def test_authorized_preflight_plan_has_no_writes(tmp_path):
     assert not output.exists() and before==SPEC.with_name('budget.json').read_bytes()
 
 
-def test_snapshot_is_used():
+def test_shared_source_identity_is_used():
     source=Path(stand_chain.__file__).read_text()
-    assert "shutil.copytree(ROOT.parent,chain/'source_snapshot/native_stand'" in source
-    assert "chain/'source_snapshot/native_stand/command_v6/stand_chain.py'" in source
+    assert "copytree" not in source
+    assert "record_configuration" in source
+    assert "ROOT/'stand_chain.py'" in source
     assert "start_new_session=True" in source
     assert "chain_wall_s" in source and "validate_handshake" in source
 

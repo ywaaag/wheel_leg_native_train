@@ -5,6 +5,10 @@ import sys
 
 
 ENTRIES = (
+    {'entry':'scripts/prepare_motion31_training.py','role':'unauthorized_Motion31_block_preparer','status':'CURRENT'},
+    {'entry':'scripts/prepare_student_validation.py','role':'explicit_parent_checkpoint_student_diagnostic_preparer','status':'CURRENT'},
+    {'entry':'native_stand.command_v6.tools.checkpoint_lifecycle','role':'read_only_declared_checkpoint_plan','status':'CURRENT'},
+    {"entry":"native_stand.command_v6.tools.validate_cpu","role":"shared_source_CPU_validation","status":"CURRENT"},
     {'entry':'scripts/test_portable_cpu.py','role':'portable_CPU_contract_tests','status':'CURRENT'},
     {'entry':'scripts/prepare_student_recovery_ppo.py','role':'explicit_student_recipe_preparer','status':'CURRENT'},
     {'entry':'scripts/select_recovery_checkpoint.py','role':'legacy150D_selector','status':'HISTORICAL'},
@@ -35,7 +39,6 @@ ENTRIES = (
     {"entry":"scripts/prepare_recovery_wheel_std_ab.py","role":"explicit_preparer","status":"CURRENT"},
     {"entry":"native_stand.command_v6.tools.audit_entrypoints","role":"read_only_reference_audit","status":"CURRENT"},
     {"entry":"native_stand.command_v6.tools.audit_terminal","role":"read_only_event_audit","status":"CURRENT"},
-    {"entry":"native_stand.command_v6.tools.validate_frozen_cpu","role":"CPU_validation_copy","status":"CURRENT"},
     {"entry":"native_stand.command_v6.tools.prepare_recovery_retry","role":"explicit_preparer","status":"CURRENT"},
     {"entry":"scripts/prepare_recovery_min_height.py","role":"explicit_preparer","status":"CURRENT"},
     {"entry":"scripts/review_recovery_min_height.py","role":"offline_review","status":"CURRENT"},
@@ -57,8 +60,6 @@ ENTRIES = (
     {"entry": "native_stand.command_v6.launcher", "role": "phase_launch", "status": "INTERNAL"},
     {"entry": "native_stand.command_v6.monitor", "role": "monitor", "status": "INTERNAL"},
     {"entry": "native_stand.command_v6.stand_chain", "role": "chain_worker", "status": "INTERNAL"},
-    {"entry": "scripts/submit_motion_high_speed_formal.py", "role": "compatibility", "status": "DEPRECATED"},
-    {"entry": "scripts/continue_motion_high_speed_submission.py", "role": "compatibility", "status": "DEPRECATED"},
     {"entry": "scripts/run_motion_high_speed_preparation.py", "role": "frozen_runtime", "status": "RETIRED",
      "note": "Hardcoded historical runtime CLI is disabled; use the explicit supervisor."},
     *({"entry": entry, "role": "recipe_generator", "status": "HISTORICAL"} for entry in (

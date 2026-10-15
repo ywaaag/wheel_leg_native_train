@@ -30,11 +30,9 @@ def identity(spec):
     root = Path(__file__).resolve().parents[2]
     expected = spec.get('execution_source_root')
     frozen_identity=None
-    if spec.get('effective_recipe_version') == 1 and expected and Path(expected).resolve() != root.parent.resolve():
-        frozen_identity=verify_frozen_root(root,expected,spec)
-    modules = {}
-    for path in sorted(root.rglob('*.py')):
-        modules[str(path.resolve())] = hashlib.sha256(path.read_bytes()).hexdigest()
+    # The imported package is authoritative. A different declared path is a
+    # provenance difference, never permission to silently switch implementations.
+    source_mismatch=bool(expected and Path(expected).resolve()!=root.parent.resolve())
     dependencies = {}
     for package in ('torch', 'rsl-rl-lib', 'tensordict', 'isaaclab', 'isaacsim'):
         try:
@@ -45,6 +43,7 @@ def identity(spec):
     algorithm = Path(distribution.locate_file('rsl_rl/algorithms/ppo.py')).resolve()
     relative={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
               for p in sorted(root.rglob('*.py'))}
+    modules={str((root/path).resolve()):sha for path,sha in relative.items()}
     source_digest=hashlib.sha256(json.dumps(relative,sort_keys=True,separators=(',',':')).encode()).hexdigest()
     scoped=execution_dependencies(relative,spec.get('task','motion'))
     return {'source_root': str(root.parent.resolve()),
@@ -52,7 +51,7 @@ def identity(spec):
             'actual_execution_root':str(root.parent.resolve()),
             'location_independent_modules_sha256':source_digest,
             'relative_modules_sha256':relative,'execution_dependencies':scoped,
-            'frozen_identity':frozen_identity,'python': sys.executable,
+            'declared_source_differs':source_mismatch,'python': sys.executable,
             'modules': modules, 'dependencies': dependencies,
             'PPO_path': str(algorithm), 'PPO_sha256': hashlib.sha256(algorithm.read_bytes()).hexdigest()}
 
@@ -81,3 +80,27 @@ def execution_dependencies(relative,task):
         'sha256':hashlib.sha256(json.dumps(selected,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
         'excluded_modules':excluded,
         'scope':'conservative task dependencies; explicit tool exclusions recorded, related changes need per-file review'}
+
+
+def recorded(folder,manifest):
+    """Read run identities without importing/re-hashing current execution source."""
+    data=manifest.get('execution_identity',{})
+    if data.get('source_identity_reference'):
+        identity_path=Path(folder)/'identity.json'
+        if data.get('sha256')!=hashlib.sha256(identity_path.read_bytes()).hexdigest():raise ValueError('Recorded manifest identity SHA differs')
+        from .source_identity import read_identity
+        record=read_identity(folder)
+        relative=record['relative_modules_sha256'];root=record['source_root']
+        return {'source_root':str(Path(root).parent),'relative_modules_sha256':relative,
+            'location_independent_modules_sha256':record['tree_digest'],
+            'execution_dependencies':execution_dependencies(relative,manifest.get('task','motion')),
+            'modules':{str(Path(root)/name):sha for name,sha in relative.items()},
+            'PPO_sha256':record['PPO']['sha256'],'dependencies':record['dependencies']}
+    return data
+
+
+def reference(folder):
+    path=Path(folder)/'identity.json'
+    if not path.is_file():return {'status':'MISSING_EVIDENCE','source_identity_reference':str(path.resolve()),'scope':'identity write unavailable; never treat as verified'}
+    return {'source_identity_reference':str(path.resolve()),'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),
+        'scope':'derive module views from recorded identity; not live source'}

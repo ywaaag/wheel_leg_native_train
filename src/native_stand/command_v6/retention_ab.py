@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 import select
-import shutil
 import subprocess
 import sys
 import time
@@ -139,23 +138,19 @@ def main():
         fcntl.flock(lock,fcntl.LOCK_EX)
         if submission.exists():raise ValueError('pair already submitted; no duplicate')
         a.output_dir.mkdir(parents=True,exist_ok=False)
-        snapshot=a.output_dir/'execution_snapshot'
-        shutil.copytree(ROOT.parent,snapshot/'src/native_stand',ignore=shutil.ignore_patterns('__pycache__'))
-        for arm in ARMS:
-            for name in ('spec.json','budget.json'):
-                dest=snapshot/'configs'/arm/name;dest.parent.mkdir(parents=True,exist_ok=True)
-                shutil.copy2(a.config_dir/arm/name,dest)
+        from native_stand.command_v6.tools.source_identity import record_identity
+        record_identity(read(a.config_dir/ARMS[0]/'spec.json'),a.output_dir)
         manifest={'attempt_id':uuid.uuid4().hex,'hapi_session':a.hapi_session,'submitted_unix_s':time.time(),
             'config_dir':str(a.config_dir),'arm_spec_sha256':{arm:sha(a.config_dir/arm/'spec.json') for arm in ARMS}}
         write(a.output_dir/'manifest.json',manifest)
         reader,writer=os.pipe()
-        cmd=[sys.executable,str(snapshot/'src/native_stand/command_v6/retention_ab.py'),
+        cmd=[sys.executable,str(ROOT/'retention_ab.py'),
             '--config-dir',str(a.config_dir),'--output-dir',str(a.output_dir),
             '--hapi-session',a.hapi_session,'--worker','--handshake-fd',str(writer)]
         with (a.output_dir/'supervisor.log').open('x') as log:
             child=subprocess.Popen(cmd,cwd=a.output_dir,stdin=subprocess.DEVNULL,stdout=log,
                 stderr=subprocess.STDOUT,pass_fds=(writer,),start_new_session=True,
-                env={**os.environ,'CUDA_VISIBLE_DEVICES':'0'})
+                env={**os.environ,'CUDA_VISIBLE_DEVICES':'0','PYTHONPATH':str(ROOT.parents[1])})
         os.close(writer);write(submission,{'worker_pid':child.pid,'command':cmd,**manifest})
     ready,_,_=select.select([reader],[],[],240)
     message={'status':'UNKNOWN','reason':'one formal handshake not ready; do not restart'}

@@ -25,7 +25,7 @@ def submission_readiness(args, spec, preflight, health=None):
         try:
             result['resource_review']=submission_health(health,
                 current_session=os.environ.get('HAPI_SESSION_ID'),target_session=args.hapi_session,
-                phase='evaluate' if args.evaluation_only else 'formal' if args.formal_only else 'source_eval',
+                phase='evaluate' if args.evaluation_only else 'formal' if args.formal_only or spec.get('motion_training',{}).get('wiring_reuse') else 'smoke' if spec.get('motion_training',{}).get('partial_smoke_recovery') else 'source_eval',
                 physical_gpu=args.physical_gpu,resource_policy=args.resource_policy)
             expected_uuid=spec.get('device',{}).get('uuid')
             devices=(health.get('gpu') or {}).get('devices',[])
@@ -44,6 +44,10 @@ def submission_readiness(args, spec, preflight, health=None):
         except ValueError as exc:
             result['errors'].append(str(exc))
             result['reason_code']='IDENTITY_ERROR' if 'UUID differs' in str(exc) else 'MISSING_EVIDENCE'
+    result.update(config_valid=preflight.get('config_valid',preflight.get('cpu_valid',preflight['status']=='PASS')),
+        authorized=preflight.get('authorized',preflight['status']=='PASS'),
+        prerequisites_ready=preflight.get('prerequisites_ready',preflight['status']=='PASS'),
+        resource_ready=result['resource_verified'] if health is not None else None)
     result['status']=('NOT_READY' if result['errors'] else
                       'READY' if result['submit_ready'] else 'READY_METADATA')
     if result['status']=='READY_METADATA':
@@ -82,7 +86,7 @@ def main():
         return evaluate_submission(args)
     if spec.get('engineering_recovery'):
         args.formal_only=True
-    phase='formal' if args.formal_only else 'source_eval'
+    phase='formal' if args.formal_only or spec.get('motion_training',{}).get('wiring_reuse') else 'smoke' if spec.get('motion_training',{}).get('partial_smoke_recovery') else 'source_eval'
     from native_stand.students.course_requests import project_root_for
     project=project_root_for(spec,Path(__file__).resolve().parents[3])
     result=check(args.spec,args.output_dir/phase,phase)
@@ -144,7 +148,8 @@ def evaluate_submission(args):
     if sum(float(row.get('wall_s') or 0.) for row in book['attempts'].values()) >= spec['budget']['evaluation_wall_s']:
         raise ValueError('cumulative evaluation wall exhausted')
     attempt_id=uuid.uuid4().hex
-    Ledger(args.spec.with_name('budget.json')).reserve(attempt_id,'evaluate',args.output_dir)
+    plan['preflight'].resource_review=resource_review
+    Ledger(args.spec.with_name('budget.json')).reserve(attempt_id,'evaluate',args.output_dir,approval=plan['preflight'])
     environment={**os.environ,'CUDA_VISIBLE_DEVICES':str(args.physical_gpu),
                  'PYTHONPATH':spec['execution_source_root']}
     args.output_dir.parent.mkdir(parents=True,exist_ok=True)

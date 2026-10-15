@@ -22,7 +22,7 @@ def plan(request,*,current_session):
     if type(request['physical_gpu']) is not int or request['physical_gpu'] not in (0,1) or not str(request['gpu_uuid']).startswith('GPU-'):
         raise ValueError('explicit GPU identity required')
     if type(request['max_online_updates']) is not int or request['max_online_updates']<0:raise ValueError('invalid inclusive update approval')
-    if type(request['max_phase_wall_s']) not in (int,float) or not math.isfinite(request['max_phase_wall_s']) or request['max_phase_wall_s']<=0:
+    if request['max_phase_wall_s'] is not None and (type(request['max_phase_wall_s']) not in (int,float) or not math.isfinite(request['max_phase_wall_s']) or request['max_phase_wall_s']<=0):
         raise ValueError('finite aggregate phase wall ceiling required')
     if not isinstance(request['arms'],list) or not request['arms']:raise ValueError('explicit arms required')
     result=[];seen=set();total=0;wall=0.
@@ -36,6 +36,8 @@ def plan(request,*,current_session):
         if path in seen:raise ValueError('duplicate arm')
         seen.add(path);checked_input(path,arm['spec_sha256']);checked_input(ledger,arm['budget_sha256'])
         spec=json.loads(path.read_text());book=json.loads(ledger.read_text())
+        from ..domain.execution_limits import validate_budget,ExecutionLimits
+        if spec.get('ppo'):validate_budget(spec)
         if book.get('authorization')!='UNAUTHORIZED' or book.get('attempts') or any(book.get('used',{}).values()):
             raise ValueError('fresh unused UNAUTHORIZED ledger required')
         if path.with_name('chain_submission.json').exists() or path.with_name('authorization_receipt.json').exists():
@@ -49,6 +51,9 @@ def plan(request,*,current_session):
         for phase in ('source_eval','smoke','formal','evaluate'):
             if book['limits'].get(phase,0):
                 value=spec['budget'].get('evaluation_wall_s' if phase=='evaluate' else phase+'_wall_s')
+                if value is None and phase in ('smoke','formal') and request['max_phase_wall_s'] is None:
+                    ExecutionLimits.resolve(spec,phase)
+                    continue
                 if type(value) not in (int,float) or not math.isfinite(value) or value<=0:
                     raise ValueError('authorized phase needs finite wall budget')
                 wall+=value
@@ -63,7 +68,7 @@ def plan(request,*,current_session):
         if errors:raise ValueError(errors)
         result.append({'path':path,'ledger':ledger,'spec':spec,'budget':book,'before_spec_sha256':arm['spec_sha256'],'before_budget_sha256':arm['budget_sha256']})
     if total>request['max_online_updates']:raise ValueError('all-arm inclusive updates exceed approved maximum')
-    if wall>request['max_phase_wall_s']:raise ValueError('all-arm phase wall budgets exceed approval')
+    if request['max_phase_wall_s'] is not None and wall>request['max_phase_wall_s']:raise ValueError('all-arm phase wall budgets exceed approval')
     return result,total
 
 

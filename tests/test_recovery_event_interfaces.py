@@ -110,7 +110,7 @@ def test_registry_driven_review_handles_nonstandard_updates_and_missing_trace(tm
 
 
 def test_frozen_copy_rejects_unclassified_or_project_data_tests_before_write(tmp_path):
-    from native_stand.command_v6.tools.validate_frozen_cpu import validate
+    from native_stand.command_v6.tools.validate_cpu import validate
     sp=tmp_path/'spec.json';sp.write_text('{}');output=tmp_path/'copy'
     plan=validate(sp,output,tests=['tests/test_recovery_sampling_contract.py'])
     assert plan['test_resource_scopes']['tests/test_recovery_sampling_contract.py']=='PROJECT_DATA'

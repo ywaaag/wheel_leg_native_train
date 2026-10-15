@@ -47,7 +47,7 @@ def reusable_spec(evidence_path, current):
             {key: value for key, value in current.items() if key not in ignored})
 
 
-def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=None):
+def _check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=None):
     errors = []
     spec_path = Path(spec_path)
     output_dir = Path(output_dir)
@@ -59,7 +59,8 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
     if spec.get("interface_version") in ("multiskill_student_v1","multiskill_mcu_v2"):
         from native_stand.students.requests import preflight
         return preflight(spec_path,output_dir,phase,attempt_id)
-    errors.extend(validate(spec))
+    schema_errors=validate(spec)
+    errors.extend(schema_errors)
     publication=None
     try:
         from .experiment_preparation import verify_publication
@@ -143,6 +144,7 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
             errors.append(f"{key} SHA differs")
     if spec.get("interpreter") != sys.executable:
         errors.append("interpreter differs from frozen spec")
+    book={}
     path = Path(ledger_path) if ledger_path else spec_path.with_name("budget.json")
     try:
         book = json.loads(path.read_text())
@@ -275,10 +277,26 @@ def check(spec_path, output_dir, phase="formal", ledger_path=None, attempt_id=No
     return {"status":"READY_NEEDS_AUTH" if auth_only else "PASS" if not errors else "FAIL",
             "reason_code":reason_code,"action":action,
             "cpu_valid":not errors or auth_only,"errors":errors,
+            "config_valid":not schema_errors,"authorized":book.get("authorization")=="AUTHORIZED",
+            "prerequisites_ready":not any(e!="new simulation/PPO budget has not been authorized" for e in errors),
+            "resource_ready":None,
             "phase":phase,"output_dir":str(output_dir),"spec_sha256":digest(spec_path),
             "source_sha256":spec.get("source_sha256"),"asset_sha256":spec.get("asset_sha256"),
             "engineering_recovery_certificate":{'status':engineering_certificate['status'],'sha256':spec['engineering_recovery']['sha256']} if engineering_certificate else None,"publication_integrity":publication,"source_evidence_certificate":source_certificate,"storage_budget":storage,"evaluation_plan":plan,"wiring_smoke_plan":wiring_plan,"effective_recipe":effective,"execution_identity":execution,
             "simulation":0,"ppo":0,"files_written":0}
+
+
+def check(spec_path,output_dir,phase="formal",ledger_path=None,attempt_id=None):
+    from .submission_receipt import approve,reserved_plan
+    if attempt_id:
+        try:
+            ready=reserved_plan(spec_path,output_dir,phase,attempt_id,ledger_path)
+            if ready is not None:return ready
+        except (OSError,ValueError,KeyError,TypeError) as error:
+            return {'status':'FAIL','errors':[str(error)],'cpu_valid':False,
+                'reason_code':'IDENTITY_ERROR','simulation':0,'ppo':0,'files_written':0}
+    result=_check(spec_path,output_dir,phase,ledger_path,attempt_id)
+    return approve(result,spec_path,output_dir,phase,ledger_path)
 
 
 def main():

@@ -64,9 +64,11 @@ def protocol_for_spec(spec,seconds,diagnostics=False):
 
 def validate_evaluation_request(spec, request):
     """Reject cross-family fields before an evaluator constructs an environment."""
-    from native_stand.command_v6.tools import motion_batch, recovery_batch
-    adapter = recovery_batch if spec.get('task')=='recovery' else motion_batch
-    return adapter.validate_request(spec,request)
+    if spec.get('task')=='recovery':
+        from native_stand.command_v6.tools.recovery_batch import validate_request
+        return validate_request(spec,request)
+    from native_stand.command_v6.domain.evaluation_requests import motion_request
+    return motion_request(request)
 
 
 def batch_protocol(spec, request, diagnostics):
@@ -324,7 +326,7 @@ def main():
     ledger=Ledger(args.spec.with_name("budget.json"))
     attempt_id=uuid.uuid4().hex
     if not args.diagnostic:
-        ledger.reserve(attempt_id,"evaluate",args.output)
+        ledger.reserve(attempt_id,"evaluate",args.output,approval=preflight)
     started=time.monotonic()
     signal.signal(signal.SIGTERM,stop_on_term)
     env=app=None
@@ -368,7 +370,8 @@ def main():
             if _sha(args.checkpoint)!=spec["source_sha256"]:
                 raise RuntimeError("source actor identity differs")
             state=expand_state(state,actor.state_dict())
-        actor.load_state_dict(state,strict=True)
+        from native_stand.command_v6.tools.model_adapter import ModelAdapter
+        ModelAdapter({'actor':state}).load(actor,'actor')
         if _sha(args.checkpoint)==spec['source_sha256'] and spec.get('wheel_envelope_conversion'):
             from native_stand.command_v6.domain.warmstart import convert_wheel_envelope
             convert_wheel_envelope(actor,old_scale=spec['wheel_envelope_conversion']['source_scale_rad_s'],
@@ -511,13 +514,13 @@ def evaluate_batch(args, spec):
     progress={'status':'STARTING','attempt_id':args.attempt_id,'pid':os.getpid(),
               'actual_updates':0,'samples':0,'completed':completed}
     args.output.mkdir(parents=True,exist_ok=False)
-    from native_stand.command_v6.train import _snapshot
-    snapshot=_snapshot(args.output,args.spec)
+    from native_stand.command_v6.train import record_run_configuration
+    snapshot=record_run_configuration(args.output,args.spec)
     write(args.output/'manifest.json',{'attempt_id':args.attempt_id,'phase':'evaluate',
         'pid':os.getpid(),'spec_sha256':_sha(args.spec),'source_sha256':spec['source_sha256'],
         'asset_sha256':spec['asset_sha256'],'source_snapshot_sha256':snapshot,
         'requested':spec,'effective_recipe':plan['effective_recipe'],
-        'execution_identity':plan['execution_identity'],'requests':plan['requests'],
+        'execution_identity':__import__('native_stand.command_v6.tools.execution_identity',fromlist=['reference']).reference(args.output),'requests':plan['requests'],
         'CUDA_VISIBLE_DEVICES':os.environ.get('CUDA_VISIBLE_DEVICES'),
         'wall_limit_s':args.wall_limit_s,'online_PPO':0,'offline_optimizer_updates':0})
     write(args.output/'progress.json',progress)
@@ -557,7 +560,8 @@ def evaluate_batch(args, spec):
             if _sha(row['checkpoint'])!=row['sha256']:
                 raise ValueError('checkpoint changed after plan')
             saved=torch.load(row['checkpoint'],map_location='cpu',weights_only=False)
-            actor.load_state_dict(saved['actor'],strict=True)
+            from native_stand.command_v6.tools.model_adapter import ModelAdapter
+            ModelAdapter(saved).load(actor,'actor')
             item_start=time.monotonic()
             evaluator=evaluate_actor
             extra={}
@@ -588,7 +592,7 @@ def evaluate_batch(args, spec):
                 stop_requested=lambda:time.monotonic()>=deadline-90.,**extra)
             result.update(checkpoint=row['checkpoint'],checkpoint_sha256=row['sha256'],
                 spec_sha256=_sha(args.spec),asset_sha256=spec['asset_sha256'],
-                execution_identity=plan['execution_identity'],runtime_readback=readback)
+                execution_identity=__import__('native_stand.command_v6.tools.execution_identity',fromlist=['reference']).reference(args.output),runtime_readback=readback)
             result['diagnostic_storage']=storage
             if row.get('evaluation_mode')=='light':
                 result['engineering_diagnostic_only']=True

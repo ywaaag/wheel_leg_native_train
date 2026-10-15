@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 import select
-import shutil
 import subprocess
 import sys
 import time
@@ -75,18 +74,24 @@ def run_phase(spec_path,phase,output,handshake_fd=None):
     if result['status']!='PASS':
         raise ValueError(f'{phase} preflight: {result}')
     wall_override=None
-    if spec.get('recovery',{}).get('swing_only') or spec.get('student_training'):
+    if spec['budget'].get('chain_wall_s') is not None:
         submitted=read(output.parent/'manifest.json')['submitted_unix_s']
         remaining=submitted+spec['budget']['chain_wall_s']-time.time()-100
-        if remaining<60:raise TimeoutError('Swing-only chain wall budget exhausted')
-        wall_override=min(spec['budget'][phase+'_wall_s'],remaining)
+        if remaining<60:raise TimeoutError('declared chain wall budget exhausted')
+        from native_stand.command_v6.domain.execution_limits import ExecutionLimits
+        limits=ExecutionLimits.resolve(spec,phase)
+        wall_override=limits.monitor_bound(min(remaining,limits.wall_s) if limits.wall_s is not None else remaining)
     if spec.get('motion_posture'):
         submitted=read(output.parent/'manifest.json')['submitted_unix_s']
         remaining=submitted+spec['motion_posture']['chain_wall_s']-time.time()-120
         if remaining<60:raise TimeoutError('motion posture chain wall budget exhausted')
-        wall_override=min(spec['budget'][phase+'_wall_s'],remaining)
+        from native_stand.command_v6.domain.execution_limits import ExecutionLimits
+        limits=ExecutionLimits.resolve(spec,phase)
+        posture_bound=limits.monitor_bound(min(remaining,limits.wall_s) if limits.wall_s is not None else remaining)
+        wall_override=min(wall_override,posture_bound) if wall_override is not None else posture_bound
     attempt=uuid.uuid4().hex
-    Ledger(spec_path.with_name('budget.json')).reserve(attempt,phase,output)
+    result.resource_review=read(output.parent/'manifest.json',{}).get('resource_review')
+    Ledger(spec_path.with_name('budget.json')).reserve(attempt,phase,output,approval=result)
     temporary_pipe=handshake_fd is None
     if temporary_pipe:
         reader,writer=os.pipe()
@@ -116,18 +121,6 @@ def run_phase(spec_path,phase,output,handshake_fd=None):
     return {'phase':phase,'run':str(output),'exit_code':code,'terminal':terminal,'progress':progress,
         'analysis':str(output/'analysis.json'),'status':terminal.get('status','UNKNOWN')}
 
-
-def correct_smoke_receipt(spec_path, evidence_folder, output):
-    """Phase-owner offline correction in a fresh file; original receipt stays intact."""
-    from native_stand.command_v6.wiring import smoke_certificate
-    old=read(Path(evidence_folder)/'wiring_certificate.json')
-    if old.get('errors')!=['smoke did not observe the required completed_episode']:
-        raise ValueError('unexpected smoke failure; correction is not a general bypass')
-    certificate=smoke_certificate(Path(evidence_folder),read(spec_path))
-    if certificate['status']!='PASSED':raise ValueError(certificate['errors'])
-    with Path(output).open('x') as stream:
-        json.dump(certificate,stream,indent=2);stream.write('\n')
-    return certificate
 
 
 def reconcile_durability(spec_path,output,code,wall_s):
@@ -159,22 +152,56 @@ def chain_report(chain,spec_path,phase_results,status,failure,durability):
     book=read(spec_path.with_name('budget.json'))
     spec=read(spec_path)
     event=identity({'chain':str(chain),'attempt':read(chain/'manifest.json')['attempt_id']})[:24]
+    from native_stand.command_v6.domain.evidence_summary import ledger_summary
+    book_summary=ledger_summary(book,reference=str(spec_path.with_name('budget.json').resolve()),sha256=sha(spec_path.with_name('budget.json')))
     analysis={'event_id':event,'status':status,'failure':failure,'phase_results':[
         {key:value for key,value in row.items() if key!='progress'} for row in phase_results],
-        'budget':book,'formal_updates':book['used']['formal'],'smoke_updates':book['used']['smoke'],
+        'budget':book_summary,'formal_updates':book['used']['formal'],'smoke_updates':book['used']['smoke'],
         'formal_samples':samples_for_updates(spec,book['used']['formal']),
         'smoke_samples':samples_for_updates(spec,book['used']['smoke']),
         'remaining_formal_updates':book['limits']['formal']-book['used']['formal'],
         'candidate_selection':selected,'durability':durability,
         'training_acceptance_is_not_durability_acceptance':True}
     analysis['task_curriculum']=(formal or {}).get('terminal',{}).get('task_curriculum')
+    if spec.get('motion_course'):
+        course_evidence=read(chain/'formal/course_progress.json',{})
+        analysis['motion_course']={'configuration':spec['motion_course']['configuration'],'state':course_evidence.get('state'),'last_decision':course_evidence.get('decision'),'progress_path':str(chain/'formal/course_progress.json'),'all_stages_passed':bool(course_evidence.get('decision',{}).get('all_stages_passed'))}
+        analysis['task_curriculum']=analysis['motion_course']
     analysis['best_motion_candidate']=(formal or {}).get('terminal',{}).get('best_motion_candidate')
     analysis['chain_wall_s']=time.time()-read(chain/'manifest.json').get('submitted_unix_s',time.time())
+    if spec.get('motion_training',{}).get('wiring_reuse'):
+        historical=spec['motion_training']['wiring_reuse']
+        analysis.update(historical_smoke_updates=historical['historical_smoke_updates'],
+            online_updates_including_parent=historical['historical_smoke_updates']+book['used']['formal'],
+            original_online_limit=historical['original_online_limit'],
+            chain_wall_including_parent_s=historical['historical_wall_s']+analysis['chain_wall_s'],
+            historical_ledger_discrepancy='old smoke ledger0; real progress/terminal/metrics50; original files preserved')
+    if spec.get('motion_training',{}).get('partial_smoke_recovery'):
+        historical=spec['motion_training']['partial_smoke_recovery']
+        analysis.update(historical_smoke_updates=historical['historical_smoke_updates'],
+            online_updates_including_parent=historical['historical_smoke_updates']+book['used']['smoke']+book['used']['formal'],
+            original_online_limit=historical['original_online_limit'],
+            chain_wall_including_parent_s=historical['historical_wall_s']+analysis['chain_wall_s'],
+            historical_evidence_conflict='parent smoke terminal0; real ledger/metrics1; original files preserved')
+    if spec.get('motion_training',{}).get('prior_consumption'):
+        prior=spec['motion_training']['prior_consumption']
+        analysis.update(historical_online_updates=prior['historical_online_updates'],
+            online_updates_including_parent=prior['historical_online_updates']+book['used']['smoke']+book['used']['formal'],
+            original_online_limit=prior['original_online_limit'],
+            chain_wall_including_parent_s=prior['historical_wall_s']+analysis['chain_wall_s'])
+    if spec.get('student_storage_resume'):
+        recovery=spec['student_storage_resume']
+        analysis['historical_online_updates']=recovery['historical_online_updates']
+        analysis['online_updates_including_parent']=recovery['historical_online_updates']+book['used']['formal']
+        analysis['original_online_limit']=recovery['original_online_limit']
     from native_stand.command_v6.domain.evidence_summary import compact
     analysis=compact(analysis);selected=compact(selected)
+    from native_stand.command_v6.domain.evidence_summary import selection_summary
+    write(chain/'candidate_selection.json',selected)
+    analysis['candidate_selection']=selection_summary(selected)
+    analysis['candidate_selection_reference']={'path':str((chain/'candidate_selection.json').resolve()),'sha256':sha(chain/'candidate_selection.json')}
     write(chain/'chain_terminal_report.json',analysis)
     write(chain/'analysis.json',analysis)
-    write(chain/'candidate_selection.json',selected)
     report=['# Native standing long-run completion',f'Event: {event}',f'Chain: {chain}',
         f'Terminal: {status}; failure={failure}',
         f"Smoke updates/samples: {analysis['smoke_updates']} / {analysis['smoke_samples']}",
@@ -185,6 +212,9 @@ def chain_report(chain,spec_path,phase_results,status,failure,durability):
         f"Best verified motion: {analysis['best_motion_candidate']}",
         f"Chain wall seconds: {analysis['chain_wall_s']}",
         '## Phase quantitative reports']
+    if spec.get('motion_training'):
+        report[0]='# Native Motion bounded training completion'
+        report=[line.replace('10-second accepted:','Repeated complete Motion matrix accepted:') for line in report]
     if spec.get('student_training',{}).get('selection_scope'):
         report.insert(6,'Capability scope: '+spec['student_training']['selection_scope'])
     for row in phase_results:
@@ -213,6 +243,33 @@ def worker(args):
             # Direct internal workers and old CPU fixtures still get the canonical receipt.
             record_state(chain,RunState.SUBMITTED.value,phase='submission')
         declaration=read(spec)
+        reused_student_source=False
+        partial_smoke=bool(declaration.get('motion_training',{}).get('partial_smoke_recovery'))
+        if partial_smoke:
+            from native_stand.students.motion_wiring_recovery import verify_partial
+            certificate=verify_partial(declaration)
+            folder=Path(declaration['motion_training']['partial_smoke_recovery']['parent_run'])/'source_eval'
+            record_state(chain,RunState.SOURCE_EVAL.value,phase='source_eval',reused=True,source_evidence=certificate)
+            phases.append({'phase':'source_eval','run':str(folder),'status':'COMPLETED','exit_code':0,'reused':True,
+                'historical_wall_not_charged_as_new':True,'terminal':read(folder/'terminal_report.json'),'progress':read(folder/'progress.json')})
+            reused_student_source=True
+        if declaration.get('motion_training',{}).get('wiring_reuse'):
+            from native_stand.students.motion_wiring_recovery import verify
+            certificate=verify(declaration)
+            folder=Path(declaration['motion_training']['wiring_reuse']['parent_run'])/'source_eval'
+            record_state(chain,RunState.SOURCE_EVAL.value,phase='source_eval',reused=True,source_evidence=certificate)
+            phases.append({'phase':'source_eval','run':str(folder),'status':'COMPLETED','exit_code':0,'reused':True,
+                'historical_wall_not_charged_as_new':True,'terminal':read(folder/'terminal_report.json'),'progress':read(folder/'progress.json')})
+            reused_student_source=True
+        if declaration.get('student_storage_resume',{}).get('source_eval_dir'):
+            from native_stand.students.storage_resume import verify
+            certificate=verify(declaration)
+            folder=Path(declaration['student_storage_resume']['source_eval_dir'])
+            record_state(chain,RunState.SOURCE_EVAL.value,phase='source_eval',reused=True,source_evidence=certificate)
+            phases.append({'phase':'source_eval','run':str(folder),'status':'COMPLETED','exit_code':0,
+                'reused':True,'historical_wall_not_charged_as_new':True,'terminal':read(folder/'terminal_report.json'),
+                'progress':read(folder/'progress.json')})
+            reused_student_source=True
         if declaration.get('source_evidence_reference'):
             from native_stand.command_v6.tools.source_evidence import check as check_source
             certificate=check_source(declaration,declaration['source_evidence_reference'])
@@ -220,8 +277,20 @@ def worker(args):
             phases.append({'phase':'source_eval','run':certificate['folder'],'status':'COMPLETED',
                 'exit_code':0,'reused':True,'certificate':certificate,'historical_wall_not_charged_as_new':True,
                 'terminal':read(Path(certificate['folder'])/'terminal_report.json')})
-        for phase in (('source_eval','formal') if declaration.get('recovery_course',{}).get('resume') else ('smoke','formal') if declaration.get('source_evidence_reference') else ('source_eval','smoke','formal')):
+        for phase in (('smoke','formal') if partial_smoke else ('formal',) if reused_student_source else ('source_eval','formal') if declaration.get('student_storage_resume') or declaration.get('recovery_course',{}).get('resume') or declaration.get('motion_training',{}).get('resume') else ('smoke','formal') if declaration.get('source_evidence_reference') else ('source_eval','smoke','formal')):
             continuation={}
+            if phase=='formal' and declaration.get('motion_training',{}).get('wiring_reuse'):
+                from native_stand.students.motion_wiring_recovery import verify
+                verify(declaration)
+                continuation={'continuation':{'version':'verified_motion_wiring_recovery_v1','verified':True,'checkpoint_sha256':declaration['source_sha256']}}
+            if phase=='formal' and declaration.get('motion_training',{}).get('resume'):
+                from native_stand.students.motion_training_requests import verify_continuation
+                verify_continuation(declaration)
+                continuation={'continuation':{'version':'verified_motion_continuation_v1','verified':True,'checkpoint_sha256':declaration['source_sha256']}}
+            if phase=='formal' and declaration.get('student_storage_resume'):
+                from native_stand.students.storage_resume import verify
+                verify(declaration)
+                continuation={'continuation':{'version':'verified_student_storage_continuation_v1','verified':True,'checkpoint_sha256':declaration['source_sha256']}}
             if phase=='formal' and declaration.get('recovery_course',{}).get('resume'):
                 from native_stand.students.course_requests import verify_continuation
                 if not verify_continuation(declaration):raise ValueError('unverified course continuation lifecycle')
@@ -276,7 +345,7 @@ def worker(args):
             durability=reconcile_durability(spec,output,code,time.monotonic()-start)
         else:
             durability={'status':'NOT_RUN','reason':'durability not included in this controlled test' if best else 'no identity-matched accepted standing candidate'}
-        status='COMPLETED'
+        status='STOPPED_BOUNDED' if any(row.get('status')=='STOPPED_BOUNDED' for row in phases) else 'COMPLETED'
     except BaseException as exc:
         failure=repr(exc)
     finally:
@@ -301,7 +370,8 @@ def worker(args):
 def launch(args):
     spec=args.spec.resolve()
     chain=args.output_dir.resolve()
-    preflight=check(spec,chain/'source_eval','source_eval')
+    initial_phase='formal' if read(spec).get('motion_training',{}).get('wiring_reuse') else 'smoke' if read(spec).get('motion_training',{}).get('partial_smoke_recovery') else 'source_eval'
+    preflight=check(spec,chain/initial_phase,initial_phase)
     if preflight['status']!='PASS':
         raise ValueError(preflight)
     if not args.hapi_session:
@@ -320,9 +390,8 @@ def launch(args):
         if submission.exists():
             raise ValueError('this authorization already has a chain submission; no duplicate/restart')
         chain.mkdir(parents=True,exist_ok=False)
-        (chain/'source_snapshot').mkdir()
-        shutil.copy2(spec,chain/'source_snapshot/spec.json')
-        shutil.copytree(ROOT.parent,chain/'source_snapshot/native_stand',ignore=shutil.ignore_patterns('__pycache__'))
+        from native_stand.command_v6.tools.source_identity import record_configuration
+        record_configuration(chain,spec)
         attempt=uuid.uuid4().hex
         resource={'resource_policy':getattr(args,'resource_policy',None),
                   'resource_review':getattr(args,'resource_review',None)}
@@ -331,11 +400,10 @@ def launch(args):
                                   'origin':'explicit supervisor --hapi-session'},
             'spec_path':str(spec),'spec_sha256':sha(spec),'kind':'standing_chain',
             'declared_execution_source_root':read(spec).get('execution_source_root'),
-            'execution_modules_sha256':{str(p.relative_to(chain/'source_snapshot/native_stand')):sha(p)
-                for p in sorted((chain/'source_snapshot/native_stand').rglob('*.py'))},
+            'source_identity_reference':str(chain/'identity.json'),'source_code_copied_bytes':0,
             'submitted_unix_s':time.time(),**resource})
         reader,writer=os.pipe()
-        command=[sys.executable,str(chain/'source_snapshot/native_stand/command_v6/stand_chain.py'),'--spec',str(spec),'--output-dir',str(chain),
+        command=[sys.executable,str(ROOT/'stand_chain.py'),'--spec',str(spec),'--output-dir',str(chain),
             '--hapi-session',args.hapi_session,'--worker','--handshake-fd',str(writer),
             '--attempt-id',attempt]
         record_state(chain,RunState.SUBMITTED.value,phase='submission',attempt_id=attempt)

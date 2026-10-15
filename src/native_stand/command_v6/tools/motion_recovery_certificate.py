@@ -268,10 +268,11 @@ def historical_report_certificate(spec, manifest, snapshot):
     checked_input(snapshot/'spec.json',manifest['spec_sha256'])
     if json.loads((snapshot/'spec.json').read_text())!=spec:
         raise ValueError('Historical report spec differs')
-    if stable_hash(behavior(spec))!=record['behavior_sha256']:
-        raise ValueError('Historical behavior differs')
+    # Full immutable spec SHA above is the historical declaration contract.
+    # Do not resolve it using today's behavior parser.
     target=record['facts']['code_migration']['target_identity']
-    actual=manifest['execution_identity']
+    from .execution_identity import recorded
+    actual=recorded(snapshot.parent,manifest)
     if actual['execution_dependencies']!=target['execution_dependencies']:
         raise ValueError('Recorded run execution differs from reviewed certificate')
     for field in ('PPO_sha256','dependencies'):
@@ -279,17 +280,26 @@ def historical_report_certificate(spec, manifest, snapshot):
     # Manifest records unarchived execution modules; archived files are byte checked.
     for name,sha in manifest.get('source_snapshot_sha256',{}).items():
         checked_input(snapshot/name,sha)
-    modules=actual['modules']
+    modules=actual.get('modules',{})
+    source_root=Path(actual.get('source_root','/nonexistent'))/'native_stand'
     for name,sha in record['inputs_sha256'].items():
-        if name in modules:
-            if modules[name]!=sha:raise ValueError('Historical module receipt differs: '+name)
+        if name in modules or Path(name).is_relative_to(source_root):
+            recorded=modules.get(name) or actual.get('relative_modules_sha256',{}).get(str(Path(name).relative_to(source_root)))
+            if recorded!=sha:raise ValueError('Historical module receipt differs: '+name)
         else:checked_input(name,sha)
     return record
 
 
-def migrated_source_entries(spec,expected_identity, *, report_manifest=None, report_snapshot=None):
-    record=(historical_report_certificate(spec,report_manifest,report_snapshot)
-            if report_manifest is not None else validate(spec))
+def migrated_source_entries(spec,expected_identity, *, report_manifest=None, report_snapshot=None,recorded_receipt=None):
+    if recorded_receipt is not None:
+        from .submission_receipt import stable
+        row=recorded_receipt['record']
+        if stable(row)!=recorded_receipt['sha256'] or row['requested'].get('engineering_recovery')!=spec.get('engineering_recovery') or row['requested'].get('source_sha256')!=spec.get('source_sha256'):raise ValueError('Recorded recovery receipt differs')
+        ref=spec['engineering_recovery'];path,_=checked_input(ref['certificate'],ref['sha256'])
+        record=json.loads(Path(path).read_text())
+    else:
+        record=(historical_report_certificate(spec,report_manifest,report_snapshot)
+                if report_manifest is not None else validate(spec))
     folder=Path(record['facts']['source_capability']['run'])
     entries=json.loads((folder/'candidate_registry.json').read_text())
     allowed={r['path']:r['sha256'] for r in record['facts']['source_capability']['evaluations']}

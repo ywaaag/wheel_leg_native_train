@@ -51,7 +51,7 @@ def test_only_explicit_holding_can_omit_stand_declaration():
 
 def test_optional_stand_dependency_preflight_and_snapshot_are_cpu_only(tmp_path):
     from native_stand.command_v6.tools.preflight import check
-    from native_stand.command_v6.train import _snapshot
+    from native_stand.command_v6.train import record_run_configuration
     spec=json.loads(SPEC.read_text())
     for key in STAND_DEPENDENCY_FIELDS:spec['recovery'].pop(key,None)
     path=tmp_path/'spec.json';path.write_text(json.dumps(spec))
@@ -64,9 +64,11 @@ def test_optional_stand_dependency_preflight_and_snapshot_are_cpu_only(tmp_path)
     recovery_result=recovery_check(path,tmp_path/'run')
     assert recovery_result['stand_sha256'] is None and recovery_result['files_written']==0
     folder=tmp_path/'snapshot_run';folder.mkdir()
-    _snapshot(folder,path)
+    record_run_configuration(folder,path)
     assert not (folder/'source_snapshot/frozen_stand_spec.json').exists()
-    assert (folder/'source_snapshot/episode_result.py').is_file()
+    assert not list(folder.rglob('*.py'))
+    from native_stand.command_v6.tools.source_identity import read_identity
+    assert 'command_v6/domain/episode_result.py' in read_identity(folder)['relative_modules_sha256']
 
 
 @pytest.mark.parametrize('passed', [True, False])

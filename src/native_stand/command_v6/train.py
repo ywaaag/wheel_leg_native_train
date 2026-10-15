@@ -5,7 +5,6 @@ import json
 import errno
 import os
 from pathlib import Path
-import shutil
 import signal
 import sys
 import time
@@ -17,6 +16,7 @@ sys.path.insert(0,str(ROOT.parents[1]))
 from native_stand.command_v6.config import PHASES,schedule,evaluation_seconds
 from native_stand.command_v6.domain.evaluation_config import scoring as scoring_configuration
 from native_stand.command_v6.domain.diagnostic_profiles import storage_plan
+from native_stand.command_v6.tools.artifact_io import checkpoint as atomic_checkpoint
 from native_stand.command_v6.ledger import Ledger
 from native_stand.command_v6.tools.preflight import check,digest
 from native_stand.command_v6.completion import evaluation_identity, plan as runtime_plan, choose
@@ -72,62 +72,10 @@ def close_app(app, failed):
     app.close(exit_code=1 if failed else 0)
 
 
-def _snapshot(output,spec_path):
-    paths={"spec.json":spec_path,"train.py":ROOT/"train.py",
-           "config.py":ROOT/"config.py","ledger.py":ROOT/"ledger.py",
-           "launcher.py":ROOT/"launcher.py",
-           "monitor.py":ROOT/"monitor.py",
-           "completion.py":ROOT/"completion.py",
-           "preflight.py":ROOT/"tools/preflight.py",
-           "control_readback.py":ROOT/"runtime/control_readback.py",
-           "domain_contract.py":ROOT/"domain/contract.py",
-           "domain_schedule.py":ROOT/"domain/command_schedule.py",
-           "domain_reward.py":ROOT/"domain/reward.py",
-           "tracking_width.py":ROOT/"domain/tracking_width.py",
-           "domain_metrics.py":ROOT/"domain/metrics.py",
-           "episode_summary.py":ROOT/'domain/episode_summary.py',
-           "episode_curriculum.py":ROOT/'domain/episode_curriculum.py',
-           "task_curriculum.py":ROOT/'domain/task_curriculum.py',
-           "domain_protocol.py":ROOT/"domain/protocol.py",
-           "domain_evidence.py":ROOT/'domain/evidence.py',
-           "candidate_roles.py":ROOT/'domain/candidate_roles.py',
-           "resource_policy.py":ROOT/'domain/resource_policy.py',
-           "execution_plan.py":ROOT/'domain/execution_plan.py',
-           "episode_result.py":ROOT/'domain/episode_result.py',
-           "domain_recipe.py":ROOT/'domain/recipe.py',
-           "execution_identity.py":ROOT/'tools/execution_identity.py',
-           "selected_diagnostics.py":ROOT/'domain/selected_diagnostics.py',
-           "wiring.py":ROOT/'wiring.py',
-           "submission.py":ROOT/'submission.py',
-           "domain_warmstart.py":ROOT/"domain/warmstart.py",
-           "learning.py":ROOT/"learning.py",
-           "runtime_env.py":ROOT/"runtime/env.py",
-           "runtime_configure.py":ROOT/"runtime/configure.py",
-           "evaluate_checkpoint.py":ROOT/"tools/evaluate_checkpoint.py",
-           "evaluation_state.py":ROOT/'tools/evaluation_state.py',
-           "checkpoint_input.py":ROOT/"tools/checkpoint_input.py",
-           "play.py":ROOT/"tools/play.py",
-           "native_env.py":ROOT.parent/"env.py",
-           "native_contract.py":ROOT.parent/"contract.py",
-           "native_control_readback.py":ROOT.parent/"control_readback.py"}
-    spec=json.loads(spec_path.read_text())
-    if spec.get('retention',{}).get('enabled'):
-        paths['domain_retention.py']=ROOT/'domain/retention.py'
-    if spec.get('task')=='recovery':
-        paths.update({f'recovery_{path.name}':path for path in (ROOT.parent/'recovery').glob('*.py')})
-        if spec['recovery'].get('stand_spec'):
-            paths['frozen_stand_spec.json']=Path(spec['recovery']['stand_spec'])
-        paths['recovery_poses.json']=Path(spec['recovery']['pose_library'])
-    if spec.get('interface_version') in ('multiskill_student_v1','multiskill_mcu_v2'):
-        paths.update({f'student_{path.name}':path for path in (ROOT.parent/'students').glob('*.py')})
-        paths['model_factory.py']=ROOT/'tools/model_factory.py'
-    folder=output/"source_snapshot"
-    folder.mkdir()
-    identity={}
-    for name,path in paths.items():
-        shutil.copy2(path,folder/name)
-        identity[name]=digest(path)
-    return identity
+def record_run_configuration(output,spec_path):
+    """Persist configuration and recorded execution identity without source copies."""
+    from native_stand.command_v6.tools.source_identity import record_configuration
+    return record_configuration(output,spec_path)
 
 
 def _write_evaluation(spec,path,result):
@@ -155,6 +103,9 @@ def main():
         raise RuntimeError(f"preflight failed: {plan['errors']}")
     spec=json.loads(args.spec.read_text())
     if spec.get('student_training'):
+        if spec['student_training']['version']=='student_motion31_training_v1':
+            from native_stand.students.motion_runner import execute
+            return execute(args,spec)
         from native_stand.students.training import execute
         return execute(args,spec,plan)
     requested_spec=spec
@@ -165,7 +116,7 @@ def main():
     ledger=Ledger(args.spec.with_name("budget.json"))
     current=json.loads(args.spec.with_name('budget.json').read_text())['attempts'].get(attempt_id)
     if current is None:
-        ledger.reserve(attempt_id,args.phase,args.output_dir)
+        ledger.reserve(attempt_id,args.phase,args.output_dir,approval=plan)
     elif (current['status']!='RUNNING' or current['phase']!=args.phase or
           current['output_dir']!=str(args.output_dir.resolve())):
         raise ValueError('reserved attempt identity differs')
@@ -173,8 +124,9 @@ def main():
     app=env=None
     actor=critic=ppo=None
     started=time.monotonic()
-    phase_wall=spec['budget'][args.phase+'_wall_s']
-    if phase_wall is None:phase_wall=float('inf')
+    from native_stand.command_v6.domain.execution_limits import ExecutionLimits
+    limits=ExecutionLimits.resolve(spec,args.phase)
+    phase_wall=limits.wall_s if limits.wall_s is not None else float('inf')
     progress={"status":"STARTING","phase":args.phase,"stage":"manifest",
               "pid":os.getpid(),"attempt_id":attempt_id,"output_dir":str(output.resolve()),
               "actual_updates":0,"samples":0,"latest_metric":None,"evaluations":[],
@@ -192,7 +144,7 @@ def main():
     signal.signal(signal.SIGTERM,_signal)
     try:
         output.mkdir(parents=True,exist_ok=False)
-        identity=_snapshot(output,args.spec)
+        identity=record_run_configuration(output,args.spec)
         evaluator_sha=__import__('hashlib').sha256((digest(ROOT/'domain/protocol.py')+
             digest(ROOT/'domain/evidence.py')+
             digest(ROOT/'tools/evaluation_state.py')+
@@ -206,11 +158,15 @@ def main():
                      if row['phase']=='source_eval' and row['status']=='COMPLETED']
         if spec.get('engineering_recovery'):
             from native_stand.command_v6.tools.motion_recovery_certificate import validate as validate_recovery
-            certificate=validate_recovery(spec,book)
+            if plan.get('receipt_prerequisites_reused'):
+                from native_stand.command_v6.tools.experiment_preparation import checked_input
+                ref=spec['engineering_recovery'];checked_input(ref['certificate'],ref['sha256'])
+                certificate=json.loads(Path(ref['certificate']).read_text())
+            else:certificate=validate_recovery(spec,book)
             source_runs.append(certificate['facts']['source_capability']['run'])
         if spec.get('source_evidence_reference') and not spec.get('engineering_recovery'):
             from native_stand.command_v6.tools.source_evidence import check as check_source
-            if check_source(spec,spec['source_evidence_reference'])['status']!='REUSABLE':raise ValueError('source reuse certificate invalid')
+            if not plan.get('receipt_prerequisites_reused') and check_source(spec,spec['source_evidence_reference'])['status']!='REUSABLE':raise ValueError('source reuse certificate invalid')
             source_runs.append(spec['source_evidence_reference'])
         source_baseline_run=(source_runs[-1] if source_runs else None) if (
             spec.get('task')!='recovery' or spec.get('recovery',{}).get('standing_task')) else None
@@ -228,14 +184,16 @@ def main():
             "ground":spec["ground"],
             "source_snapshot_sha256":identity,"interpreter":sys.executable,
             "envs":spec["ppo"]["envs"],"steps_per_env":spec["ppo"]["steps_per_env"],
-            "evaluator_sha256":evaluator_sha,"hapi_session":args.hapi_session,
+            "evaluator_sha256":evaluator_sha,"evaluation_identity":eval_identity,"hapi_session":args.hapi_session,
             'notification_route':{'owner_session':args.hapi_session,'target_session':args.hapi_session,
                                   'origin':'explicit phase owner target'},
             "source_baseline_run":source_baseline_run,
             "preparation_probe_runs":source_runs if spec.get('task')=='recovery' else [],
             "run_plan":runtime_plan(spec,args.phase),"requested":requested_spec,
             "effective_recipe":plan.get('effective_recipe'),
-            "execution_identity":plan.get('execution_identity')})
+            "submission_receipt_sha256":plan.get("submission_receipt_sha256"),
+            "source_identity_reference":str(output/"identity.json"),
+            "execution_identity":__import__("native_stand.command_v6.tools.execution_identity",fromlist=["reference"]).reference(output)})
         registry=[]
         baseline_registry=[]
         if source_baseline_run and spec.get('recovery',{}).get('standing_task'):
@@ -244,7 +202,7 @@ def main():
                 if row.get('role')=='source' and row.get('identity')==eval_identity]
         if spec.get('engineering_recovery'):
             from native_stand.command_v6.tools.motion_recovery_certificate import migrated_source_entries
-            baseline_registry=migrated_source_entries(spec,eval_identity)
+            baseline_registry=migrated_source_entries(spec,eval_identity,recorded_receipt=current.get('submission_receipt') if current else None)
         standing_regression=None
         if spec.get('recovery',{}).get('standing_task') and not spec['recovery'].get('swing_only') and not spec.get('receiver_training'):
             from native_stand.recovery.standing import StandingRegression
@@ -672,6 +630,8 @@ def main():
                 t=time.monotonic()
                 if mean_auxiliary is not None:mean_auxiliary.finalize()
                 if leg_auxiliary is not None:leg_auxiliary.finalize()
+                from native_stand.command_v6.tools.optimizer_capture import capture as capture_optimizer
+                capture_optimizer(output,spec,args.phase,update,actor,critic,ppo.optimizer)
                 try:losses=ppo.update()
                 finally:
                     if gradient_observer is not None:gradient_observer.close()
@@ -747,7 +707,7 @@ def main():
                             standing_retention.gradient_payload is not None):
                         payload={**standing_retention.gradient_payload,'update':update,'phase':args.phase,
                             'source_sha256':spec['source_sha256'],'spec_sha256':digest(args.spec)}
-                        torch.save(payload,output/f'bc_gradient_update_{update}.pt')
+                        atomic_checkpoint(output/f'bc_gradient_update_{update}.pt',payload)
                 episode_summary=env.collect_episode_curriculum()
                 if episode_summary:
                     with (output/'curriculum_windows.jsonl').open('a') as handle:
@@ -804,7 +764,7 @@ def main():
                 if plan["checkpoint"] or plan['full'] or plan['light'] or update==max_updates:
                     save_start=time.monotonic()
                     path=output/spec["artifacts"]["checkpoint_name"].format(update=update)
-                    torch.save({"actor":actor.state_dict(),"critic":critic.state_dict(),
+                    atomic_checkpoint(path,{"actor":actor.state_dict(),"critic":critic.state_dict(),
                         "optimizer":ppo.optimizer.state_dict(),"cpu_rng":torch.get_rng_state(),
                         "cuda_rng":torch.cuda.get_rng_state_all(),"update":update,
                         "source_sha256":spec["source_sha256"],
@@ -813,7 +773,7 @@ def main():
                                            'critic':list(dict(critic.named_parameters()))},
                         "task_curriculum":task_manager.state() if task_manager else None,
                         "recovery_curriculum":(env.recovery_curriculum_checkpoint_state()
-                            if spec.get('task')=='recovery' and hasattr(env,'recovery_curriculum_checkpoint_state') else None)},path)
+                            if spec.get('task')=='recovery' and hasattr(env,'recovery_curriculum_checkpoint_state') else None)})
                     if spec.get('source_input_dim')==150:
                         from native_stand.command_v6.tools.update_proof import compare as saved_update_proof
                         _write(output/f'actor_update_proof_{update}.json',saved_update_proof(spec['source_checkpoint'],path))
@@ -998,6 +958,10 @@ def main():
                         for before,after in zip(initial_actor,actor.parameters()))
                 progress['latest_metric']['serialization_s']=serialization_s
                 _write(output/"progress.json",progress)
+                from native_stand.command_v6.tools.checkpoint_lifecycle import prune_owned
+                prune_owned(output,spec,attempt_id=attempt_id)
+                from native_stand.command_v6.tools.artifact_io import runtime_storage
+                runtime_storage(output,spec)
                 progress['latest_metric']['serialization_s']=serialization_s+time.monotonic()-t
                 update_elapsed=sum(progress['latest_metric'][key] for key in
                                    ('rollout_s','ppo_s','evaluation_s','serialization_s'))
@@ -1035,12 +999,12 @@ def main():
                 progress['latest_checkpoint']['update']!=progress['actual_updates'])):
             update=progress['actual_updates']
             path=output/spec['artifacts']['checkpoint_name'].format(update=update)
-            torch.save({'actor':actor.state_dict(),'critic':critic.state_dict(),'optimizer':ppo.optimizer.state_dict(),
+            atomic_checkpoint(path,{'actor':actor.state_dict(),'critic':critic.state_dict(),'optimizer':ppo.optimizer.state_dict(),
                 'cpu_rng':torch.get_rng_state(),'cuda_rng':torch.cuda.get_rng_state_all(),'update':update,
                 'source_sha256':spec['source_sha256'],'spec_sha256':digest(args.spec),
                 'asset_sha256':spec['asset_sha256'],'episode_curriculum':progress.get('episode_curriculum'),
                 'recovery_curriculum':(env.recovery_curriculum_checkpoint_state()
-                    if spec.get('task')=='recovery' and env is not None and hasattr(env,'recovery_curriculum_checkpoint_state') else None)},path)
+                    if spec.get('task')=='recovery' and env is not None and hasattr(env,'recovery_curriculum_checkpoint_state') else None)})
             if spec.get('source_input_dim')==150:
                 from native_stand.command_v6.tools.update_proof import compare as saved_update_proof
                 _write(output/f'actor_update_proof_{update}.json',saved_update_proof(spec['source_checkpoint'],path))

@@ -105,7 +105,7 @@ def test_frozen_worker_receipt_rejects_tampering(tmp_path):
 def test_completed_episode_receipt_correction_preserves_history(tmp_path,complete_smoke_fixture):
     import copy,hashlib,json
     from native_stand.command_v6.wiring import smoke_certificate,completed_smoke
-    from native_stand.command_v6.stand_chain import correct_smoke_receipt
+    from native_stand.command_v6.tools.engineering_recovery import correct_smoke_receipt
     spec={'experiment':'old','source_sha256':'source','budget':{'smoke_updates':10},
         'ppo':{'envs':64,'steps_per_env':128},'control':{'policy_dt_s':.01},
         'wiring_smoke':{'required_event':'completed_episode','required_event_duration_s':2.,

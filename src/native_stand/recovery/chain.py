@@ -134,7 +134,7 @@ def run(args):
             result=check(spec_path,folder,phase)
             if result['status']!='PASS':raise RuntimeError(result['errors'])
             attempt=uuid.uuid4().hex
-            Ledger(spec_path.with_name('budget.json')).reserve(attempt,phase,folder)
+            Ledger(spec_path.with_name('budget.json')).reserve(attempt,phase,folder,approval=result)
             progress(phase,attempt_id=attempt)
             # Monitor receives a disposable pipe, not the user handshake pipe; notifications remain chain-only.
             forward=(autonomous and phase=='smoke' and args.handshake_fd is not None)

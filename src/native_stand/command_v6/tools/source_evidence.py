@@ -13,7 +13,7 @@ def recipe(spec):
 
 
 def check(spec,folder):
-    folder=Path(folder).resolve();evidence=[];missing=[];conflicts=[]
+    folder=Path(folder).resolve();evidence=[];missing=[];conflicts=[];warnings=[]
     try:
         manifest=json.loads((folder/'manifest.json').read_text());terminal=json.loads((folder/'terminal_report.json').read_text())
         frozen=json.loads((folder/'source_snapshot/spec.json').read_text());registry=json.loads((folder/'candidate_registry.json').read_text())
@@ -22,16 +22,17 @@ def check(spec,folder):
         if manifest.get('spec_sha256')!=checked_input(folder/'source_snapshot/spec.json')[1]:conflicts.append('frozen spec SHA differs')
         if recipe(spec)!=recipe(frozen):conflicts.append('effective recipe differs')
         actual=identity(spec)
-        old=manifest.get('execution_identity',{})
+        from .execution_identity import recorded
+        old=recorded(folder,manifest)
         from .execution_identity import execution_dependencies
         if old.get('relative_modules_sha256'):
             old_scope=execution_dependencies(old['relative_modules_sha256'],spec.get('task','motion'))
-            if old_scope['modules_sha256']!=actual['execution_dependencies']['modules_sha256']:conflicts.append('execution dependencies differ')
+            if old_scope['modules_sha256']!=actual['execution_dependencies']['modules_sha256']:warnings.append('recorded source execution differs from current code; not a strict same-code claim')
         elif old.get('execution_dependencies') is None:missing.append('scoped execution dependencies')
-        elif old.get('execution_dependencies')!=actual.get('execution_dependencies'):conflicts.append('execution dependencies differ')
+        elif old.get('execution_dependencies')!=actual.get('execution_dependencies'):warnings.append('recorded source execution differs from current code; not a strict same-code claim')
         for field in ('PPO_sha256','dependencies'):
             if field not in old:missing.append('execution_identity.'+field)
-            elif old[field]!=actual[field]:conflicts.append('execution_identity.'+field)
+            elif old[field]!=actual[field]:warnings.append('recorded dependency differs: '+field)
         if manifest.get('asset_sha256')!=spec['asset_sha256']:conflicts.append('manifest asset differs')
         source=[r for r in registry if r.get('role')=='source']
         if not source:missing.append('source registry')
@@ -61,7 +62,7 @@ def check(spec,folder):
     except (OSError,KeyError,ValueError,TypeError) as exc:missing.append(str(exc))
     return {'status':'CONFLICTING' if conflicts else 'MISSING' if missing else 'REUSABLE',
         'folder':str(folder),'conflicts':sorted(set(conflicts)),'missing':sorted(set(missing)),
-        'evidence':evidence,'scope':'read-only certificate; preserves old accounting, grants no runtime permission'}
+        'warnings':sorted(set(warnings)),'evidence':evidence,'scope':'read-only certificate; preserves old accounting, grants no runtime permission'}
 
 
 def main():

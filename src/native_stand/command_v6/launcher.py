@@ -36,7 +36,8 @@ def launch(spec,phase,output,hapi_session=None,*,resource_review=None):
         command += ['--hapi-session',hapi_session]
     env={**os.environ,"CUDA_VISIBLE_DEVICES":os.environ.get("NATIVE_PHYSICAL_GPU","0")}
     log=output.with_name(output.name+".launcher.log")
-    Ledger(spec.with_name('budget.json')).reserve(attempt_id,phase,output)
+    plan.resource_review=resource_review
+    Ledger(spec.with_name('budget.json')).reserve(attempt_id,phase,output,approval=plan)
     submission={'attempt_id':attempt_id,'output_dir':str(output),'phase':phase,
         'resource_review':resource_review,
         'hapi_session':hapi_session,'spec_path':str(spec),'spec_sha256':plan['spec_sha256'],

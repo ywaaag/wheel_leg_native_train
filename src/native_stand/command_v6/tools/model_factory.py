@@ -2,7 +2,7 @@
 def model(obs,*,actor,spec):
     if spec.get('interface_version') in ('multiskill_student_v1','multiskill_mcu_v2'):
         from native_stand.students.model import Student
-        return Student(actor,version=spec["interface_version"])
+        return Student(actor,version=spec["interface_version"],critic_privileged_version=spec.get("student_training",{}).get("critic_privileged_version"))
     if spec.get('interface_version') not in (None,'legacy150D'):
         raise ValueError('Unknown interface version')
     from ..domain.action_distribution import validate

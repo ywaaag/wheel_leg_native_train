@@ -23,7 +23,7 @@ class Ledger:
             os.replace(temporary,self.path)
             return result
 
-    def reserve(self, attempt_id, phase, output_dir):
+    def reserve(self, attempt_id, phase, output_dir, *, approval=None):
         output = str(Path(output_dir).resolve())
         def change(book):
             if book.get("authorization")!="AUTHORIZED":
@@ -40,10 +40,14 @@ class Ledger:
                 row["phase"]==name and row["status"]=="COMPLETED"
                 for row in book["attempts"].values())}
             spec=json.loads(self.path.with_name('spec.json').read_text())
+            envelope=None
+            if approval is not None:
+                from .tools.submission_receipt import from_approval
+                envelope=from_approval(approval,self.path.with_name('spec.json'),self.path,output,phase,attempt_id)
             from .tools.storage_budget import check as storage_check
             storage=storage_check(spec,output,phase)
             if storage['status']!='PASS':raise ValueError('insufficient output storage before reserve')
-            if spec.get('engineering_recovery'):
+            if spec.get('engineering_recovery') and envelope is None:
                 if phase!='formal' or book['attempts']:raise ValueError('Single-use recovery allows one formal attempt only')
                 from .tools.motion_recovery_certificate import validate as validate_recovery
                 certificate=validate_recovery(spec,book)
@@ -52,11 +56,13 @@ class Ledger:
                 from .tools.experiment_preparation import verify_publication
                 verify_publication(self.path.with_name('spec.json'),authorized=True)
                 completed.add('source_eval')
-            if spec.get('source_evidence_reference') and not spec.get('engineering_recovery'):
+            if envelope is None and spec.get('source_evidence_reference') and not spec.get('engineering_recovery'):
                 from .tools.source_evidence import check as check_source
                 if check_source(spec,spec['source_evidence_reference'])['status']!='REUSABLE':raise ValueError('source certificate not reusable')
                 completed.add('source_eval')
-            if phase=='formal':
+            if envelope is not None:
+                completed.update({'source_eval','smoke'})
+            if phase=='formal' and envelope is None:
                 from native_stand.command_v6.wiring import completed_smoke
                 completed.discard('smoke')
                 if completed_smoke(book,spec):completed.add('smoke')
@@ -70,7 +76,8 @@ class Ledger:
             if not prerequisites.get(phase,set()) <= completed:
                 raise ValueError("required preceding phase has not completed")
             book["attempts"][attempt_id] = {"phase":phase,"output_dir":output,
-                "status":"RUNNING","updates":0,"started_unix_s":time.time()}
+                "status":"RUNNING","updates":0,"started_unix_s":time.time(),
+                **({"submission_receipt":envelope} if envelope is not None else {})}
         spec_path=self.path.with_name('spec.json')
         recovery=json.loads(spec_path.read_text()).get('engineering_recovery') if spec_path.exists() else None
         if recovery:

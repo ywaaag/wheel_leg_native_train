@@ -4,6 +4,10 @@ import torch
 
 def effective(target, elapsed_s, *, height=.363, entry=.5, ramp=.5, hold=3., exit=.5):
     t = elapsed_s.unsqueeze(-1)
+    if exit == 0:
+        # Explicit hold-until-timeout recipe; never divide by a zero exit time.
+        gain = ((t-entry)/ramp).clamp(0.,1.)
+        return torch.cat((target*gain, torch.full_like(target[:, :1], height)), -1)
     gain = torch.minimum(((t-entry)/ramp).clamp(0.,1.),
                          ((entry+ramp+hold+exit-t)/exit).clamp(0.,1.))
     return torch.cat((target*gain, torch.full_like(target[:, :1], height)), -1)

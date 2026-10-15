@@ -33,7 +33,7 @@ _NEXT[RunState.STOPPED_BOUNDED] = set()
 def transition(previous, current, *, continuation=None):
     previous, current = RunState(previous), RunState(current)
     if previous==RunState.SOURCE_EVAL and current==RunState.FORMAL and continuation is not None:
-        if (continuation.get('version')!='verified_course_continuation_v1' or continuation.get('verified') is not True
+        if (continuation.get('version') not in ('verified_course_continuation_v1','verified_student_storage_continuation_v1','verified_motion_continuation_v1','verified_motion_wiring_recovery_v1') or continuation.get('verified') is not True
                 or len(continuation.get('checkpoint_sha256',''))!=64):
             raise ValueError('invalid verified continuation lifecycle evidence')
         return current.value

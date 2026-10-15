@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 import select
-import shutil
 import subprocess
 import sys
 import time
@@ -115,7 +114,7 @@ def worker(args):
                 if plan['status']!='PASS':
                     raise ValueError(f'{label}/{phase} preflight: {plan["errors"]}')
                 attempt=uuid.uuid4().hex
-                Ledger(spec.with_name('budget.json')).reserve(attempt,phase,output)
+                Ledger(spec.with_name('budget.json')).reserve(attempt,phase,output,approval=plan)
                 initial=not phases
                 if initial:
                     writer=args.handshake_fd
@@ -192,21 +191,20 @@ def launch(args):
         if args.config.with_name('ab_submission.json').exists():
             raise ValueError('A/B already submitted; no duplicate chain or retries')
         chain.mkdir(parents=True,exist_ok=False)
-        execution=chain/'execution_snapshot/src/native_stand'
-        shutil.copytree(ROOT.parent,execution,ignore=shutil.ignore_patterns('__pycache__'))
-        code_files={str(path.relative_to(execution)):sha(path) for path in execution.rglob('*.py')}
-        write(chain/'execution_snapshot/code_identity.json',code_files)
+        from native_stand.command_v6.tools.source_identity import record_identity
+        first=next(iter(config['arms'].values()))
+        recorded=record_identity(read(first['spec']),chain)
         token=uuid.uuid4().hex
         write(chain/'manifest.json',{'attempt_id':token,'hapi_session':config['hapi_session'],
             'kind':'cohort_width_ab','submitted_unix_s':time.time(),'config_sha256':sha(args.config),
-            'code_sha256':identity(code_files),
+            'code_sha256':recorded['tree_digest'],'source_code_copied_bytes':0,
             'source_sha256':config['source_sha256'],'physical_gpu':1,'config':config})
         reader,writer=os.pipe()
-        command=[sys.executable,str(execution/'command_v6/motion_width_ab.py'),
+        command=[sys.executable,str(ROOT/'motion_width_ab.py'),
             '--config',str(args.config.resolve()),'--output-dir',str(chain),'--worker','--handshake-fd',str(writer)]
         with (chain/'chain.log').open('x') as stream:
             child=subprocess.Popen(command,env={**os.environ,'CUDA_VISIBLE_DEVICES':'1',
-                'PYTHONPATH':str(execution.parent)},start_new_session=True,stdin=subprocess.DEVNULL,
+                'PYTHONPATH':str(ROOT.parents[1])},start_new_session=True,stdin=subprocess.DEVNULL,
                 stdout=stream,stderr=subprocess.STDOUT,pass_fds=(writer,))
         os.close(writer)
         write(args.config.with_name('ab_submission.json'),{'supervisor_pid':child.pid,'command':command,'run':str(chain),'attempt_id':token})

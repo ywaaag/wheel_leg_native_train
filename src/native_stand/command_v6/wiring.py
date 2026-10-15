@@ -205,6 +205,22 @@ def validate_persisted_certificate(folder, spec, *, certificate_path=None):
 
 
 def completed_smoke(book,spec):
+    if spec.get('motion_training',{}).get('wiring_reuse'):
+        try:
+            from native_stand.students.motion_wiring_recovery import verify
+            return verify(spec)['status']=='VERIFIED'
+        except (OSError,ValueError,KeyError,TypeError):return False
+    if spec.get('motion_training',{}).get('resume'):
+        try:
+            from native_stand.students.motion_training_requests import verify_continuation
+            return verify_continuation(spec)
+        except (OSError,ValueError,KeyError,TypeError):return False
+    if spec.get('student_storage_resume'):
+        try:
+            from native_stand.students.storage_resume import verify
+            verify(spec)
+            return True
+        except (OSError,ValueError,KeyError,TypeError):return False
     if spec.get('recovery_course',{}).get('resume'):
         try:
             from native_stand.students.course_requests import verify_continuation

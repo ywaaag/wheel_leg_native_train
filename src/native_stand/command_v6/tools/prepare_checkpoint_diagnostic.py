@@ -43,10 +43,10 @@ def prepare(parent, checkpoint, output, *, family, protocol, session, physical_g
         requests=[validate_request(spec,{'checkpoint':str(checkpoint),'sha256':sha(checkpoint),'target':[0,0],
             'family':family,'seconds':batch_seconds(spec),'seed':seed,'diagnostic_profile':diagnostic_profile})]
     else:
-        from .motion_batch import validate_request as validate_motion
+        from ..domain.evaluation_requests import motion_request as validate_motion
         if not commands:raise ValueError('Explicit Motion commands required')
         seconds=spec['evaluation'].get('light_seconds',4.) if evaluation_mode=='light' else spec['evaluation']['seconds']
-        requests=[validate_motion(spec,{'checkpoint':str(checkpoint),'sha256':sha(checkpoint),'target':c,
+        requests=[validate_motion({'checkpoint':str(checkpoint),'sha256':sha(checkpoint),'target':c,
             'seconds':seconds,'seed':seed,'diagnostic_profile':diagnostic_profile,'evaluation_mode':evaluation_mode}) for c in commands]
     storage=profile(diagnostic_profile,task='recovery' if recovery else 'motion',dt=spec['control']['policy_dt_s'])
     spec.update(experiment=output.name,effective_recipe_version=1,evaluation_only=True,

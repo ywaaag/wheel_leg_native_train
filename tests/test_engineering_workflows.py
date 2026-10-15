@@ -4,7 +4,7 @@ import pytest
 from native_stand.command_v6.domain.time_axis import interval,event,sustained_events
 from native_stand.command_v6.domain.diagnostic_profiles import storage_plan
 from native_stand.command_v6.tools.audit_terminal import audit
-from native_stand.command_v6.tools.validate_frozen_cpu import validate
+from native_stand.command_v6.tools.validate_cpu import validate
 
 
 def test_clocks_half_open_poststep_and_unknown_initialization():

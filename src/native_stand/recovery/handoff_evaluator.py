@@ -26,18 +26,27 @@ def json_value(value):
     if isinstance(value,(list,tuple)):return [json_value(v) for v in value]
     return value
 
-def atomic_result(folder,index,payload,arrays,cap):
+def atomic_result(folder,index,payload,arrays,cap,*,artifact_cap_bytes=None):
     payload=json_value(payload)
     encoded=json.dumps(payload,allow_nan=False)
     folder=Path(folder);tmp=folder/f'.trace_{index:02d}.tmp.npz';dest=folder/f'trace_{index:02d}.npz';jsonpath=folder/f'evaluation_{index:02d}.json'
     if dest.exists() or jsonpath.exists():raise FileExistsError('No result overwrite')
     try:
         np.savez_compressed(tmp,**arrays)
-        if sum(p.stat().st_size for p in folder.rglob('*') if p.is_file())+len(encoded.encode())>cap:raise RuntimeError('Handoff storage cap exceeded')
-        tmp.rename(dest);payload['trace']={'path':dest.name,'sha256':hashlib.sha256(dest.read_bytes()).hexdigest(),'arrays':{k:list(v.shape) for k,v in arrays.items()},'axes':'policy_sample,scored_env,feature'}
-        part=jsonpath.with_suffix('.tmp');part.write_text(json.dumps(payload,indent=2,allow_nan=False));part.rename(jsonpath)
+        payload['trace']={'path':dest.name,'sha256':hashlib.sha256(tmp.read_bytes()).hexdigest(),'arrays':{k:list(v.shape) for k,v in arrays.items()},'axes':'policy_sample,scored_env,feature'}
+        encoded=json.dumps(payload,indent=2,allow_nan=False)
+        added=tmp.stat().st_size+len(encoded.encode())
+        if artifact_cap_bytes is not None and added>artifact_cap_bytes:raise RuntimeError('Evaluation artifact storage cap exceeded')
+        if sum(p.stat().st_size for p in folder.rglob('*') if p.is_file())+len(encoded.encode())>cap:raise RuntimeError('Handoff cumulative storage cap exceeded')
+        part=jsonpath.with_suffix('.tmp');part.write_text(encoded)
+        tmp.rename(dest)
+        try:part.rename(jsonpath)
+        except BaseException:
+            dest.unlink();raise
     finally:
         if tmp.exists():tmp.unlink()
+        part=jsonpath.with_suffix('.tmp')
+        if part.exists():part.unlink()
     return jsonpath
 
 
@@ -45,7 +54,7 @@ def execute(args,spec):
     from native_stand.command_v6.completion import write
     from native_stand.command_v6.ledger import Ledger
     from native_stand.command_v6.tools.evaluate_checkpoint import batch_plan
-    from native_stand.command_v6.train import _snapshot
+    from native_stand.command_v6.train import record_run_configuration
     import torch
     from tensordict import TensorDict
     p=batch_plan(args,spec)
@@ -54,7 +63,7 @@ def execute(args,spec):
     book=json.loads(Ledger(args.spec.with_name('budget.json')).path.read_text());attempt=book['attempts'].get(args.attempt_id)
     if not attempt or attempt['status']!='RUNNING' or attempt['output_dir']!=str(args.output.resolve()):raise ValueError('Exact reservation differs')
     start=attempt['started_unix_s'];deadline=start+args.wall_limit_s;app=env=None;completed=[];status='FAILED';failure=None;allsteps=scoredsteps=0;rows=spec['motion_handoff']['cases'];states=[{'index':i,'status':'NOT_RUN','condition':row} for i,row in enumerate(rows)]
-    args.output.mkdir(exist_ok=False,parents=True);snapshot=_snapshot(args.output,args.spec)
+    args.output.mkdir(exist_ok=False,parents=True);snapshot=record_run_configuration(args.output,args.spec)
     rng=torch.get_rng_state().clone();cuda_rng=None;buffers={};valid=[];index=None
     write(args.output/'manifest.json',{'attempt_id':args.attempt_id,'phase':'evaluate','spec_sha256':hashlib.sha256(args.spec.read_bytes()).hexdigest(),'asset_sha256':spec['asset_sha256'],'source_sha256':spec['source_sha256'],'source_snapshot_sha256':snapshot,'PPO':0,'optimizer':0,'protocol':spec['motion_handoff']['protocol'],'simulated_envs':64,'scored_envs':8})
     try:

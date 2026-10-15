@@ -95,8 +95,9 @@ def test_run_phase_is_single_certificate_generation_owner(tmp_path,monkeypatch,c
     spec={'source_sha256':'fixture','budget':{'smoke_updates':3}}
     spec_path.write_text(json.dumps(spec))
     output=tmp_path/'smoke'
-    monkeypatch.setattr(stand_chain,'check',lambda *args,**kwargs:{'status':'PASS'})
-    monkeypatch.setattr(stand_chain,'Ledger',lambda *args:SimpleNamespace(reserve=lambda *args:None))
+    from native_stand.command_v6.tools.submission_receipt import Approval
+    monkeypatch.setattr(stand_chain,'check',lambda *args,**kwargs:Approval({'status':'PASS'}))
+    monkeypatch.setattr(stand_chain,'Ledger',lambda *args:SimpleNamespace(reserve=lambda *args,**kwargs:None))
     def spawn(*args,**kwargs):
         output.mkdir()
         complete_smoke_fixture(output,spec_path,3)

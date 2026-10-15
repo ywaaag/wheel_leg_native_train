@@ -188,6 +188,11 @@ def validate(spec):
         from native_stand.recovery.validation import validate_recovery
         errors.extend(validate_recovery(spec))
     ppo, budget = spec["ppo"], spec["budget"]
+    try:
+        from .domain.execution_limits import validate_budget
+        from .domain.artifact_policy import validate as retention_policy
+        validate_budget(spec);retention_policy(spec)
+    except (ValueError,KeyError,TypeError) as exc:errors.append(str(exc))
     trace_updates=evaluation.get('full_trace_updates',[])
     if (not isinstance(trace_updates,list) or
             any(type(u) is not int or u<1 or u>budget.get('formal_updates',0) or
@@ -208,7 +213,7 @@ def validate(spec):
                 spec.get('source_input_dim')!=150 or not ref.get('sha256') or not ref.get('single_use_id')):
             errors.append('Restricted Motion engineering recovery declaration invalid')
     elif (budget.get("formal_updates",0)<1 or budget.get("smoke_updates",0)<1 or
-            budget.get("source_eval_wall_s",0)<=30 or budget.get("smoke_wall_s",0)<=60 or
+            budget.get("source_eval_wall_s",0)<=30 or (budget.get("smoke_wall_s",0) is not None and budget.get("smoke_wall_s",0)<=60) or
             (budget.get("formal_wall_s",0) is not None and budget.get("formal_wall_s",0)<=120)):
         errors.append("PPO update limits invalid")
     warmup = ppo.get("critic_warmup_updates", 0)

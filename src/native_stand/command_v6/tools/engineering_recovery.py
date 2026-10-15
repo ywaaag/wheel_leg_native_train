@@ -105,7 +105,6 @@ def apply(plan_record, expected_sha):
         json.dump({'status':'PUBLICATION_CLAIMED','plan_sha256':expected_sha,
                    'destination':str(target),'attempt_ids':current['imported_attempt_ids']},stream)
     target.mkdir(parents=True,exist_ok=False)
-    from ..stand_chain import correct_smoke_receipt
     correct_smoke_receipt(Path(current['source_spec']),Path(current['smoke_dir']),target/'corrected_smoke_certificate.json')
     for name,value in (('spec.json',spec),('budget.json',book),('engineering_recovery_plan.json',current)):
         with (target/name).open('x') as stream:json.dump(value,stream,indent=2);stream.write('\n')
@@ -131,6 +130,21 @@ def main(argv=None):
         if not args.expected_plan_sha:parser.error('--execute requires the previously reviewed --expected-plan-sha')
         result=apply(result,args.expected_plan_sha)
     print(json.dumps(result,indent=2))
+
+
+
+
+def correct_smoke_receipt(spec_path, evidence_folder, output):
+    """Phase-owner offline correction in a fresh file; original receipt stays intact."""
+    from native_stand.command_v6.wiring import smoke_certificate
+    old=read(Path(evidence_folder)/'wiring_certificate.json')
+    if old.get('errors')!=['smoke did not observe the required completed_episode']:
+        raise ValueError('unexpected smoke failure; correction is not a general bypass')
+    certificate=smoke_certificate(Path(evidence_folder),read(spec_path))
+    if certificate['status']!='PASSED':raise ValueError(certificate['errors'])
+    with Path(output).open('x') as stream:
+        json.dump(certificate,stream,indent=2);stream.write('\n')
+    return certificate
 
 
 if __name__=='__main__':main()

@@ -61,6 +61,7 @@ def compact_report_value(value, key=''):
 
 def plan(spec, phase):
     from .config import schedule
+    from .domain.execution_limits import ExecutionLimits
     updates = 0 if phase == 'source_eval' else spec['budget'][phase + '_updates']
     schedules = [schedule(update, phase, spec['evaluation']) for update in range(1, updates+1)]
     if schedules and phase=='smoke':schedules[-1]['light']=True
@@ -75,7 +76,7 @@ def plan(spec, phase):
         'light_evaluations': light*cases, 'full_evaluations': (full*cases if updates else 1),
         'training_wall_estimate_s': None, 'evaluation_wall_estimate_s': None,
         'estimate_reason': 'no measured plane-project runtime; historical mesh timing is not an equivalent benchmark',
-        'wall_limit_s': spec['budget'][phase + '_wall_s'], 'terminal_reserve_s': 60 if updates else 30,
+        'wall_limit_s': ExecutionLimits.resolve(spec,phase).wall_s, 'terminal_reserve_s': 60 if updates else 30,
         'evaluation_fraction_target': [0.10, 0.15], 'frozen_schedule_not_skipped': True}
 
 
@@ -344,7 +345,7 @@ def choose_capability(classified,latest,expected,checkpoints=None):
         best_overall=eligible[0] if eligible else None,accepted=accepted)
 
 
-def finalize_report(run, exit_code=None, *, corrected_output=None):
+def _finalize_report(run, exit_code=None, *, corrected_output=None):
     run = Path(run).resolve()
     destination=run
     if corrected_output is not None:
@@ -354,28 +355,41 @@ def finalize_report(run, exit_code=None, *, corrected_output=None):
         destination.mkdir(parents=True,exist_ok=False)
     with (destination/'completion.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        if (run/'report_ready.json').is_file():
+        if corrected_output is None and (run/'report_ready.json').is_file():
             return read(run/'analysis.json')
         manifest = read(run/'manifest.json', {})
         spec = read(run/'source_snapshot/spec.json')
         if spec is None:
             raise ValueError('immutable run spec snapshot missing')
+        if manifest.get('spec_sha256') and sha(run/'source_snapshot/spec.json')!=manifest['spec_sha256']:
+            raise ValueError('Recorded configuration SHA differs')
         terminal = read(run/'terminal_report.json', {})
         progress = read(run/'progress.json', {})
         metrics, issues = read_metrics(run/'metrics.jsonl')
         if spec.get('student_training'):
             from native_stand.students.training_evidence import finalize
             return finalize(run,spec,manifest,terminal,progress,metrics,exit_code,destination)
-        expected = evaluation_identity(spec, manifest.get('evaluator_sha256'))
+        expected = manifest.get('evaluation_identity') or evaluation_identity(spec, manifest.get('evaluator_sha256'))
         entries = read(run/'candidate_registry.json', [])
         baseline_run = manifest.get('source_baseline_run')
         if baseline_run and Path(baseline_run).resolve() != run:
             if spec.get('engineering_recovery'):
                 from .tools.motion_recovery_certificate import migrated_source_entries
-                entries+=migrated_source_entries(spec,expected,report_manifest=manifest,
-                    report_snapshot=run/'source_snapshot')
+                try:
+                    entries+=migrated_source_entries(spec,expected,recorded_receipt=read(run/'submission_receipt.json')) if (run/'submission_receipt.json').is_file() else migrated_source_entries(spec,expected,report_manifest=manifest,report_snapshot=run/'source_snapshot')
+                except (OSError,ValueError,KeyError,TypeError) as error:
+                    issues.append({'source_evidence':'MISSING_OR_INVALID','error':str(error)})
             else:entries += [entry for entry in read(Path(baseline_run)/'candidate_registry.json', []) if entry.get('role') == 'source']
         for entry in entries:
+            reference=entry.get('evaluation')
+            if reference:
+                folder=Path(entry.get('evidence_run') or run)
+                raw=(folder/reference).resolve()
+                expected_sha=entry.get('evaluation_sha256')
+                if (not raw.is_relative_to(folder.resolve()) or not raw.is_file() or
+                    expected_sha is None or sha(raw)!=expected_sha):
+                    entry['identity']={**entry.get('identity',{}),'raw_integrity':'missing_or_changed'}
+                    issues.append({'evaluation':reference,'status':'MISSING_OR_INVALID'})
             checkpoint=Path(entry['checkpoint'])
             if not checkpoint.is_file() or sha(checkpoint)!=entry['checkpoint_sha256']:
                 entry['identity']={**entry.get('identity',{}),'checkpoint_integrity':'missing_or_changed'}
@@ -421,8 +435,11 @@ def finalize_report(run, exit_code=None, *, corrected_output=None):
         analysis=compact(analysis);selection=compact(selection)
         from .tools.storage_budget import actual_bytes
         analysis['artifact_storage_actual']=actual_bytes(run)
-        write(destination/'analysis.json', analysis)
+        from .domain.evidence_summary import selection_summary
         write(destination/'candidate_selection.json', selection)
+        analysis['candidate_selection']=selection_summary(selection)
+        analysis['candidate_selection_reference']={'path':str((destination/'candidate_selection.json').resolve()),'sha256':sha(destination/'candidate_selection.json')}
+        write(destination/'analysis.json', analysis)
         report = ['# Native '+('straight-line capability' if spec.get('straight_high_speed_course') else 'recovery' if spec.get('task')=='recovery' else 'standing')+' completion', f'Event: {event_id}', f'Run: {run}',
             f"Terminal: {analysis['status']}; exit={exit_code}; conflict={conflict}",
             f"Updates/samples: {analysis['actual_updates']} / {samples}; wall={wall}",
@@ -445,6 +462,39 @@ def finalize_report(run, exit_code=None, *, corrected_output=None):
             'report_sha256': sha(destination/'completion_report.md'), 'time': time.time(),
             'original_run':str(run),'corrected_output':corrected_output is not None})
         return analysis
+
+
+def finalize_report(run,exit_code=None,*,corrected_output=None):
+    """Always deliver a conservative ended-run summary even if rich scoring fails."""
+    if corrected_output is not None:
+        destination=Path(corrected_output).resolve();original=Path(run).resolve()
+        if destination==original or destination.is_relative_to(original):raise ValueError('Corrected report must be outside immutable run')
+        if destination.exists():raise FileExistsError(destination)
+    try:return _finalize_report(run,exit_code,corrected_output=corrected_output)
+    except Exception as error:
+        run=Path(run).resolve();destination=Path(corrected_output).resolve() if corrected_output else run
+        if corrected_output and (destination==run or destination.is_relative_to(run)):raise
+        destination.mkdir(parents=True,exist_ok=True)
+        with (destination/'completion.lock').open('a') as lock:
+            fcntl.flock(lock,fcntl.LOCK_EX)
+            if (destination/'report_ready.json').exists():return read(destination/'analysis.json',{})
+            def safe(name):
+                try:return read(run/name,{}) or {}
+                except (OSError,ValueError,TypeError):return {}
+            terminal=safe('terminal_report.json');manifest=safe('manifest.json');monitor=safe('monitor_exit.json')
+            event=identity({'attempt':manifest.get('attempt_id'),'run':str(run),'session':manifest.get('hapi_session')})[:24]
+            analysis={'event_id':event,'run':str(run),'status':terminal.get('status','UNKNOWN'),
+                'actual_updates':terminal.get('actual_updates'),'samples':terminal.get('samples'),
+                'wall_including_cleanup_s':monitor.get('attempt_wall_including_cleanup_s'),
+                'reason':terminal.get('reason') or terminal.get('failure'),'report_status':'MISSING_OR_INVALID_EVIDENCE',
+                'report_error':repr(error),'accepted':False,'candidate_selection':{'accepted_candidate':None},
+                'training_accounting_unchanged':True,'capability_status':'UNKNOWN'}
+            selection={'accepted_candidate':None,'best_observed_candidate':None,'evidence_status':'MISSING_OR_INVALID'}
+            write(destination/'analysis.json',analysis);write(destination/'candidate_selection.json',selection)
+            (destination/'completion_report.md').write_text('# Native terminal summary\n\n'+json.dumps(analysis,indent=2,ensure_ascii=False)+'\n')
+            write(destination/'report_ready.json',{'event_id':event,'status':'summary_ready','report_sha256':sha(destination/'completion_report.md'),
+                'time':time.time(),'original_run':str(run),'corrected_output':corrected_output is not None})
+            return analysis
 
 
 def transport(session, message):
@@ -506,7 +556,7 @@ def notify(run, send=transport):
         best = selection.get('best_observed_candidate')
         message = (f"事件ID：{ready['event_id']}\nrun：{run}\n终态：{read(run/'analysis.json')['status']}\n"
             f"最佳候选：{best['checkpoint'] if best else '暂无'}；通过：{bool(selection.get('accepted_candidate'))}\n"
-            f"报告：{run/'completion_report.md'}\n请读取报告复盘；本通知不授权自动续训。")
+            f"报告：{run/'completion_report.md'}\n请读取报告复盘，并按当前有效用户授权处理后续工作。")
         if 'stage_selections' in selection:
             certificate=read(run/'analysis.json').get('final_capability_certificate') or {}
             message += (f"\n已通过阶段：{list(selection.get('accepted_by_stage',{}))}；"

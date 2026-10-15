@@ -59,7 +59,7 @@ def main():
             train.send_handshake(args.handshake_fd,progress);handshake_sent=True
     try:
         args.output_dir.mkdir(parents=True,exist_ok=False)
-        snapshots=train._snapshot(args.output_dir,args.spec)
+        snapshots=train.record_run_configuration(args.output_dir,args.spec)
         train._write(args.output_dir/'manifest.json',{'attempt_id':attempt,'phase':'source_eval',
             'mode':args.mode,'task':'recovery_preparation','plan':plan,'source_snapshot_sha256':snapshots,
             'stand_sha256':config['stand_sha256'],'asset_sha256':spec['asset_sha256'],'ppo_updates':0})

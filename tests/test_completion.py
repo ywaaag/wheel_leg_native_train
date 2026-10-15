@@ -87,6 +87,8 @@ def test_at_most_once_and_review_ack(tmp_path):
     assert notify(tmp_path,send)['status']=='sent'
     assert notify(tmp_path,send)['status']=='sent'
     assert len(calls)==1
+    assert '不授权自动续训' not in calls[0][1]
+    assert '按当前有效用户授权处理后续工作' in calls[0][1]
     acknowledge(tmp_path)
     assert notify(tmp_path,send)['status']=='reviewed'
     assert len(calls)==1

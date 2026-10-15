@@ -53,6 +53,7 @@ def main():
                         help="0 keeps preview running until the GUI closes")
     parser.add_argument("--run",action="store_true")
     parser.add_argument("--preview-family",help="Explicit Recovery holdout family for single-environment preview")
+    parser.add_argument("--diagnostic-initialization",action="store_true",help="Student GUI only: preview a legal pose-library family outside the assessment matrix; no capability certification")
     parser.add_argument('--keyboard',action='store_true',help='Motion preview only: W/S commands, smooth release to zero')
     parser.add_argument('--physical-gpu',type=int,choices=(0,1),default=None)
     parser.add_argument('--speed',type=float,default=1.)
@@ -176,7 +177,7 @@ def main():
             raise RuntimeError(f"play preflight failed: {preflight['errors']}")
         ledger=Ledger(args.spec.with_name("budget.json"))
         attempt_id=uuid.uuid4().hex
-        ledger.reserve(attempt_id,"play",args.output)
+        ledger.reserve(attempt_id,"play",args.output,approval=preflight)
     started=time.monotonic()
     env=app=None
     keyboard_api=keyboard_device=subscription=window=None
@@ -247,11 +248,12 @@ def main():
         actor=build_model(observation,actor=True,spec=spec).to(env.device)
         checkpoint=torch.load(args.checkpoint,map_location="cpu",weights_only=False)
         weights=checkpoint["actor"]
-        if weights["mlp.0.weight"].shape[-1]==132:
+        from native_stand.command_v6.tools.model_adapter import ModelAdapter
+        if ModelAdapter(checkpoint).describe()['actor_input_shape'][-1]==132:
             if digest(args.checkpoint)!=spec["source_sha256"]:
                 raise RuntimeError("source B200 checkpoint identity differs")
             weights=expand_state(weights,actor.state_dict())
-        actor.load_state_dict(weights,strict=True)
+        ModelAdapter({'actor':weights}).load(actor,'actor')
         if digest(args.checkpoint)==spec['source_sha256'] and spec.get('wheel_envelope_conversion'):
             from native_stand.command_v6.domain.warmstart import convert_wheel_envelope
             convert_wheel_envelope(actor,old_scale=spec['wheel_envelope_conversion']['source_scale_rad_s'],

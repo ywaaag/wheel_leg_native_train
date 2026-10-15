@@ -62,9 +62,10 @@ def main():
     spec=json.loads(args.spec.read_text())
     if args.phase=='evaluate':
         return evaluation_main(args,spec)
-    bound=spec["budget"]["source_eval_wall_s"] if args.phase=="source_eval" else (
-        spec["budget"]["smoke_wall_s"] if args.phase=="smoke" else spec["budget"]["formal_wall_s"])
-    if spec['evaluation'].get('protocol_identity')=='capability_v2':
+    from native_stand.command_v6.domain.execution_limits import ExecutionLimits
+    limits=ExecutionLimits.resolve(spec,args.phase)
+    bound=limits.wall_s
+    if spec['evaluation'].get('protocol_identity')=='capability_v2' and bound is not None:
         book=json.loads(args.spec.with_name('budget.json').read_text())
         spent=sum(float(row.get('wall_s') or 0.) for key,row in book['attempts'].items()
                   if key!=args.attempt_id)
@@ -72,7 +73,7 @@ def main():
         if spec.get('straight_high_speed_course') and book.get('chain_started_unix_s'):
             bound=min(bound,max(1.,64800.-(time.time()-book['chain_started_unix_s'])))
     if args.wall_limit_s is not None:
-        if not 60<=args.wall_limit_s<=bound:
+        if args.wall_limit_s<60 or (bound is not None and args.wall_limit_s>bound):
             raise ValueError('monitor wall override must narrow the frozen phase budget')
         bound=args.wall_limit_s
     command=[sys.executable,str(ROOT/"train.py"),"--spec",str(args.spec),
@@ -84,18 +85,40 @@ def main():
         command += ['--hapi-session',args.hapi_session]
     launch_failure=None
     try:
-        child=subprocess.Popen(command,cwd=str(ROOT.parents[1]),
-                               pass_fds=(args.handshake_fd,))
+        log=spec.get('artifacts',{}).get('runtime_log')
+        kwargs={'cwd':str(ROOT.parents[1]),'pass_fds':(args.handshake_fd,)}
+        if log:
+            import threading
+            kwargs.update(stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+        child=subprocess.Popen(command,**kwargs)
         os.close(args.handshake_fd)
+        if log:
+            from native_stand.command_v6.tools.artifact_io import rotate_bytes
+            # The monitor owns both child and byte stream. This is not a worker watcher.
+            errors=[];log_path=args.output_dir.with_name(args.output_dir.name+'.runtime.log')
+            def drain():
+                try:
+                    while True:
+                        chunk=child.stdout.read(65536)
+                        if not chunk:break
+                        rotate_bytes(log_path,chunk,maximum=log['max_bytes'],backups=log['backups'])
+                except BaseException as exc:
+                    errors.append(repr(exc));child.terminate()
+                finally:child.stdout.close()
+            pump=threading.Thread(target=drain,name='owned-child-log',daemon=True);pump.start()
         exit_code=child.wait()
+        if log:
+            pump.join(timeout=5)
+            if pump.is_alive() or errors:raise OSError('owned log delivery failed: '+str(errors))
     except OSError as exc:
-        os.close(args.handshake_fd)
+        try:os.close(args.handshake_fd)
+        except OSError:pass
         launch_failure=repr(exc)
         exit_code=127
     if not args.output_dir.exists():
         args.output_dir.mkdir()
-        (args.output_dir/'source_snapshot').mkdir()
-        write(args.output_dir/'source_snapshot/spec.json',spec)
+        from native_stand.command_v6.tools.source_identity import record_configuration
+        record_configuration(args.output_dir,args.spec)
         write(args.output_dir/'manifest.json',{'attempt_id':args.attempt_id,'phase':args.phase,
             'hapi_session':args.hapi_session,'artifact_origin':'monitor after trainer exit without artifacts'})
     result=reconcile(args.spec.with_name("budget.json"),args.attempt_id,
@@ -140,6 +163,13 @@ def evaluation_main(args,spec):
     write(args.output_dir/'monitor_exit.json',{'exit_code':exit_code,**result,'launch_failure':failure,
         'ledger':book['attempts'][args.attempt_id],
         'attempt_wall_including_cleanup_s':time.time()-row['started_unix_s']})
+    if spec.get('student_motion_validation'):
+        from native_stand.students.motion_validation import finalize
+        try:
+            finalize(args.output_dir,spec,result['status'])
+            notify(args.output_dir)
+        except Exception as exc:
+            write(args.output_dir/'completion_error.json',{'error':repr(exc),'training_status_unchanged':result['status']})
     return 0 if result['status'] in ('COMPLETED','STOPPED_BOUNDED') and exit_code==0 else 1
 
 

@@ -48,7 +48,9 @@ def test_plan_only_pass_and_no_side_effect(setup):
 
 def test_reserved_attempt_preflight_is_exact(setup):
     _,path,run=setup
-    Ledger(path.with_name('budget.json')).reserve('owned','source_eval',run)
+    approval=check(path,run,'source_eval')
+    assert approval['status']=='PASS',approval['errors']
+    Ledger(path.with_name('budget.json')).reserve('owned','source_eval',run,approval=approval)
     assert check(path,run,'source_eval',attempt_id='owned')['status']=='PASS'
     assert check(path,run,'source_eval',attempt_id='other')['status']=='FAIL'
 

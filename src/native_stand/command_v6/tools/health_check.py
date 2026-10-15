@@ -18,23 +18,8 @@ def digest(path):
 
 
 def checkpoint_metadata(path):
-    import torch
-    try:
-        checkpoint=torch.load(path,map_location='cpu',weights_only=False)
-        if checkpoint.get('interface_version') in ('multiskill_student_v1','multiskill_mcu_v2'):
-            return {'interface_version':checkpoint['interface_version'],'role':checkpoint['role'],
-                'actor_input_shape':list(checkpoint['actor']['mlp.0.weight'].shape),
-                'critic_input_shape':list(checkpoint['critic']['mlp.0.weight'].shape),
-                'std':checkpoint['actor']['log_std'].exp().tolist(),
-                'dataset_sha256':checkpoint['dataset_sha256'],'manifest_sha256':checkpoint['manifest_sha256'],
-                'offline_bc_steps':checkpoint['offline_bc_steps']}
-        return {'update':checkpoint.get('update'),'asset_sha256':checkpoint.get('asset_sha256'),
-            'spec_sha256':checkpoint.get('spec_sha256'),
-            'source_sha256':checkpoint.get('source_sha256'),
-            'actor_input_shape':list(checkpoint['actor']['mlp.0.weight'].shape),
-            'critic_input_shape':list(checkpoint['critic']['mlp.0.weight'].shape),
-            'std':checkpoint['actor']['distribution.std_param'].tolist(),
-            'optimizer_lr':[group['lr'] for group in checkpoint['optimizer']['param_groups']]}
+    from .model_adapter import read
+    try:return read(path).validate()
     except (OSError,ValueError,RuntimeError,KeyError,TypeError) as exc:
         return {'status':'IDENTITY_ERROR','error':str(exc)}
 
@@ -216,20 +201,63 @@ def inspect_project(root, *, spec_path=None, run=None, include_processes=False, 
             if source.is_file():
                 if spec.get('interface_version') in ('multiskill_student_v1','multiskill_mcu_v2'):
                     checkpoint_info=metadata(source)
-                    if checkpoint_info.get('interface_version')!=spec['interface_version'] or checkpoint_info.get('actor_input_shape')!=([128,31] if spec['interface_version']=='multiskill_mcu_v2' else [256,1182]) or checkpoint_info.get('critic_input_shape')!=([256,40] if spec['interface_version']=='multiskill_mcu_v2' else [256,1191]):
+                    if checkpoint_info.get('interface_version')!=spec['interface_version'] or checkpoint_info.get('actor_input_shape')!=([128,31] if spec['interface_version']=='multiskill_mcu_v2' else [256,1182]) or (checkpoint_info.get('critic_input_shape') is not None and checkpoint_info.get('critic_input_shape')!=([256,49 if checkpoint_info.get('critic_privileged_version') in ('standing_privileged49_v1','motion_privileged49_v1') else 40] if spec['interface_version']=='multiskill_mcu_v2' else [256,1191])):
                         issue('IDENTITY_ERROR',source,'student interface/network internal identity differs')
                     from native_stand.students.model import load
                     try:
-                        _,student=load(source,'RecoveryStudent')
+                        motion_training=spec.get('student_training',{}).get('version')=='student_motion31_training_v1'
+                        role='MotionZeroStudent' if spec.get('student_motion_validation') or motion_training else 'RecoveryStudent'
+                        actor,student=load(source,role)
+                        dataset_role=role
+                        successor=spec.get('motion_training',{}).get('successor')
+                        confirmation=spec.get('motion_confirmation')
+                        if spec.get('student_motion_validation') or (motion_training and not spec['motion_training']['resume'] and not successor and not confirmation and not spec.get('motion_course')):
+                            from native_stand.students.motion_transfer import transfer_actor
+                            import torch
+                            migration=student.get('migration',{})
+                            if migration.get('version')!='recovery_to_motion_actor_column_transfer_v1' or not migration.get('initialization_only'):
+                                raise ValueError('explicit migrated Motion initialization required')
+                            origin=Path(migration['source_checkpoint']);parent=Path(migration['source_spec'])
+                            if digest(origin)!=migration['source_sha256'] or digest(parent)!=migration['source_spec_sha256']:
+                                raise ValueError('Motion transfer source identity differs')
+                            teacher,origin_data=load(origin,'RecoveryStudent')
+                            expected=transfer_actor(teacher)
+                            if any(not torch.equal(v,expected.state_dict()[k]) for k,v in actor.state_dict().items()):
+                                raise ValueError('Motion migrated Actor differs from exact declared transfer')
+                            if student['dataset_sha256']!=origin_data['dataset_sha256'] or student['manifest_sha256']!=origin_data['manifest_sha256']:
+                                raise ValueError('Motion inherited teacher provenance differs')
+                            dataset_role='RecoveryStudent'
+                        elif motion_training:
+                            if spec.get('motion_advantage_probe'):
+                                from native_stand.students.motion_advantage_probe import validate as validate_probe
+                                validate_probe(spec)
+                            elif spec.get('motion_course'):
+                                from native_stand.students.motion_course_requests import verify
+                                verify(spec)
+                            elif confirmation:
+                                from native_stand.students.motion_confirmation import verify
+                                verify(spec)
+                            elif successor:
+                                from native_stand.students.motion_successor import verify
+                                verify(spec)
+                            else:
+                                from native_stand.students.motion_training_requests import verify_continuation
+                                verify_continuation(spec)
+                            dataset_role='RecoveryStudent'
                         dependencies=spec['student_dependencies']
+                        if successor:
+                            # Parent spec SHA is verified above; inherit provenance by
+                            # reference, without copying the legacy dependency graph.
+                            parent=json.loads(Path(successor['parent_spec']).read_text())
+                            dependencies={**parent['student_dependencies'],**dependencies}
                         manifests=[Path(p) for p,h in dependencies.items() if h==student['manifest_sha256']]
                         if len(manifests)!=1 or digest(manifests[0])!=student['manifest_sha256']:
                             raise ValueError('student teacher manifest binding differs')
                         manifest=json.loads(manifests[0].read_text())
-                        datasets=[row for role,row in manifest.items() if role==student['role']]
+                        datasets=[row for role,row in manifest.items() if role==dataset_role]
                         if len(datasets)!=1 or datasets[0]['sha256']!=student['dataset_sha256']:
                             raise ValueError('student dataset identity differs')
-                        episodes=[e for e in manifest['episodes'] if e['role']==student['role']]
+                        episodes=[e for e in manifest['episodes'] if e['role']==dataset_role]
                         if not episodes or any(e['asset_sha256']!=spec['asset_sha256'] for e in episodes):
                             raise ValueError('student teacher data asset provenance differs')
                     except (OSError,ValueError,KeyError,TypeError) as exc:issue('IDENTITY_ERROR',source,str(exc))
@@ -373,7 +401,13 @@ def inspect_project(root, *, spec_path=None, run=None, include_processes=False, 
                 if verdicts and any((value=='True')!=bool(selection.get('accepted_candidate')) for value in verdicts):
                     issue('IDENTITY_ERROR',completion_report,'Markdown/selection acceptance conflict')
             analysis=(read(report_path) if report_path.is_file() else None) or {}
-            if analysis.get('candidate_selection') is not None and analysis['candidate_selection']!=selection:
+            ref=analysis.get('candidate_selection_reference')
+            if ref:
+                selection_file=run/'candidate_selection.json'
+                if (Path(ref.get('path','')).resolve()!=selection_file.resolve() or
+                        not selection_file.is_file() or digest(selection_file)!=ref.get('sha256')):
+                    issue('IDENTITY_ERROR',report_path,'analysis/selection reference conflict')
+            elif analysis.get('candidate_selection') is not None and analysis['candidate_selection']!=selection:
                 issue('IDENTITY_ERROR',report_path,'analysis/selection conflict')
             roles=[(role,selection.get(role)) for role in ('source_baseline','latest_checkpoint','accepted_candidate',
                 'best_new_evaluated_candidate','best_observed_candidate','best_overall_candidate','fallback_checkpoint')]

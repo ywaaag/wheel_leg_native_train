@@ -112,7 +112,9 @@ def test_current_ab_plan_is_read_only_and_exact(tmp_path):
     book['used']={name:0 for name in book['limits']}
     book['attempts']={};book['source_eval_wall_used_s']=0
     ledger.write_text(json.dumps(book))
-    Ledger(ledger).reserve('exact','source_eval',tmp_path/'out')
+    approval=check(local,tmp_path/'out','source_eval')
+    assert approval['status']=='PASS',approval['errors']
+    Ledger(ledger).reserve('exact','source_eval',tmp_path/'out',approval=approval)
     assert check(local,tmp_path/'out','source_eval',attempt_id='exact')['status']=='PASS'
     assert check(local,tmp_path/'out','source_eval',attempt_id='other')['status']=='FAIL'
 
@@ -135,7 +137,8 @@ def fake_chain(tmp_path,monkeypatch,source_pass=True,formal_status='COMPLETED',s
         arms[label]={'spec':str(spec),'sha256':sha(spec)}
     config=tmp_path/'ab.json'
     write(config,{'arms':arms,'wall_limit_s':14400})
-    monkeypatch.setattr(ab,'check',lambda *args:{'status':'PASS'})
+    from native_stand.command_v6.tools.submission_receipt import approve
+    monkeypatch.setattr(ab,'check',lambda spec,output,phase:approve({'status':'PASS','spec_sha256':sha(spec)},spec,output,phase))
     calls=[]
     def popen(command,**kwargs):
         if spawn_error:
