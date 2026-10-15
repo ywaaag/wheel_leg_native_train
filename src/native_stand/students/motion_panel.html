@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Motion31 manual preview</title>
+<style>
+  :root{color-scheme:dark}
+  body{margin:0;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:#101216;color:#d7dbe0}
+  header{padding:10px 14px;border-bottom:1px solid #23262c;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+  h1{font-size:14px;margin:0;font-weight:600}
+  .note{color:#8b939c}
+  main{padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  section{border:1px solid #23262c;border-radius:6px;padding:10px 12px;background:#14171c}
+  h2{font-size:12px;margin:0 0 8px;color:#9aa3ac;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+  .row{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:6px 0}
+  input[type=range]{width:100%}
+  button{background:#23262c;color:#e6e9ed;border:1px solid #33383f;border-radius:4px;padding:6px 10px;cursor:pointer}
+  button:hover{background:#2b3037}
+  button.danger{border-color:#7a2f2f;background:#31201f}
+  table{width:100%;border-collapse:collapse}
+  td{padding:2px 0}
+  td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+  canvas{width:100%;height:130px;display:block;background:#0d0f12;border:1px solid #1d2025;border-radius:4px}
+  #status{color:#8b939c}
+  .warn{color:#d8a13a}
+  .ok{color:#63b06a}
+  kbd{border:1px solid #33383f;border-radius:3px;padding:0 4px;color:#c9cfd6}
+</style>
+</head>
+<body>
+<header>
+  <h1>Motion31 手动预览面板</h1>
+  <span id="status">连接中…</span>
+  <span class="note">浏览器 WSAD/手柄与 Isaac GUI 键盘同源（单命令通道）；预览不是能力认证</span>
+</header>
+
+<main>
+  <section>
+    <h2>命令</h2>
+    <div class="row"><span>前后速度档位 vx (m/s)</span><span id="vx-target-val">0.00</span></div>
+    <input id="vx-target" type="range" min="-2" max="2" step="0.05" value="0">
+    <div class="row"><span>转向速度档位 yaw (rad/s)</span><span id="yaw-target-val">0.00</span></div>
+    <input id="yaw-target" type="range" min="-1" max="1" step="0.05" value="0">
+    <div class="row"><span>本次会话上限 vx</span><span id="cap-speed-val">2.00</span></div>
+    <input id="cap-speed" type="range" min="0.05" max="2" step="0.05" value="2">
+    <div class="row"><span>本次会话上限 yaw</span><span id="cap-yaw-val">1.00</span></div>
+    <input id="cap-yaw" type="range" min="0" max="1" step="0.05" value="1">
+    <div class="row" style="gap:6px">
+      <button id="btn-stop" class="danger">停止运动</button>
+      <button id="btn-center">命令归中</button>
+      <button id="btn-reset">重置</button>
+      <button id="btn-csv">下载 CSV</button>
+    </div>
+    <div class="row"><span>目标高度 (m)</span><span>0.34 固定</span></div>
+    <div class="note">该 checkpoint 训练分布为 0/±0.5/±1 m/s 直线、yaw=0；高度 0.34 m 固定，超出分布的命令只作探索观察。</div>
+  </section>
+
+  <section>
+    <h2>实时状态</h2>
+    <table>
+      <tr><td>实测 vx (m/s)</td><td id="m-vx">—</td></tr>
+      <tr><td>命令 vx (m/s)</td><td id="m-cmd-vx">—</td></tr>
+      <tr><td>实测 yaw (rad/s)</td><td id="m-yaw">—</td></tr>
+      <tr><td>高度 (m)</td><td id="m-height">—</td></tr>
+      <tr><td>垂向速度 vz (m/s)</td><td id="m-vz">—</td></tr>
+      <tr><td>轮速 左/右 (rad/s)</td><td id="m-wheel">—</td></tr>
+      <tr><td>轮端力矩 左/右 (N·m)</td><td id="m-tau">—</td></tr>
+      <tr><td>步数 / 重置</td><td id="m-steps">—</td></tr>
+      <tr><td>命令来源</td><td id="m-source">—</td></tr>
+    </table>
+  </section>
+
+  <section style="grid-column:1/-1">
+    <h2>速度 / 偏航 / 高度</h2>
+    <canvas id="chart-main"></canvas>
+  </section>
+
+  <section style="grid-column:1/-1">
+    <h2>轮速 (rad/s) 与轮端力矩 (N·m)</h2>
+    <canvas id="chart-wheel"></canvas>
+  </section>
+
+  <section style="grid-column:1/-1">
+    <h2>操作</h2>
+    <div class="note">
+      <kbd>W</kbd>/<kbd>S</kbd> 前后（松开平滑回零），<kbd>A</kbd>/<kbd>D</kbd> 转向，
+      <kbd>Space</kbd> 立即归零，<kbd>R</kbd> 重置，<kbd>Esc</kbd> 停止；
+      手柄：左摇杆前后、右摇杆转向。Isaac 窗口内的键盘仍然可用。
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  const ACC=0.5, YAW_ACC=1.0, POST_HZ=20, POLL_MS=100;
+  const MAX_POINTS=600;
+  const $=id=>document.getElementById(id);
+  const state={vx:0,yaw:0,maxSpeed:2,maxYaw:1,held:{w:false,s:false,a:false,d:false},
+               stop:false,connected:false};
+  const hist=[], wheelHist=[];
+
+  function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+  function post(payload){
+    return fetch('/command',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)}).then(r=>r.json()).catch(()=>null);
+  }
+  function setVx(v){state.vx=clamp(v,-state.maxSpeed,state.maxSpeed);$('vx-target').value=state.vx.toFixed(2);$('vx-target-val').textContent=state.vx.toFixed(2);}
+  function setYaw(v){state.yaw=clamp(v,-state.maxYaw,state.maxYaw);$('yaw-target').value=state.yaw.toFixed(2);$('yaw-target-val').textContent=state.yaw.toFixed(2);}
+
+  function stepCommand(dt){
+    const wantVx=(state.held.w?1:0)-(state.held.s?1:0);
+    const wantYaw=(state.held.a?1:0)-(state.held.d?1:0);
+    const targetVx=state.stop?0:wantVx*state.maxSpeed;
+    const targetYaw=state.stop?0:wantYaw*state.maxYaw;
+    state.vx+=clamp(targetVx-state.vx,-ACC*dt,ACC*dt);
+    state.yaw+=clamp(targetYaw-state.yaw,-YAW_ACC*dt,YAW_ACC*dt);
+    $('vx-target-val').textContent=state.vx.toFixed(2);
+    $('yaw-target-val').textContent=state.yaw.toFixed(2);
+    $('vx-target').value=state.vx.toFixed(2);
+    $('yaw-target').value=state.yaw.toFixed(2);
+  }
+
+  let lastPost=0;
+  function tick(now){
+    const dt=Math.min(0.1,(now-(tick.last||now))/1000);tick.last=now;
+    stepCommand(dt);
+    if(now-lastPost>=1000/POST_HZ){lastPost=now;post({vx:state.vx,yaw:state.yaw});}
+    requestAnimationFrame(tick);
+  }
+
+  function draw(canvas,series,ylim){
+    const ctx=canvas.getContext('2d');
+    const w=canvas.width=canvas.clientWidth*devicePixelRatio, h=canvas.height=canvas.clientHeight*devicePixelRatio;
+    ctx.clearRect(0,0,w,h);
+    const [lo,hi]=ylim;
+    ctx.strokeStyle='#1d2025';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();
+    ctx.fillStyle='#4b525a';ctx.font=(10*devicePixelRatio)+'px monospace';
+    ctx.fillText('+'+hi.toFixed(1),4,11*devicePixelRatio);
+    ctx.fillText('-'+Math.abs(lo).toFixed(1),4,h-4);
+    series.forEach(function(item){
+      const pts=item.pts;if(pts.length<2)return;
+      ctx.strokeStyle=item.color;ctx.lineWidth=1.4*devicePixelRatio;ctx.beginPath();
+      pts.forEach(function(p,i){
+        const x=(i/(MAX_POINTS-1))*w;
+        const y=h-((clamp(p,lo,hi)-lo)/(hi-lo))*h;
+        if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+    });
+  }
+
+  function renderTelemetry(payload){
+    const t=payload.telemetry||{};
+    const fmt=(v,d)=>(v===undefined||v===null||Number.isNaN(v))?'—':Number(v).toFixed(d===undefined?3:d);
+    $('m-vx').textContent=fmt(t.vx);
+    $('m-cmd-vx').textContent=fmt(t.cmd_vx);
+    $('m-yaw').textContent=fmt(t.yaw);
+    $('m-height').textContent=fmt(t.height);
+    $('m-vz').textContent=fmt(t.vz);
+    $('m-wheel').textContent=fmt(t.wheel_qdot_l,2)+' / '+fmt(t.wheel_qdot_r,2);
+    $('m-tau').textContent=fmt(t.wheel_tau_l,2)+' / '+fmt(t.wheel_tau_r,2);
+    $('m-steps').textContent=fmt(t.steps,0)+' / '+fmt(t.resets,0);
+    $('m-source').textContent=t.source||'—';
+    if(t.vx!==undefined){
+      hist.push(t);
+      if(hist.length>MAX_POINTS)hist.shift();
+      wheelHist.push(t);
+      if(wheelHist.length>MAX_POINTS)wheelHist.shift();
+      const lim=Math.max(0.5,state.maxSpeed*1.2);
+      draw($('chart-main'),[
+        {pts:hist.map(r=>r.vx),color:'#63b06a'},
+        {pts:hist.map(r=>r.cmd_vx),color:'#3f6f45'},
+        {pts:hist.map(r=>r.yaw),color:'#d8a13a'},
+        {pts:hist.map(r=>r.height),color:'#7aa7d8'}
+      ],[-lim,lim]);
+      draw($('chart-wheel'),[
+        {pts:wheelHist.map(r=>r.wheel_qdot_l),color:'#7aa7d8'},
+        {pts:wheelHist.map(r=>r.wheel_qdot_r),color:'#3f6f8a'},
+        {pts:wheelHist.map(r=>r.wheel_tau_l),color:'#d8a13a'},
+        {pts:wheelHist.map(r=>r.wheel_tau_r),color:'#8a6a2a'}
+      ],[-40,40]);
+    }
+    if(payload.limits){
+      $('cap-speed').max=String(payload.declared_limits.max_speed);
+      $('cap-yaw').max=String(payload.declared_limits.max_yaw_speed);
+      $('cap-speed-val').textContent=payload.limits.max_speed.toFixed(2);
+      $('cap-yaw-val').textContent=payload.limits.max_yaw_speed.toFixed(2);
+    }
+    if(!state.connected){state.connected=true;$('status').textContent='已连接';$('status').className='ok';}
+  }
+
+  function poll(){
+    fetch('/telemetry').then(function(r){return r.json();}).then(renderTelemetry).catch(function(){
+      state.connected=false;$('status').textContent='面板连接中断（GUI 是否仍在运行？）';$('status').className='warn';
+    });
+  }
+
+  document.addEventListener('keydown',function(e){
+    const k=e.key.toLowerCase();
+    if(k==='w')state.held.w=true;
+    if(k==='s')state.held.s=true;
+    if(k==='a')state.held.a=true;
+    if(k==='d')state.held.d=true;
+    if(e.code==='Space'){state.held={w:false,s:false,a:false,d:false};setVx(0);setYaw(0);post({center:true});e.preventDefault();}
+    if(k==='r'){setVx(0);setYaw(0);post({reset:true});}
+    if(e.key==='Escape'){state.stop=true;setVx(0);setYaw(0);post({stop:true});}
+  });
+  document.addEventListener('keyup',function(e){
+    const k=e.key.toLowerCase();
+    if(k==='w')state.held.w=false;
+    if(k==='s')state.held.s=false;
+    if(k==='a')state.held.a=false;
+    if(k==='d')state.held.d=false;
+  });
+  window.addEventListener('blur',function(){state.held={w:false,s:false,a:false,d:false};setVx(0);setYaw(0);});
+
+  $('vx-target').addEventListener('input',function(e){setVx(parseFloat(e.target.value));});
+  $('yaw-target').addEventListener('input',function(e){setYaw(parseFloat(e.target.value));});
+  $('cap-speed').addEventListener('input',function(e){
+    state.maxSpeed=parseFloat(e.target.value);$('cap-speed-val').textContent=state.maxSpeed.toFixed(2);
+    setVx(state.vx);post({max_speed:state.maxSpeed});
+  });
+  $('cap-yaw').addEventListener('input',function(e){
+    state.maxYaw=parseFloat(e.target.value);$('cap-yaw-val').textContent=state.maxYaw.toFixed(2);
+    setYaw(state.yaw);post({max_yaw_speed:state.maxYaw});
+  });
+  $('btn-stop').addEventListener('click',function(){state.stop=true;setVx(0);setYaw(0);post({stop:true});});
+  $('btn-center').addEventListener('click',function(){setVx(0);setYaw(0);post({center:true});});
+  $('btn-reset').addEventListener('click',function(){setVx(0);setYaw(0);post({reset:true});});
+  $('btn-csv').addEventListener('click',function(){
+    const keys=['t','steps','vx','cmd_vx','yaw','height','vz','wheel_qdot_l','wheel_qdot_r','wheel_tau_l','wheel_tau_r'];
+    const rows=[keys.join(',')].concat(hist.map(function(r){return keys.map(function(k){return r[k];}).join(',');}));
+    const blob=new Blob([rows.join('\n')+'\n'],{type:'text/csv'});
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');
+    a.href=url;a.download='motion31_manual_preview.csv';a.click();URL.revokeObjectURL(url);
+  });
+
+  function gamepad(){
+    const pads=navigator.getGamepads?navigator.getGamepads():[];
+    for(let i=0;i<pads.length;i++){
+      const pad=pads[i];if(!pad||!pad.connected)continue;
+      const lx=pad.axes[0]||0, ly=pad.axes[1]||0, rx=pad.axes[2]||0;
+      state.held.w=ly<-0.2;state.held.s=ly>0.2;
+      state.held.a=rx<-0.2||lx<-0.5;state.held.d=rx>0.2||lx>0.5;
+      const v=Math.hypot(lx,ly);
+      if(v>0.2){const a=Math.atan2(-ly,lx)/Math.PI;state.vx=clamp(Math.cos(a)*v*state.maxSpeed,-state.maxSpeed,state.maxSpeed);}
+      if(Math.abs(rx)>0.2)state.yaw=clamp(rx*state.maxYaw,-state.maxYaw,state.maxYaw);
+      break;
+    }
+  }
+  setInterval(gamepad,1000/30);
+  setInterval(poll,POLL_MS);
+  poll();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

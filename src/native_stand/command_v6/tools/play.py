@@ -58,15 +58,22 @@ def main():
     parser.add_argument('--physical-gpu',type=int,choices=(0,1),default=None)
     parser.add_argument('--speed',type=float,default=1.)
     parser.add_argument('--yaw-speed',type=float,default=0.)
-    parser.add_argument('--max-speed',type=float,default=2.)
-    parser.add_argument('--max-yaw-speed',type=float,default=0.)
+    # None keeps every legacy default intact while the Motion student preview resolves its own caps.
+    parser.add_argument('--max-speed',type=float,default=None)
+    parser.add_argument('--max-yaw-speed',type=float,default=None)
     parser.add_argument('--max-wall-seconds',type=float,default=600.)
+    parser.add_argument('--panel',action='store_true',
+                        help='Motion student preview only: serve the loopback browser control panel')
+    parser.add_argument('--panel-port',type=int,default=None,
+                        help='Motion student preview only: panel port (default 8765)')
     args=parser.parse_args()
+    legacy_max_speed=2. if args.max_speed is None else args.max_speed
+    legacy_max_yaw=0. if args.max_yaw_speed is None else args.max_yaw_speed
     controls=None
     if args.keyboard:
         if not args.preview:parser.error('--keyboard requires --preview')
         from native_stand.command_v6.domain.keyboard_command import KeyboardCommand
-        controls=KeyboardCommand(args.speed,args.yaw_speed,max_speed=args.max_speed,max_yaw_speed=args.max_yaw_speed)
+        controls=KeyboardCommand(args.speed,args.yaw_speed,max_speed=legacy_max_speed,max_yaw_speed=legacy_max_yaw)
         if not 0<args.max_wall_seconds<=7200:parser.error('max-wall-seconds must be in (0,7200]')
     if args.preview and args.output is not None:
         parser.error("--preview does not accept --output")
@@ -75,6 +82,10 @@ def main():
     if (args.output is not None and args.output.exists()) or args.max_policy_steps<0 or not args.checkpoint.is_file():
         raise ValueError("output exists, step limit invalid or checkpoint missing")
     spec=json.loads(args.spec.read_text())
+    if (args.panel or args.panel_port is not None) and not args.preview:
+        parser.error('--panel requires --preview (no ledger or output writes)')
+    if (args.panel or args.panel_port is not None) and spec.get('interface_version') not in ('multiskill_student_v1','multiskill_mcu_v2'):
+        parser.error('--panel is implemented for the Motion student preview only')
     if spec.get('interface_version') in ('multiskill_student_v1','multiskill_mcu_v2'):
         from native_stand.students.play import execute
         return execute(args,spec)
@@ -160,7 +171,7 @@ def main():
             'checkpoint_sha256':digest(args.checkpoint),
             'scope':'policy GUI; initial pose taken from this spec, no separate asset config'}
     if controls is not None:
-        plan['keyboard']={'max_speed_mps':args.max_speed,'max_yaw_rad_s':args.max_yaw_speed,
+        plan['keyboard']={'max_speed_mps':legacy_max_speed,'max_yaw_rad_s':legacy_max_yaw,
             'physical_gpu':args.physical_gpu,'max_wall_s':args.max_wall_seconds,
             'logical_cuda':'cuda:0','renderer_physical_gpu':args.physical_gpu,
             'yaw_certified':False,'keys':'W/S, Up/Down, A/D, Left/Right, Space, R, Esc'}
